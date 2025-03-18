@@ -14,11 +14,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import Particles from "react-tsparticles";
-import { loadStarsPreset } from "tsparticles-preset-stars";
 
 import animationData from "../../public/animations/secure.json";
-import walletAimation from "../../public/animations/wallet.json";
 import Lottie from "lottie-react";
 
 export default function Home() {

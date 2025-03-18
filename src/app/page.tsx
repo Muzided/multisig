@@ -1,103 +1,170 @@
-import Image from "next/image";
+"use client"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { LockKeyhole, Shield, Wallet } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import Particles from "react-tsparticles";
+import { loadStarsPreset } from "tsparticles-preset-stars";
+
+import animationData from "../../public/animations/secure.json";
+import walletAimation from "../../public/animations/wallet.json";
+import Lottie from "lottie-react";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const router = useRouter()
+  const [connecting, setConnecting] = useState(false)
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+  const handleConnect = (provider: string) => {
+    setConnecting(true)
+
+    // Simulate connection process
+    setTimeout(() => {
+      setConnecting(false)
+      router.push("/dashboard")
+    }, 1500)
+  }
+
+  return (
+    <div className=" flex md:flex-row flex-col min-h-screen items-center gap-4 md:px-20 bg-black p-4">
+
+      <div className=" text-start pr-2">
+        <h1 className="text-4xl sm:text-5xl max-w-2xl font-semibold mb-6">
+          <span className="text-blue-600">   Multi-Signature </span> Escrow Wallet for Secure Transactions
+        </h1>
+        <p className="text-lg text-zinc-400 font-thin sm:text-xl mb-3">
+          Effortlessly create, manage, and finalize escrow transactions with multi-signature security.
+        </p>
+        <p className="text-base text-zinc-400 font-thin  sm:text-lg  mb-4">
+          escrow system ensures secure fund releases, auto-reversals on expiry, and decentralized approvals—giving you complete financial control.
+        </p>
+        <ul className="text-left text-zinc-400 font-thin  list-disc list-inside mb-8 space-y-2">
+          <li>✅ Create & manage escrows seamlessly</li>
+          <li>✅ Multi-party approval for secure transactions</li>
+          <li>✅ Automatic fund release or return if unsigned</li>
+        </ul>
+        {/* <button
+          className="bg-white text-indigo-600 font-semibold px-6 py-3 rounded-full shadow-lg hover:bg-gray-200 transition"
+          onClick={() => console.log('Connect Wallet or Navigate to Dashboard')}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          Get Started
+        </button> */}
+      </div>
+
+
+      <Card className="w-full max-w-md border-zinc-800 bg-zinc-900 text-zinc-100">
+
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-4xl text-center upper font-bold bg-gradient-to-l from-[#123691] to-white bg-clip-text text-transparent">MULTISIG ESCROW</CardTitle>
+          <div className="flex flex-col items-center">
+            <Lottie animationData={animationData} className="w-38 h-38" />
+          </div>
+          <div className="flex flex-row items-center justify-center ">
+            <CardDescription className="text-zinc-400 text-center">
+              Multi-Signature Escrow System for Secure Transactions
+            </CardDescription>
+
+          </div>
+
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-950 p-3 text-sm">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-blue-500" />
+              <span>Secure</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <LockKeyhole className="h-4 w-4 text-blue-500" />
+              <span>Multi-Signature</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Wallet className="h-4 w-4 text-blue-500" />
+              <span>Trustless</span>
+            </div>
+          </div>
+
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="w-full bg-blue-600 text-white hover:bg-blue-700">Connect Wallet</Button>
+            </DialogTrigger>
+
+            <DialogContent className="border-zinc-800 bg-zinc-900 text-zinc-100 sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Connect your wallet</DialogTitle>
+                <DialogDescription className="text-zinc-400">
+                  Connect with one of our available wallet providers.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <Button
+                  variant="outline"
+                  className="flex items-center justify-between border-zinc-800 bg-zinc-950 text-white hover:bg-zinc-800 hover:text-white"
+                  onClick={() => handleConnect("metamask")}
+                  disabled={connecting}
+                >
+                  <div className="flex items-center gap-2">
+                    <img src="/placeholder.svg?height=24&width=24" alt="MetaMask" className="h-6 w-6" />
+                    <span>MetaMask</span>
+                  </div>
+                  {connecting ? (
+                    <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-white"></div>
+                  ) : (
+                    <span className="text-xs text-zinc-500">Popular</span>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex items-center justify-between border-zinc-800 bg-zinc-950 text-white hover:bg-zinc-800 hover:text-white"
+                  onClick={() => handleConnect("walletconnect")}
+                  disabled={connecting}
+                >
+                  <div className="flex items-center gap-2">
+                    <img src="/placeholder.svg?height=24&width=24" alt="WalletConnect" className="h-6 w-6" />
+                    <span>WalletConnect</span>
+                  </div>
+                  {connecting ? (
+                    <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-white"></div>
+                  ) : (
+                    <span className="text-xs text-zinc-500">Universal</span>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex items-center justify-between border-zinc-800 bg-zinc-950 text-white hover:bg-zinc-800 hover:text-white"
+                  onClick={() => handleConnect("coinbase")}
+                  disabled={connecting}
+                >
+                  <div className="flex items-center gap-2">
+                    <img src="/placeholder.svg?height=24&width=24" alt="Coinbase Wallet" className="h-6 w-6" />
+                    <span>Coinbase Wallet</span>
+                  </div>
+                  {connecting ? (
+                    <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-white"></div>
+                  ) : (
+                    <span className="text-xs text-zinc-500">Mobile</span>
+                  )}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </CardContent>
+        <CardFooter className="flex flex-col space-y-2 border-t border-zinc-800 pt-4">
+          <p className="text-center text-xs text-zinc-500">
+            By connecting your wallet, you agree to our Terms of Service and Privacy Policy
+          </p>
+        </CardFooter>
+      </Card>
     </div>
-  );
+  )
 }
+

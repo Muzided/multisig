@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 
 import { Header } from "@/components/layout/header"
@@ -11,9 +11,15 @@ import { TransactionsTab } from "@/components/dashboard/transaction-tab"
 import { CreateTab } from "@/components/dashboard/create-tab"
 
 export default function Dashboard() {
+  const [isClient, setIsClient] = useState(false);
   const [activeTab, setActiveTab] = useState("overview")
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
 
+  useEffect(() => {
+    setIsClient(true); // Ensures document-related code runs only on the client
+  }, []);
+
+  if (!isClient) return null; // Prevents SSR issues
   const toggleMobileNav = () => {
     setIsMobileNavOpen(!isMobileNavOpen)
   }

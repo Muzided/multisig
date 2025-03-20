@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { Plus, Trash2 } from "lucide-react"
 
@@ -70,35 +69,52 @@ export function CreateEscrowForm() {
   }
 
   return (
-    <Card className="border-zinc-800 bg-zinc-900 text-zinc-100">
+    <Card
+      className="border-zinc-200/80 bg-gradient-to-b from-white to-zinc-50 shadow-lg text-zinc-900 
+      dark:border-zinc-800 dark:bg-zinc-900 dark:from-zinc-900 dark:to-zinc-900 dark:text-zinc-100 dark:shadow-none"
+    >
       <CardHeader>
-        <CardTitle>Create New Escrow</CardTitle>
-        <CardDescription className="text-zinc-400">Set up a new multi-signature escrow transaction</CardDescription>
+        <CardTitle
+          className="bg-gradient-to-r from-zinc-900 to-zinc-700 bg-clip-text text-transparent
+          dark:from-white dark:to-zinc-300"
+        >
+          Create New Escrow
+        </CardTitle>
+        <CardDescription className="text-zinc-500 dark:text-zinc-400">
+          Set up a new multi-signature escrow transaction
+        </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount (ETH)</Label>
+            <Label htmlFor="amount" className="text-zinc-700 font-medium dark:text-zinc-100">
+              Amount (ETH)
+            </Label>
             <Input
               id="amount"
               type="text"
               placeholder="e.g. 1.5"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="border-zinc-700 bg-zinc-800 text-white"
+              className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
+                transition-all duration-200 hover:border-zinc-300 focus:shadow-md
+                dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-zinc-600"
               required
             />
           </div>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>Signees' Wallets</Label>
+              <Label className="text-zinc-700 font-medium dark:text-zinc-100">Signees' Wallets</Label>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 onClick={addSignee}
-                className="h-8 border-zinc-700 bg-zinc-800 text-white hover:bg-zinc-700"
+                className="h-8 border-zinc-200 bg-white text-zinc-700 shadow-sm hover:bg-zinc-50 hover:border-zinc-300 
+                  hover:shadow-md transition-all duration-200
+                  dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none 
+                  dark:hover:bg-zinc-700 dark:hover:border-zinc-600 dark:hover:shadow-none"
               >
                 <Plus className="mr-2 h-3.5 w-3.5" />
                 Add Signee
@@ -111,7 +127,9 @@ export function CreateEscrowForm() {
                     placeholder="Wallet address (0x...)"
                     value={signee}
                     onChange={(e) => updateSignee(index, e.target.value)}
-                    className="border-zinc-700 bg-zinc-800 text-white"
+                    className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
+                      transition-all duration-200 hover:border-zinc-300 focus:shadow-md
+                      dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-zinc-600"
                     required
                   />
                   {signees.length > 1 && (
@@ -120,7 +138,9 @@ export function CreateEscrowForm() {
                       variant="ghost"
                       size="icon"
                       onClick={() => removeSignee(index)}
-                      className="h-8 w-8 text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                      className="h-8 w-8 text-zinc-500 hover:bg-white hover:text-zinc-900 hover:shadow-sm
+                        transition-all duration-200
+                        dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white dark:hover:shadow-none"
                     >
                       <Trash2 className="h-4 w-4" />
                       <span className="sr-only">Remove</span>
@@ -131,35 +151,47 @@ export function CreateEscrowForm() {
             </div>
           </div>
 
-          <Separator className="bg-zinc-800" />
+          <Separator className="bg-zinc-200 dark:bg-zinc-800" />
 
           <div className="space-y-2">
-            <Label htmlFor="receiver">Receiver's Address</Label>
+            <Label htmlFor="receiver" className="text-zinc-700 font-medium dark:text-zinc-100">
+              Receiver's Address
+            </Label>
             <Input
               id="receiver"
               placeholder="Wallet address (0x...)"
               value={receiver}
               onChange={(e) => setReceiver(e.target.value)}
-              className="border-zinc-700 bg-zinc-800 text-white"
+              className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
+                transition-all duration-200 hover:border-zinc-300 focus:shadow-md
+                dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-zinc-600"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="reversal">Reversal Address</Label>
+            <Label htmlFor="reversal" className="text-zinc-700 font-medium dark:text-zinc-100">
+              Reversal Address
+            </Label>
             <Input
               id="reversal"
               placeholder="Wallet address (0x...)"
               value={reversal}
               onChange={(e) => setReversal(e.target.value)}
-              className="border-zinc-700 bg-zinc-800 text-white"
+              className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
+                transition-all duration-200 hover:border-zinc-300 focus:shadow-md
+                dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-zinc-600"
               required
             />
-            <p className="text-xs text-zinc-500">Funds will be returned to this address if the escrow expires</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-500">
+              Funds will be returned to this address if the escrow expires
+            </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="duration">Duration (Days)</Label>
+            <Label htmlFor="duration" className="text-zinc-700 font-medium dark:text-zinc-100">
+              Duration (Days)
+            </Label>
             <Input
               id="duration"
               type="number"
@@ -167,13 +199,22 @@ export function CreateEscrowForm() {
               placeholder="e.g. 30"
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
-              className="border-zinc-700 bg-zinc-800 text-white"
+              className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
+                transition-all duration-200 hover:border-zinc-300 focus:shadow-md
+                dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-zinc-600"
               required
             />
           </div>
         </CardContent>
         <CardFooter>
-          <Button type="submit" className="w-full bg-blue-600 text-white hover:bg-blue-700" disabled={isSubmitting}>
+          <Button
+            type="submit"
+            className="w-full mt-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md hover:shadow-lg 
+              hover:from-blue-500 hover:to-blue-400 transition-all duration-300
+              dark:bg-blue-600 dark:from-blue-600 dark:to-blue-600 dark:text-white dark:hover:bg-blue-700 
+              dark:hover:from-blue-700 dark:hover:to-blue-700 dark:shadow-none dark:hover:shadow-none"
+            disabled={isSubmitting}
+          >
             {isSubmitting ? "Creating..." : "Create Escrow"}
           </Button>
         </CardFooter>

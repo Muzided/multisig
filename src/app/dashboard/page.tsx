@@ -25,46 +25,47 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gradient-to-br from-zinc-50 to-white dark:bg-black dark:from-black dark:to-black">
-      <Header toggleMobileNav={toggleMobileNav} />
+    <div></div>
+    // <div className="flex min-h-screen flex-col bg-gradient-to-br from-zinc-50 to-white dark:bg-black dark:from-black dark:to-black">
+    //   <Header toggleMobileNav={toggleMobileNav} />
 
-      <div className="flex flex-1">
-        <Sidebar
-          activeTab={activeTab}
-          setActiveTab={(tab) => {
-            setActiveTab(tab)
-            setIsMobileNavOpen(false)
-          }}
-          isMobileNavOpen={isMobileNavOpen}
-        />
+    //   <div className="flex flex-1">
+    //     <Sidebar
+    //       activeTab={activeTab}
+    //       setActiveTab={(tab) => {
+    //         setActiveTab(tab)
+    //         setIsMobileNavOpen(false)
+    //       }}
+    //       isMobileNavOpen={isMobileNavOpen}
+    //     />
 
-        <main className="flex-1 overflow-auto p-4 md:p-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <DashboardHeader activeTab={activeTab} />
+    //     <main className="flex-1 overflow-auto p-4 md:p-6">
+    //       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+    //         <DashboardHeader activeTab={activeTab} />
 
-            <TabsContent value="overview" className="mt-0">
-              <OverviewTab />
-            </TabsContent>
+    //         <TabsContent value="overview" className="mt-0">
+    //           <OverviewTab />
+    //         </TabsContent>
 
-            <TabsContent value="transactions" className="mt-0">
-              <TransactionsTab />
-            </TabsContent>
+    //         <TabsContent value="transactions" className="mt-0">
+    //           <TransactionsTab />
+    //         </TabsContent>
 
-            <TabsContent value="create" className="mt-0">
-              <CreateTab />
-            </TabsContent>
-          </Tabs>
-        </main>
-      </div>
+    //         <TabsContent value="create" className="mt-0">
+    //           <CreateTab />
+    //         </TabsContent>
+    //       </Tabs>
+    //     </main>
+    //   </div>
 
-      {/* Overlay for mobile nav */}
-      {isMobileNavOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm dark:bg-black/50 md:hidden"
-          onClick={() => setIsMobileNavOpen(false)}
-        />
-      )}
-    </div>
+    //   {/* Overlay for mobile nav */}
+    //   {isMobileNavOpen && (
+    //     <div
+    //       className="fixed inset-0 z-30 bg-black/20 backdrop-blur-sm dark:bg-black/50 md:hidden"
+    //       onClick={() => setIsMobileNavOpen(false)}
+    //     />
+    //   )}
+    // </div>
   )
 }
 

@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { LockKeyhole, Shield, Wallet, ChevronRight, Moon, Sun } from "lucide-react"
+import { LockKeyhole, Shield, Wallet } from "lucide-react"
 import Lottie from "lottie-react"
 import logo from "../../public/logo.png"
 import { Button } from "@/components/ui/button"
@@ -24,7 +24,12 @@ import { ThemeToggle } from "@/components/Global/theme-toggle"
 export default function Home() {
   const router = useRouter()
   const [connecting, setConnecting] = useState(false)
- 
+  const [mounted, setMounted] = useState(false)
+
+  // Use useEffect to handle client-side only code
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleConnect = (provider: string) => {
     setConnecting(true)
@@ -34,6 +39,11 @@ export default function Home() {
       setConnecting(false)
       router.push("/dashboard")
     }, 1500)
+  }
+
+  // If not mounted yet, return a simple loading state or null
+  if (!mounted) {
+    return <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-white dark:from-black dark:to-black"></div>
   }
 
   return (
@@ -47,8 +57,8 @@ export default function Home() {
         <div className="flex items-center gap-2">
           <div className="w-10 h-10 relative">
             <div className="absolute inset-0 bg-blue-200/30 dark:bg-blue-600/20 rounded-full blur-md"></div>
-            <div className="relative z-10 w-10 h-10 bg-gradient-to-br   from-blue-600 to-blue-400 rounded-full flex items-center justify-center shadow-lg shadow-blue-200/50 dark:shadow-blue-600/20">
-            <Image src={logo} alt="Logo" width={32} height={32} className="w-8 h-8" />
+            <div className="relative z-10 w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-400 rounded-full flex items-center justify-center shadow-lg shadow-blue-200/50 dark:shadow-blue-600/20">
+              <Image src={logo || "/placeholder.svg"} alt="Logo" width={32} height={32} className="w-8 h-8" />
             </div>
           </div>
           <span className="text-xl font-bold bg-gradient-to-r from-blue-700 to-blue-500 dark:from-blue-500 dark:to-blue-300 bg-clip-text text-transparent">
@@ -116,20 +126,24 @@ export default function Home() {
             </ul>
           </div>
 
-          {/* <Button
-            className="group bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-600 hover:to-blue-400 
-              text-white font-semibold px-8 py-6 rounded-xl 
-              shadow-lg hover:shadow-xl shadow-blue-300/30 hover:shadow-blue-300/40
-              dark:shadow-xl dark:hover:shadow-2xl dark:shadow-blue-900/30 dark:hover:shadow-blue-700/40 
-              transition-all duration-300"
-            onClick={() => document.querySelector('[role="dialog"]')?.classList.remove("hidden")}
-          >
-            Get Started
-            <ChevronRight className="ml-2 h-5 w-5 transform transition-transform group-hover:translate-x-1" />
-          </Button> */}
+          {/* Fixed the commented-out button to use Dialog's API instead of direct DOM manipulation */}
+          {/* <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                className="group bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-600 hover:to-blue-400 
+                  text-white font-semibold px-8 py-6 rounded-xl 
+                  shadow-lg hover:shadow-xl shadow-blue-300/30 hover:shadow-blue-300/40
+                  dark:shadow-xl dark:hover:shadow-2xl dark:shadow-blue-900/30 dark:hover:shadow-blue-700/40 
+                  transition-all duration-300"
+              >
+                Get Started
+                <ChevronRight className="ml-2 h-5 w-5 transform transition-transform group-hover:translate-x-1" />
+              </Button>
+            </DialogTrigger>
+          </Dialog> */}
         </div>
 
-        <div className="md:w-1/2  w-full max-w-md">
+        <div className="md:w-1/2 w-full max-w-md">
           <Card
             className="w-full border-zinc-200/80 dark:border-zinc-800/50 
               bg-white/90 dark:bg-zinc-900/80 backdrop-blur-sm 
@@ -163,7 +177,7 @@ export default function Home() {
               </div>
             </CardHeader>
 
-            <CardContent className="relative  space-y-6 pt-4">
+            <CardContent className="relative space-y-6 pt-4">
               <div
                 className="flex items-center justify-between rounded-xl 
                   border border-zinc-200/80 dark:border-zinc-800/80 

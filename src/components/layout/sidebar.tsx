@@ -32,9 +32,9 @@ export function Sidebar({ activeTab, setActiveTab, isMobileNavOpen }: SidebarPro
     <>
       {/* Desktop Sidebar */}
       <aside
-        className="hidden w-64 border-r border-zinc-200/80 bg-gradient-to-b from-zinc-50 to-white 
+        className="hidden fixed top-16 left-0 bottom-0 w-64 border-r border-zinc-200/80 bg-gradient-to-b from-zinc-50 to-white 
         shadow-[1px_0_3px_rgba(0,0,0,0.02)] dark:border-zinc-800 dark:bg-zinc-950 dark:from-zinc-950 
-        dark:to-zinc-950 dark:shadow-none md:block"
+        dark:to-zinc-950 dark:shadow-none md:block overflow-y-auto"
       >
         <nav className="flex flex-col gap-2 p-4">
           {navItems.map((item) => (
@@ -58,8 +58,7 @@ export function Sidebar({ activeTab, setActiveTab, isMobileNavOpen }: SidebarPro
       {/* Mobile Sidebar */}
       <aside
         className={`fixed inset-0 z-40 w-full transform bg-white/95 backdrop-blur-sm transition-transform 
-          duration-300 ease-in-out shadow-lg dark:bg-zinc-950 dark:shadow-none md:hidden ${
-            isMobileNavOpen ? "translate-x-0" : "-translate-x-full"
+          duration-300 ease-in-out shadow-lg dark:bg-zinc-950 dark:shadow-none md:hidden ${isMobileNavOpen ? "translate-x-0" : "-translate-x-full"
           }`}
       >
         <div className="flex flex-col h-full pt-16">

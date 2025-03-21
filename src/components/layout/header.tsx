@@ -3,9 +3,9 @@
 import { Bell, ChevronDown, LogOut, Menu, Moon, Sun } from "lucide-react"
 import Link from "next/link"
 import Lottie from "lottie-react"
-import { useTheme } from "next-themes"
-
+import logo from "../../../public/logo.png"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,13 +16,13 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 import animationData from "../../../public/animations/secure.json"
+import { ThemeToggle } from "../Global/theme-toggle"
 
 interface HeaderProps {
   toggleMobileNav: () => void
 }
 
 export function Header({ toggleMobileNav }: HeaderProps) {
-  const { theme, setTheme } = useTheme()
 
   return (
     <header
@@ -44,9 +44,15 @@ export function Header({ toggleMobileNav }: HeaderProps) {
         </Button>
 
         <Link href="/dashboard" className="flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
-          <div className="flex items-center p-1 bg-white rounded-full shadow-sm dark:bg-transparent dark:shadow-none">
+          {/* <div className="flex items-center p-1 bg-white rounded-full shadow-sm dark:bg-transparent dark:shadow-none">
             <Lottie animationData={animationData} className="w-10 h-10" />
-          </div>
+          </div> */}
+         <div className="w-10 h-10 relative">
+                    <div className="absolute inset-0 bg-blue-200/30 dark:bg-blue-600/20 rounded-full blur-md"></div>
+                    <div className="relative z-10 w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-400 rounded-full flex items-center justify-center shadow-lg shadow-blue-200/50 dark:shadow-blue-600/20">
+                    <Image src={logo} alt="Logo" width={32} height={32} className="w-8 h-8" />
+                    </div>
+                  </div>
           <span
             className="hidden sm:inline bg-gradient-to-r from-zinc-800 to-zinc-600 bg-clip-text text-transparent 
             dark:from-white dark:to-zinc-300"
@@ -54,20 +60,12 @@ export function Header({ toggleMobileNav }: HeaderProps) {
             MultiSig Escrow
           </span>
         </Link>
+
+        
       </div>
 
       <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-zinc-500 hover:bg-white hover:shadow-sm hover:text-zinc-900 
-            transition-all duration-200 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white 
-            dark:hover:shadow-none"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-        >
-          {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          <span className="sr-only">Toggle theme</span>
-        </Button>
+       <ThemeToggle />
 
         <Button
           variant="ghost"

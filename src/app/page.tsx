@@ -1,10 +1,10 @@
 "use client"
-
+import dynamic from 'next/dynamic';
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { LockKeyhole, Shield, Wallet } from "lucide-react"
-import Lottie from "lottie-react"
+const Lottie = dynamic(() => import('react-lottie'), { ssr: false });
 import logo from "../../public/logo.png"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -24,12 +24,8 @@ import { ThemeToggle } from "@/components/Global/theme-toggle"
 export default function Home() {
   const router = useRouter()
   const [connecting, setConnecting] = useState(false)
-  const [mounted, setMounted] = useState(false)
 
   // Use useEffect to handle client-side only code
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   const handleConnect = (provider: string) => {
     setConnecting(true)
@@ -163,7 +159,11 @@ export default function Home() {
               <div className="flex flex-col items-center mt-2">
                 <div className="w-40 h-40 relative">
                   <div className="absolute inset-0 bg-blue-200/30 dark:bg-blue-600/10 rounded-full blur-xl"></div>
-                {mounted &&  <Lottie animationData={animationData} className="w-full h-full relative z-10" />}
+           
+                  <div className="w-full h-full relative z-10">
+                    <Lottie options={{ animationData }} />
+                  </div>
+            
                 </div>
               </div>
               

@@ -1,5 +1,6 @@
-
+"use client"
 import { ThemeProvider } from '@/components/Global/theme-provider'
+
 import { Poppins } from "next/font/google";
 import './globals.css'
 const poppins = Poppins({
@@ -13,11 +14,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
        className={` ${poppins.variable} antialiased`}
       >
-        <ThemeProvider attribute="class"  defaultTheme="system" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class"  defaultTheme="dark" >
          
             {children}
         

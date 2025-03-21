@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
-import { Moon, Sun } from 'lucide-react'
+import { Moon, Sun } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export function ThemeToggle() {
@@ -22,12 +22,13 @@ export function ThemeToggle() {
         transition-all duration-200 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white 
         dark:hover:shadow-none"
       onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      aria-label="Toggle theme"
     >
       {mounted ? (
         theme === "dark" ? (
-          <Sun className="h-5 w-5 text-yellow-500" />
+          <Sun className="h-5 w-5" />
         ) : (
-          <Moon className="h-5 w-5 text-blue-700" />
+          <Moon className="h-5 w-5" />
         )
       ) : (
         // Placeholder to avoid layout shift during hydration
@@ -37,3 +38,4 @@ export function ThemeToggle() {
     </Button>
   )
 }
+

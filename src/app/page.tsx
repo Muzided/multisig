@@ -24,12 +24,9 @@ import { ThemeToggle } from "@/components/Global/theme-toggle"
 export default function Home() {
   const router = useRouter()
   const [connecting, setConnecting] = useState(false)
-  const [mounted, setMounted] = useState(false)
 
-  // Use useEffect to handle client-side only code
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+
+ 
 
   const handleConnect = (provider: string) => {
     setConnecting(true)
@@ -42,9 +39,7 @@ export default function Home() {
   }
 
   // If not mounted yet, return a simple loading state or null
-  if (!mounted) {
-    return <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-white dark:from-black dark:to-black"></div>
-  }
+ 
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-zinc-50 to-white dark:from-black dark:to-black overflow-hidden">
@@ -166,9 +161,10 @@ export default function Home() {
               <div className="flex flex-col items-center mt-2">
                 <div className="w-40 h-40 relative">
                   <div className="absolute inset-0 bg-blue-200/30 dark:bg-blue-600/10 rounded-full blur-xl"></div>
-                  <Lottie animationData={animationData} className="w-full h-full relative z-10" />
+                  {/* <Lottie animationData={animationData} className="w-full h-full relative z-10" /> */}
                 </div>
               </div>
+              
 
               <div className="flex flex-row items-center justify-center">
                 <CardDescription className="text-zinc-600 dark:text-zinc-300 text-center text-sm">

@@ -24,9 +24,12 @@ import { ThemeToggle } from "@/components/Global/theme-toggle"
 export default function Home() {
   const router = useRouter()
   const [connecting, setConnecting] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
-
- 
+  // Use useEffect to handle client-side only code
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handleConnect = (provider: string) => {
     setConnecting(true)
@@ -38,7 +41,6 @@ export default function Home() {
     }, 1500)
   }
 
-  // If not mounted yet, return a simple loading state or null
  
 
   return (
@@ -161,7 +163,7 @@ export default function Home() {
               <div className="flex flex-col items-center mt-2">
                 <div className="w-40 h-40 relative">
                   <div className="absolute inset-0 bg-blue-200/30 dark:bg-blue-600/10 rounded-full blur-xl"></div>
-                  {/* <Lottie animationData={animationData} className="w-full h-full relative z-10" /> */}
+                {mounted &&  <Lottie animationData={animationData} className="w-full h-full relative z-10" />}
                 </div>
               </div>
               

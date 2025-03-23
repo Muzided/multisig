@@ -17,12 +17,19 @@ import {
 
 import animationData from "../../../public/animations/secure.json"
 import { ThemeToggle } from "../Global/theme-toggle"
+import { useAppKitAccount, useDisconnect } from "@reown/appkit/react"
+import { useWeb3 } from "@/context/Web3Context"
 
 interface HeaderProps {
   toggleMobileNav: () => void
 }
 
 export function Header({ toggleMobileNav }: HeaderProps) {
+
+  const { disconnectWallet } = useWeb3()
+  const { address, isConnected } = useAppKitAccount();
+
+
 
   return (
     <header
@@ -43,16 +50,16 @@ export function Header({ toggleMobileNav }: HeaderProps) {
           <span className="sr-only">Toggle menu</span>
         </Button>
 
-        <Link href="/dashboard" className="flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
+        <Link href="/" className="flex items-center gap-2 font-bold text-zinc-900 dark:text-white">
           {/* <div className="flex items-center p-1 bg-white rounded-full shadow-sm dark:bg-transparent dark:shadow-none">
             <Lottie animationData={animationData} className="w-10 h-10" />
           </div> */}
-         <div className="w-10 h-10 relative">
-                    <div className="absolute inset-0 bg-blue-200/30 dark:bg-blue-600/20 rounded-full blur-md"></div>
-                    <div className="relative z-10 w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-400 rounded-full flex items-center justify-center shadow-lg shadow-blue-200/50 dark:shadow-blue-600/20">
-                    <Image src={logo} alt="Logo" width={32} height={32} className="w-8 h-8" />
-                    </div>
-                  </div>
+          <div className="w-10 h-10 relative">
+            <div className="absolute inset-0 bg-blue-200/30 dark:bg-blue-600/20 rounded-full blur-md"></div>
+            <div className="relative z-10 w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-400 rounded-full flex items-center justify-center shadow-lg shadow-blue-200/50 dark:shadow-blue-600/20">
+              <Image src={logo} alt="Logo" width={32} height={32} className="w-8 h-8" />
+            </div>
+          </div>
           <span
             className="hidden sm:inline bg-gradient-to-r from-zinc-800 to-zinc-600 bg-clip-text text-transparent 
             dark:from-white dark:to-zinc-300"
@@ -61,11 +68,11 @@ export function Header({ toggleMobileNav }: HeaderProps) {
           </span>
         </Link>
 
-        
+
       </div>
 
       <div className="flex items-center gap-2">
-       <ThemeToggle />
+        <ThemeToggle />
 
         <Button
           variant="ghost"
@@ -87,7 +94,7 @@ export function Header({ toggleMobileNav }: HeaderProps) {
                 dark:hover:shadow-none"
             >
               <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 shadow-md"></div>
-              <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">0x1a2...3b4c</span>
+              <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">{isConnected ? `${address?.slice(0, 8)}...${address?.slice(-7)}` : 'Connect Wallet'}</span>
               <ChevronDown className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -99,11 +106,12 @@ export function Header({ toggleMobileNav }: HeaderProps) {
             <DropdownMenuLabel className="font-medium">My Account</DropdownMenuLabel>
             <DropdownMenuSeparator className="bg-zinc-200 dark:bg-zinc-800" />
             <DropdownMenuItem
+            onClick={disconnectWallet}
               className="hover:bg-zinc-50 hover:shadow-sm transition-all duration-200 
               dark:hover:bg-zinc-800 dark:hover:text-white cursor-pointer dark:hover:shadow-none"
             >
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>Disconnect</span>
+              <LogOut  className="mr-2 h-4 w-4" />
+              <span >Disconnect</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

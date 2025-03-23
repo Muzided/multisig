@@ -20,24 +20,21 @@ import {
 // Import animation data
 import animationData from "../../public/animations/secure.json"
 import { ThemeToggle } from "@/components/Global/theme-toggle"
+import { ConnectWalletButton } from '@/components/web3/connect-button';
+import { useAppKitAccount } from '@reown/appkit/react';
 
 export default function Home() {
+  //next-router
   const router = useRouter()
-  const [connecting, setConnecting] = useState(false)
 
-  // Use useEffect to handle client-side only code
+  //rewon-appkit
+  const { address, isConnected } = useAppKitAccount();
 
-  const handleConnect = (provider: string) => {
-    setConnecting(true)
 
-    // Simulate connection process
-    setTimeout(() => {
-      setConnecting(false)
-      router.push("/dashboard")
-    }, 1500)
-  }
+const navgateToDashboard=()=>{
+  router.push('/dashboard')
+}
 
- 
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-zinc-50 to-white dark:from-black dark:to-black overflow-hidden">
@@ -58,8 +55,23 @@ export default function Home() {
             MultiSig Escrow
           </span>
         </div>
+        <div className='flex gap-12'>
+          {address &&
+            <Button
+            onClick={navgateToDashboard}
+              variant="ghost"
+              className="text-zinc-500 hover:bg-white hover:shadow-sm hover:text-zinc-900 
+        transition-all duration-200 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white 
+        dark:hover:shadow-none"
 
-        <ThemeToggle />
+              aria-label="Toggle theme"
+            >
+              Dashboard
+              <span className="sr-only">Toggle theme</span>
+            </Button>
+          }
+          <ThemeToggle />
+        </div>
       </header>
 
       <div className="relative z-10 flex md:flex-row flex-col md:min-h-[calc(100vh-80px)] gap-8 md:gap-20 items-center md:px-20 p-6">
@@ -159,14 +171,14 @@ export default function Home() {
               <div className="flex flex-col items-center mt-2">
                 <div className="w-40 h-40 relative">
                   <div className="absolute inset-0 bg-blue-200/30 dark:bg-blue-600/10 rounded-full blur-xl"></div>
-           
+
                   <div className="w-full h-full relative z-10">
                     <Lottie options={{ animationData }} />
                   </div>
-            
+
                 </div>
               </div>
-              
+
 
               <div className="flex flex-row items-center justify-center">
                 <CardDescription className="text-zinc-600 dark:text-zinc-300 text-center text-sm">
@@ -204,125 +216,10 @@ export default function Home() {
                 </div>
               </div>
 
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button
-                    className="w-full bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-600 hover:to-blue-400 
-                      text-white font-semibold py-6 rounded-xl 
-                      shadow-md hover:shadow-lg shadow-blue-300/30 hover:shadow-blue-300/40
-                      dark:shadow-lg dark:hover:shadow-lg dark:shadow-blue-900/30 dark:hover:shadow-blue-700/40 
-                      transition-all duration-300"
-                  >
-                    Connect Wallet
-                  </Button>
-                </DialogTrigger>
+              <ConnectWalletButton />
 
-                <DialogContent
-                  className="border-zinc-200/80 dark:border-zinc-800/80 
-                    bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm 
-                    text-zinc-900 dark:text-zinc-100 
-                    shadow-2xl shadow-zinc-300/50 dark:shadow-blue-900/20 
-                    rounded-2xl"
-                >
-                  <DialogHeader>
-                    <DialogTitle className="text-2xl font-bold text-zinc-900 dark:text-white">
-                      Connect your wallet
-                    </DialogTitle>
-                    <DialogDescription className="text-zinc-600 dark:text-zinc-300">
-                      Connect with one of our available wallet providers.
-                    </DialogDescription>
-                  </DialogHeader>
 
-                  <div className="grid gap-4 py-4">
-                    <Button
-                      variant="outline"
-                      className="flex items-center justify-between 
-                        border-zinc-200/80 dark:border-zinc-800/80 
-                        bg-white dark:bg-zinc-950/80 
-                        text-zinc-900 dark:text-white 
-                        hover:bg-zinc-50 dark:hover:bg-zinc-800 
-                        hover:border-zinc-300 dark:hover:border-blue-600/50 
-                        hover:shadow-md dark:hover:shadow-md 
-                        hover:shadow-zinc-200/50 dark:hover:shadow-blue-900/20
-                        transition-all duration-300 py-6 rounded-xl"
-                      onClick={() => handleConnect("metamask")}
-                      disabled={connecting}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="bg-orange-100/80 dark:bg-orange-500/10 p-2 rounded-full shadow-sm dark:shadow-none">
-                          <img src="/placeholder.svg?height=24&width=24" alt="MetaMask" className="h-6 w-6" />
-                        </div>
-                        <span>MetaMask</span>
-                      </div>
-                      {connecting ? (
-                        <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-blue-600 dark:border-white"></div>
-                      ) : (
-                        <span className="text-xs text-zinc-500 bg-zinc-100/80 dark:bg-zinc-800/80 px-2 py-1 rounded-full shadow-sm dark:shadow-none">
-                          Popular
-                        </span>
-                      )}
-                    </Button>
 
-                    <Button
-                      variant="outline"
-                      className="flex items-center justify-between 
-                        border-zinc-200/80 dark:border-zinc-800/80 
-                        bg-white dark:bg-zinc-950/80 
-                        text-zinc-900 dark:text-white 
-                        hover:bg-zinc-50 dark:hover:bg-zinc-800 
-                        hover:border-zinc-300 dark:hover:border-blue-600/50 
-                        hover:shadow-md dark:hover:shadow-md 
-                        hover:shadow-zinc-200/50 dark:hover:shadow-blue-900/20
-                        transition-all duration-300 py-6 rounded-xl"
-                      onClick={() => handleConnect("walletconnect")}
-                      disabled={connecting}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="bg-blue-100/80 dark:bg-blue-500/10 p-2 rounded-full shadow-sm dark:shadow-none">
-                          <img src="/placeholder.svg?height=24&width=24" alt="WalletConnect" className="h-6 w-6" />
-                        </div>
-                        <span>WalletConnect</span>
-                      </div>
-                      {connecting ? (
-                        <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-blue-600 dark:border-white"></div>
-                      ) : (
-                        <span className="text-xs text-zinc-500 bg-zinc-100/80 dark:bg-zinc-800/80 px-2 py-1 rounded-full shadow-sm dark:shadow-none">
-                          Universal
-                        </span>
-                      )}
-                    </Button>
-
-                    <Button
-                      variant="outline"
-                      className="flex items-center justify-between 
-                        border-zinc-200/80 dark:border-zinc-800/80 
-                        bg-white dark:bg-zinc-950/80 
-                        text-zinc-900 dark:text-white 
-                        hover:bg-zinc-50 dark:hover:bg-zinc-800 
-                        hover:border-zinc-300 dark:hover:border-blue-600/50 
-                        hover:shadow-md dark:hover:shadow-md 
-                        hover:shadow-zinc-200/50 dark:hover:shadow-blue-900/20
-                        transition-all duration-300 py-6 rounded-xl"
-                      onClick={() => handleConnect("coinbase")}
-                      disabled={connecting}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="bg-blue-100/80 dark:bg-blue-500/10 p-2 rounded-full shadow-sm dark:shadow-none">
-                          <img src="/placeholder.svg?height=24&width=24" alt="Coinbase Wallet" className="h-6 w-6" />
-                        </div>
-                        <span>Coinbase Wallet</span>
-                      </div>
-                      {connecting ? (
-                        <div className="h-5 w-5 animate-spin rounded-full border-b-2 border-blue-600 dark:border-white"></div>
-                      ) : (
-                        <span className="text-xs text-zinc-500 bg-zinc-100/80 dark:bg-zinc-800/80 px-2 py-1 rounded-full shadow-sm dark:shadow-none">
-                          Mobile
-                        </span>
-                      )}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
             </CardContent>
 
             <CardFooter className="flex flex-col space-y-2 border-t border-zinc-200/50 dark:border-zinc-800/50 pt-4">

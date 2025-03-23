@@ -3,6 +3,8 @@ import { ThemeProvider } from '@/components/Global/theme-provider'
 
 import { Poppins } from "next/font/google";
 import './globals.css'
+import { AppKit } from '@/context/appkit';
+import { Web3Provider } from '@/context/Web3Context';
 const poppins = Poppins({
   variable: "--font-poppins",
   subsets: ["latin"],
@@ -16,12 +18,15 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-       className={` ${poppins.variable} antialiased`}
+        className={` ${poppins.variable} antialiased`}
       >
-        <ThemeProvider attribute="class"  defaultTheme="dark" >
-         
-            {children}
-        
+        <ThemeProvider attribute="class" defaultTheme="dark" >
+          <AppKit>
+           
+              <Web3Provider>
+                {children}
+              </Web3Provider>
+          </AppKit>
         </ThemeProvider>
       </body>
     </html>

@@ -60,7 +60,7 @@ const navgateToDashboard=()=>{
             <Button
             onClick={navgateToDashboard}
               variant="ghost"
-              className="text-zinc-500 hover:bg-white hover:shadow-sm hover:text-zinc-900 
+              className="text-zinc-500 cursor-pointer hover:bg-white hover:shadow-sm hover:text-zinc-900 
         transition-all duration-200 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white 
         dark:hover:shadow-none"
 

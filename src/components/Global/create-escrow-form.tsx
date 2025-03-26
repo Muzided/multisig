@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Plus, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import { useWeb3 } from "@/context/Web3Context"
+import { useFactory } from "@/Hooks/useFactory"
 
 export function CreateEscrowForm() {
   const [amount, setAmount] = useState("")
@@ -17,6 +19,18 @@ export function CreateEscrowForm() {
   const [reversal, setReversal] = useState("")
   const [duration, setDuration] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  //web 3 context
+  const {signer} = useWeb3()
+  // multi-sig factory contract hook
+  const {fetchTotalEscrows} = useFactory()
+
+
+useEffect(() => {
+  if(!signer) return
+  fetchTotalEscrows()
+
+}, [signer])
+    // This would fetch the user's wallet address from the wallet provider)
 
   const addSignee = () => {
     setSignees([...signees, ""])
@@ -67,6 +81,8 @@ export function CreateEscrowForm() {
       setIsSubmitting(false)
     }
   }
+
+
 
   return (
     <Card

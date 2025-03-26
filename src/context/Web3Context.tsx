@@ -3,12 +3,16 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { BrowserProvider, Eip1193Provider, ethers } from 'ethers'
 import { useAppKitAccount, useAppKitProvider, useDisconnect } from '@reown/appkit/react';
 import { useRouter } from 'next/navigation';
+//web-3 config
+import { MultiSig_Factory_Address } from '@/Web3/web3-config';
+import MultiSigFactoryAbi from '@/Web3/abis/MultiSigFactoryAbi.json';
 interface Web3ContextType {
     provider: BrowserProvider | null;
     signer: ethers.Signer | null;
     account: string;
     isConnected: boolean;
     chainId: number | null;
+    multisigFactoryContract: ethers.Contract | null;
     disconnectWallet: () => void;
 }
 
@@ -32,6 +36,8 @@ export function Web3Provider({ children }: Web3ProviderProps) {
     const [signer, setSigner] = useState<ethers.Signer | null>(null);
     const [account, setAccount] = useState<string>('');
     const [chainId, setChainId] = useState<number | null>(null);
+    const [multisigFactoryContract, setMultisigFactoryContract] = useState<ethers.Contract | null>(null);
+
 
 
     // initilize states when wallet and provider connects
@@ -52,10 +58,13 @@ export function Web3Provider({ children }: Web3ProviderProps) {
 
             const ethersProvider = new BrowserProvider(walletProvider as Eip1193Provider);
             const signer = await ethersProvider.getSigner();
+            const factoryContract = new ethers.Contract(MultiSig_Factory_Address, MultiSigFactoryAbi, signer);
+
 
             setProvider(ethersProvider);
             setSigner(signer);
             setAccount(await signer.getAddress());
+            setMultisigFactoryContract(factoryContract);
 
             const { chainId } = await ethersProvider.getNetwork();
             setChainId(Number(chainId));
@@ -64,7 +73,7 @@ export function Web3Provider({ children }: Web3ProviderProps) {
         }
     };
 
-    console.log("after intializations", provider, signer, account, chainId)
+    console.log("after intializations", provider, signer, account, chainId,multisigFactoryContract)
     // Handle disconnection: Reset state and redirect to "/"
     // useEffect(() => {
     //     if (!isConnected) {
@@ -82,7 +91,7 @@ export function Web3Provider({ children }: Web3ProviderProps) {
     };
 
     //dissconnect wallet 
-    const disconnectWallet=async()=>{
+    const disconnectWallet = async () => {
         await disconnect()
         router.push('/')
     }
@@ -93,6 +102,7 @@ export function Web3Provider({ children }: Web3ProviderProps) {
             account,
             isConnected,
             chainId,
+            multisigFactoryContract,
             disconnectWallet
         }}>
             {children}

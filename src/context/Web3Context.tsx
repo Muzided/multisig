@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 //web-3 config
 import { escrow_Contract_Address, MultiSig_Factory_Address, Usdt_Contract_Address } from '@/Web3/web3-config';
 import MultiSigFactoryAbi from '@/Web3/abis/MultiSigFactoryAbi.json';
-import escrowContractAbi from '@/Web3/abis/EscrowAbi.json';
+import escrowContractAbi from '../Web3/Abis/EscrowAbi.json'
+
 import Erc20TokenAbi from '@/Web3/abis/Erc20TokenAbi.json';
 interface Web3ContextType {
     provider: BrowserProvider | null;

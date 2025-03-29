@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Check, Clock, ExternalLink, MoreHorizontal, X } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -17,17 +17,18 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useFactory } from "@/Hooks/useFactory"
+import { useAppKitAccount } from "@reown/appkit/react"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog"
 
+import { Switch } from "@/components/ui/switch"
 // Mock data for escrow transactions
 const mockEscrows = [
   {
     id: "ESC-001",
     amount: "1.5 ETH",
-    signees: [
-      { address: "0x1a2b3c4d5e6f7g8h9i0j", hasSigned: true },
-      { address: "0x9i8h7g6f5e4d3c2b1a0", hasSigned: false },
-    ],
-    expiry: "2023-12-31",
+    diputed: false,
+    requested: false,
     status: "active",
     receiver: "0x2b3c4d5e6f7g8h9i0j1a",
     reversal: "0x3c4d5e6f7g8h9i0j1a2b",
@@ -36,11 +37,8 @@ const mockEscrows = [
   {
     id: "ESC-002",
     amount: "0.75 ETH",
-    signees: [
-      { address: "0x1a2b3c4d5e6f7g8h9i0j", hasSigned: true },
-      { address: "0x9i8h7g6f5e4d3c2b1a0", hasSigned: true },
-    ],
-    expiry: "2023-12-25",
+    diputed: false,
+    requested: false,
     status: "completed",
     receiver: "0x4d5e6f7g8h9i0j1a2b3c",
     reversal: "0x5e6f7g8h9i0j1a2b3c4d",
@@ -49,11 +47,8 @@ const mockEscrows = [
   {
     id: "ESC-003",
     amount: "2.0 ETH",
-    signees: [
-      { address: "0x1a2b3c4d5e6f7g8h9i0j", hasSigned: false },
-      { address: "0x9i8h7g6f5e4d3c2b1a0", hasSigned: false },
-    ],
-    expiry: "2024-01-15",
+    diputed: false,
+    requested: false,
     status: "pending",
     receiver: "0x6f7g8h9i0j1a2b3c4d5e",
     reversal: "0x7g8h9i0j1a2b3c4d5e6f",
@@ -62,11 +57,8 @@ const mockEscrows = [
   {
     id: "ESC-004",
     amount: "0.5 ETH",
-    signees: [
-      { address: "0x1a2b3c4d5e6f7g8h9i0j", hasSigned: false },
-      { address: "0x9i8h7g6f5e4d3c2b1a0", hasSigned: false },
-    ],
-    expiry: "2023-11-10",
+    diputed: false,
+    requested: false,
     status: "expired",
     receiver: "0x8h9i0j1a2b3c4d5e6f7g",
     reversal: "0x9i0j1a2b3c4d5e6f7g8h",
@@ -75,11 +67,8 @@ const mockEscrows = [
   {
     id: "ESC-005",
     amount: "3.2 ETH",
-    signees: [
-      { address: "0x1a2b3c4d5e6f7g8h9i0j", hasSigned: true },
-      { address: "0x9i8h7g6f5e4d3c2b1a0", hasSigned: false },
-    ],
-    expiry: "2024-02-01",
+    diputed: false,
+    requested: false,
     status: "active",
     receiver: "0x0j1a2b3c4d5e6f7g8h9i",
     reversal: "0x1a2b3c4d5e6f7g8h9i0j",
@@ -87,29 +76,139 @@ const mockEscrows = [
   },
 ]
 
+
+type FormattedEscrow = {
+  id: string;
+  amount: string;
+  escrowAddress: string;
+  disputed: boolean;
+  requested: boolean;
+  status: string;
+  receiver: string;
+  reversal: string;
+  createdAt: string;
+};
 // Helper function to format wallet address
 const formatAddress = (address: string) => {
   return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`
 }
 
-// Helper function to determine if the current user can sign
-const canSign = (escrow: any) => {
-  // Assuming the current user's address is the first one in the signees array
-  const currentUserAddress = "0x1a2b3c4d5e6f7g8h9i0j"
-  const userSignee = escrow.signees.find((s: any) => s.address === currentUserAddress)
-  return userSignee && !userSignee.hasSigned && escrow.status === "active"
-}
+
 
 type EscrowOverviewProps = {
   limit?: number
 }
 
 export function EscrowOverview({ limit }: EscrowOverviewProps) {
-  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [statusFilter, setStatusFilter] = useState<string>("creator-escrows")
+  const [loadingEscrows, setLoadingEscrows] = useState<{ [key: string]: boolean }>({});
+  const [escrows, setEscrows] = useState<any[]>([])
+  const [refresh, setRefresh] = useState(false)
+  const [openDialog, setOpenDialog] = useState(false);
+  const [openResolveDialog, setOpenResolveDialog] = useState(false);
+  const [resolveApproved, setResolveApproved] = useState(false);
+  const [disputeReason, setDisputeReason] = useState("");
+  const [selectedEscrow, setSelectedEscrow] = useState(null);
+  const [createdEscrows, setCreatedEscrows] = useState<any[]>([])
+  const { fetchCreatorEscrows, fetchReceiverEscrows, fetchPaymentRequest, requestPayment, releaseFunds, approvePayment, initaiteDispute, resolveDispute } = useFactory();
+  const { address } = useAppKitAccount();
+
+  useEffect(() => {
+    if (!address) return;
+    fetchCreatedEscrows(address)
+    fetchClaimAbleEscrows(address)
+
+  }, [address, refresh])
+
+  //user created escrows
+  const fetchCreatedEscrows = async (userAddress: string) => {
+    try {
+      const blockchainEscrows = await fetchCreatorEscrows(userAddress)
+      console.log("ecrow-created-by-user", blockchainEscrows)
+      if (!blockchainEscrows || blockchainEscrows.length === 0) {
+        setCreatedEscrows([]);
+        return;
+      }
+
+      const currentDate = new Date().toISOString().split("T")[0];
+
+      // Fetch and format data in one step
+      const formattedEscrows: FormattedEscrow[] = await Promise.all(
+        blockchainEscrows.map(async (escrow: any, index: number) => {
+          const escrowRequest = await fetchPaymentRequest(escrow);
+
+          return {
+            id: `ESC-${(index + 1).toString().padStart(3, "0")}`,
+            amount: `${escrowRequest?.amountRequested} USDT`,
+            escrowAddress: escrow,
+            disputed: escrowRequest?.isDisputed,
+            requested: escrowRequest?.isPayoutRequested,
+            status: escrowRequest?.completed
+              ? "completed"
+              : escrowRequest?.isDisputed
+                ? "disputed"
+                : "active",
+            receiver: userAddress,
+            reversal: `0x${Math.random().toString(16).substr(2, 40)}`,
+            createdAt: currentDate,
+          };
+        })
+      );
+      console.log("formattedEscrows", formattedEscrows)
+
+      setCreatedEscrows(formattedEscrows);
+    } catch (error) {
+      console.error("Error fetching escrow payment requests", error);
+      setCreatedEscrows([]); // Ensure state consistency in case of an error
+    }
+  };
+  //user claimable escrows
+  const fetchClaimAbleEscrows = async (userAddress: string) => {
+    try {
+      const blockchainEscrows = await fetchReceiverEscrows(userAddress);
+
+
+      if (!blockchainEscrows || blockchainEscrows.length === 0) {
+        setEscrows([]);
+        return;
+      }
+      console.log("ecrow-received-by-user", blockchainEscrows)
+
+      const currentDate = new Date().toISOString().split("T")[0];
+
+      // Fetch and format data in one step
+      const formattedEscrows: FormattedEscrow[] = await Promise.all(
+        blockchainEscrows.map(async (escrow: any, index: number) => {
+          const escrowRequest = await fetchPaymentRequest(escrow);
+
+          return {
+            id: `ESC-${(index + 1).toString().padStart(3, "0")}`,
+            amount: `${escrowRequest?.amountRequested} USDT`,
+            disputed: escrowRequest?.isDisputed,
+            escrowAddress: escrow,
+            requested: escrowRequest?.isPayoutRequested,
+            status: escrowRequest?.completed
+              ? "completed"
+              : escrowRequest?.isDisputed
+                ? "disputed"
+                : "active",
+            receiver: userAddress,
+            reversal: `0x${Math.random().toString(16).substr(2, 40)}`,
+            createdAt: currentDate,
+          };
+        })
+      );
+
+      setEscrows(formattedEscrows);
+    } catch (error) {
+      console.error("Error fetching escrow payment requests", error);
+      setEscrows([]); // Ensure state consistency in case of an error
+    }
+  };
 
   // Filter escrows based on status
   const filteredEscrows =
-    statusFilter === "all" ? mockEscrows : mockEscrows.filter((escrow) => escrow.status === statusFilter)
+    statusFilter === "creator-escrows" ? createdEscrows : escrows
 
   // Apply limit if provided
   const displayEscrows = limit ? filteredEscrows.slice(0, limit) : filteredEscrows
@@ -137,6 +236,24 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
     }
   }
 
+  const handleOpenDialog = (escrow: any) => {
+    setSelectedEscrow(escrow);
+    setOpenDialog(true);
+  };
+
+  const handleSubmitDispute = () => {
+    if (selectedEscrow) {
+      console.log("Dispute reason:", disputeReason);
+      // Here you would call your dispute initiation function
+      setOpenDialog(false);
+      setDisputeReason("");
+    }
+  };
+  const handleOpenResolveDialog = (escrow: any) => {
+    setSelectedEscrow(escrow);
+    setOpenResolveDialog(true);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -151,11 +268,8 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
             className="border-zinc-200 bg-white text-zinc-900 
             dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
           >
-            <SelectItem value="all">All Escrows</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="completed">Completed</SelectItem>
-            <SelectItem value="expired">Expired</SelectItem>
+            <SelectItem value="creator-escrows">My Escrows</SelectItem>
+            <SelectItem value="claimable-escrows">Calimable Escrows</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -188,14 +302,15 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
                 >
                   <TableHead className="text-zinc-500 dark:text-zinc-400">ID</TableHead>
                   <TableHead className="text-zinc-500 dark:text-zinc-400">Amount</TableHead>
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">Signees</TableHead>
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">Expiry</TableHead>
+                  {/* <TableHead className="text-zinc-500 dark:text-zinc-400">Signees</TableHead> */}
+                  {/* <TableHead className="text-zinc-500 dark:text-zinc-400">Dispute</TableHead> */}
                   <TableHead className="text-zinc-500 dark:text-zinc-400">Status</TableHead>
+                  <TableHead className="text-zinc-500 dark:text-zinc-400">Claim Status</TableHead>
                   <TableHead className="text-right text-zinc-500 dark:text-zinc-400">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {displayEscrows.length === 0 ? (
+                {filteredEscrows.length === 0 ? (
                   <TableRow
                     className="border-zinc-200 hover:bg-zinc-100/50 
                     dark:border-zinc-800 dark:hover:bg-zinc-800/50"
@@ -205,7 +320,7 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  displayEscrows.map((escrow) => (
+                  filteredEscrows.map((escrow) => (
                     <TableRow
                       key={escrow.id}
                       className="border-zinc-200 hover:bg-zinc-100/50 
@@ -213,40 +328,115 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
                     >
                       <TableCell className="font-medium text-zinc-900 dark:text-white">{escrow.id}</TableCell>
                       <TableCell className="text-zinc-900 dark:text-white">{escrow.amount}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          {escrow.signees.map((signee, index) => (
-                            <div key={index} className="flex items-center gap-1 text-sm">
-                              <span className="text-zinc-500 dark:text-zinc-400">{formatAddress(signee.address)}</span>
-                              {signee.hasSigned ? (
-                                <Check className="h-4 w-4 text-green-500" />
-                              ) : (
-                                <Clock className="h-4 w-4 text-yellow-500" />
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-zinc-500 dark:text-zinc-400">
-                        {new Date(escrow.expiry).toLocaleDateString()}
-                      </TableCell>
+
+                      {/* <TableCell className="text-zinc-500 dark:text-zinc-400">
+                        {escrow.diputed ?
+                          <Badge variant="outline" className={getStatusStyles("expired")}>
+                            {"Disputed"}
+                          </Badge> :
+                          <Badge variant="outline" className={getStatusStyles("pending")}>
+                            {"---"}
+                          </Badge>}
+                      </TableCell> */}
                       <TableCell>
                         <Badge variant="outline" className={getStatusStyles(escrow.status)}>
                           {escrow.status.charAt(0).toUpperCase() + escrow.status.slice(1)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell>
+                        {escrow.requested ?
+                          <Badge variant="outline" className={getStatusStyles("active")}>
+                            {"Requested"}
+                          </Badge> :
+                          <Badge variant="outline" className={getStatusStyles("pending")}>
+                            {statusFilter === "creator-escrows" ? "Not requested" : "Claimable"}
+                          </Badge>
+                        }
+                      </TableCell>
+                      {/* action buttons */}
+                      <TableCell className="text-right ">
                         <div className="flex justify-end gap-2">
-                          {canSign(escrow) && (
-                            <Button
-                              size="sm"
-                              className="bg-blue-600 text-white hover:bg-blue-700 
+
+                          {!escrow.disputed && escrow.requested && statusFilter === 'creator-escrows' && <Button
+                            size="sm"
+                            disabled={loadingEscrows[escrow.escrowAddress] || false}
+                            className="bg-blue-600 text-white hover:bg-blue-700 
                                 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
-                              onClick={() => handleSignEscrow(escrow.id)}
-                            >
-                              Sign
-                            </Button>
+                            onClick={() => approvePayment(escrow.escrowAddress, setLoadingEscrows, setRefresh)}
+                          >
+                            {loadingEscrows[escrow.escrowAddress] ? "processing..." : "Release Funds"}
+                          </Button>}
+                          {!escrow.disputed && !escrow.requested && statusFilter === 'claimable-escrows' && <Button
+                            size="sm"
+                            disabled={loadingEscrows[escrow.escrowAddress] || false}
+                            className="bg-blue-600 text-white hover:bg-blue-700 
+                                dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
+                            onClick={() => requestPayment(escrow.escrowAddress, setLoadingEscrows, setRefresh)}
+                          >
+                            {loadingEscrows[escrow.escrowAddress] ? "processing..." : "Request Claim"}
+                          </Button>}
+                          {!escrow.disputed && escrow.requested&& statusFilter === 'claimable-escrows' && (
+                            <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+                              <DialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  disabled={loadingEscrows[escrow.escrowAddress] || false}
+                                  className="bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:text-white dark:hover:bg-red-700"
+                                  onClick={() => handleOpenDialog(escrow)}
+                                >
+                                  Initiate Dispute
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Initiate Dispute</DialogTitle>
+                                </DialogHeader>
+                                <textarea
+                                  placeholder="Enter reason for dispute..."
+                                  rows={6}
+                                  value={disputeReason}
+                                  onChange={(e) => setDisputeReason(e.target.value)}
+                                  className="mt-2 p-2"
+                                />
+                                <DialogFooter>
+                                  <Button variant="outline" onClick={() => setOpenDialog(false)}>Cancel</Button>
+                                  <Button
+                                    disabled={loadingEscrows[escrow.escrowAddress] || false}
+                                    onClick={(() => {
+                                      initaiteDispute(escrow.escrowAddress, disputeReason, setLoadingEscrows, setRefresh)
+                                    })}
+                                    className="bg-red-600 text-white hover:bg-red-700">
+                                    {loadingEscrows[escrow.escrowAddress] ? "processing..." : "Submit Dispute"}
+
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
                           )}
+                          {/* {escrow.disputed && statusFilter === 'creator-escrows' && (
+                            <Dialog open={openResolveDialog} onOpenChange={setOpenResolveDialog}>
+                              <DialogTrigger asChild>
+                                <Button size="sm" className="bg-green-600 text-white hover:bg-green-700" onClick={() => handleOpenResolveDialog(escrow)}>
+                                  Resolve Dispute
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Resolve Dispute</DialogTitle>
+                                </DialogHeader>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <Switch checked={resolveApproved} onCheckedChange={setResolveApproved} />
+                                  <span>{resolveApproved ? "Approve Resolution" : "Reject Resolution"}</span>
+                                </div>
+                                <DialogFooter>
+                                  <Button variant="outline" onClick={() => setOpenResolveDialog(false)}>Cancel</Button>
+                                  <Button onClick={(() => { resolveDispute(escrow.escrowAddress, resolveApproved, setLoadingEscrows, setRefresh) })} className="bg-green-600 text-white hover:bg-green-700">
+                                    Submit Resolution
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          )} */}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -291,6 +481,8 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
           </div>
         </TabsContent>
 
+        {/* Cards */}
+
         <TabsContent value="cards" className="mt-0">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {displayEscrows.length === 0 ? (
@@ -316,9 +508,9 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
                         {escrow.status.charAt(0).toUpperCase() + escrow.status.slice(1)}
                       </Badge>
                     </div>
-                    <CardDescription className="text-zinc-500 dark:text-zinc-400">
+                    {/* <CardDescription className="text-zinc-500 dark:text-zinc-400">
                       Created on {new Date(escrow.createdAt).toLocaleDateString()}
-                    </CardDescription>
+                    </CardDescription> */}
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex justify-between">
@@ -326,56 +518,82 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
                       <span className="font-medium text-zinc-900 dark:text-white">{escrow.amount}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-zinc-500 dark:text-zinc-400">Expiry:</span>
+                      <span className="text-zinc-500 dark:text-zinc-400">Claim Status:</span>
                       <span className="text-zinc-700 dark:text-zinc-300">
-                        {new Date(escrow.expiry).toLocaleDateString()}
+                      {escrow.requested ?
+                          <Badge variant="outline" className={getStatusStyles("active")}>
+                            {"Requested"}
+                          </Badge> :
+                          <Badge variant="outline" className={getStatusStyles("pending")}>
+                            {statusFilter === "creator-escrows" ? "Not requested" : "Claimable"}
+                          </Badge>
+                        }
                       </span>
                     </div>
-                    <div className="space-y-2">
-                      <span className="text-zinc-500 dark:text-zinc-400">Signees:</span>
-                      <div className="space-y-1">
-                        {escrow.signees.map((signee, index) => (
-                          <div key={index} className="flex items-center justify-between text-sm">
-                            <span className="text-zinc-700 dark:text-zinc-300">{formatAddress(signee.address)}</span>
-                            {signee.hasSigned ? (
-                              <Badge
-                                variant="outline"
-                                className="border-green-500 bg-green-500/10 text-green-600 
-                                dark:border-green-500 dark:text-green-500"
-                              >
-                                Signed
-                              </Badge>
-                            ) : (
-                              <Badge
-                                variant="outline"
-                                className="border-yellow-500 bg-yellow-500/10 text-yellow-600 
-                                dark:border-yellow-500 dark:text-yellow-500"
-                              >
-                                Pending
-                              </Badge>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500 dark:text-zinc-400">Expiry:</span>
+                      <span className="text-zinc-700 dark:text-zinc-300">
+
+                      </span>
                     </div>
+                   {/* Action buttons */}
                     <div className="pt-2">
-                      {canSign(escrow) ? (
-                        <Button
-                          className="w-full bg-blue-600 text-white hover:bg-blue-700 
-                            dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
-                          onClick={() => handleSignEscrow(escrow.id)}
-                        >
-                          Sign Escrow
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          className="w-full border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-100 
-                            dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
-                        >
-                          View Details
-                        </Button>
-                      )}
+                    {!escrow.disputed && escrow.requested && statusFilter === 'creator-escrows' && <Button
+                            size="sm"
+                            disabled={loadingEscrows[escrow.escrowAddress] || false}
+                            className="bg-blue-600 text-white hover:bg-blue-700 w-full
+                                dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
+                            onClick={() => approvePayment(escrow.escrowAddress, setLoadingEscrows, setRefresh)}
+                          >
+                            {loadingEscrows[escrow.escrowAddress] ? "processing..." : "Release Funds"}
+                          </Button>}
+                          {!escrow.disputed && !escrow.requested && statusFilter === 'claimable-escrows' && <Button
+                            size="sm"
+                            disabled={loadingEscrows[escrow.escrowAddress] || false}
+                            className="bg-blue-600 text-white hover:bg-blue-700 w-full 
+                                dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
+                            onClick={() => requestPayment(escrow.escrowAddress, setLoadingEscrows, setRefresh)}
+                          >
+                            {loadingEscrows[escrow.escrowAddress] ? "processing..." : "Request Claim"}
+                          </Button>}
+                          {!escrow.disputed && escrow.requested&& statusFilter === 'claimable-escrows' && (
+                            <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+                              <DialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  disabled={loadingEscrows[escrow.escrowAddress] || false}
+                                  className="bg-red-600 text-white w-full hover:bg-red-700 dark:bg-red-600 dark:text-white dark:hover:bg-red-700"
+                                  onClick={() => handleOpenDialog(escrow)}
+                                >
+                                  Initiate Dispute
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Initiate Dispute</DialogTitle>
+                                </DialogHeader>
+                                <textarea
+                                  placeholder="Enter reason for dispute..."
+                                  rows={6}
+                                  value={disputeReason}
+                                  onChange={(e) => setDisputeReason(e.target.value)}
+                                  className="mt-2 p-2"
+                                />
+                                <DialogFooter>
+                                  <Button variant="outline" onClick={() => setOpenDialog(false)}>Cancel</Button>
+                                  <Button
+                                    disabled={loadingEscrows[escrow.escrowAddress] || false}
+                                    onClick={(() => {
+                                      initaiteDispute(escrow.escrowAddress, disputeReason, setLoadingEscrows, setRefresh)
+                                    })}
+                                    className="bg-red-600 text-white hover:bg-red-700">
+                                    {loadingEscrows[escrow.escrowAddress] ? "processing..." : "Submit Dispute"}
+
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          )}
                     </div>
                   </CardContent>
                 </Card>

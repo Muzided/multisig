@@ -22,12 +22,15 @@ export function DashboardHeader({ activeTab }: DashboardHeaderProps) {
     settings: "Configure your account settings",
   }
 
+  console.log("activeTab", activeTab)
   return (
-    <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className={`${activeTab ==='create'?'md:justify-center':'md:justify-between'} mb-6  flex flex-col gap-4 md:flex-row md:items-center `}>
       <div>
         <h1
-          className="text-2xl font-bold bg-gradient-to-r from-zinc-900 to-zinc-700 bg-clip-text text-transparent
-          dark:from-white dark:to-zinc-300"
+          className={`
+            ${activeTab ==='create'?'text-center':'text-start'}
+            text-2xl font-bold bg-gradient-to-r from-zinc-900 to-zinc-700 bg-clip-text text-transparent
+          dark:from-white dark:to-zinc-300`}
         >
           {titles[activeTab as keyof typeof titles]}
         </h1>
@@ -47,7 +50,7 @@ export function DashboardHeader({ activeTab }: DashboardHeaderProps) {
         </Button>
       )}
 
-      {activeTab === "create" && (
+      {/* {activeTab === "create" && (
         <Button
           className="bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md 
           hover:shadow-lg hover:from-blue-500 hover:to-blue-400 transition-all duration-300
@@ -57,7 +60,7 @@ export function DashboardHeader({ activeTab }: DashboardHeaderProps) {
           <Plus className="mr-2 h-4 w-4" />
           New Escrow
         </Button>
-      )}
+      )} */}
     </div>
   )
 }

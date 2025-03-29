@@ -11,26 +11,32 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { useWeb3 } from "@/context/Web3Context"
 import { useFactory } from "@/Hooks/useFactory"
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { ethers } from "ethers"
 
 export function CreateEscrowForm() {
   const [amount, setAmount] = useState("")
   const [signees, setSignees] = useState<string[]>([""])
   const [receiver, setReceiver] = useState("")
-  const [reversal, setReversal] = useState("")
+  const [error, setError] = useState("");
   const [duration, setDuration] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const now = new Date(); // Define 'now' as the current date and time
+  const [selectedDate, setSelectedDate] = useState<Date>(now); // Default to now
+  const [unixTimestamp, setUnixTimestamp] = useState<number>(Math.floor(now.getTime() / 1000)); // Default Unix timestamp
   //web 3 context
-  const {signer} = useWeb3()
+  const { signer, account } = useWeb3()
   // multi-sig factory contract hook
-  const {fetchTotalEscrows} = useFactory()
+  const { fetchTotalEscrows, createEscrow } = useFactory()
 
 
-useEffect(() => {
-  if(!signer) return
-  fetchTotalEscrows()
+  useEffect(() => {
+    if (!signer) return
+    fetchTotalEscrows()
 
-}, [signer])
-    // This would fetch the user's wallet address from the wallet provider)
+  }, [signer])
+  // This would fetch the user's wallet address from the wallet provider)
 
   const addSignee = () => {
     setSignees([...signees, ""])
@@ -48,6 +54,13 @@ useEffect(() => {
     setSignees(newSignees)
   }
 
+  const handleDateChange = (date: Date | null) => {
+    if (date) {
+      setSelectedDate(date);
+      setUnixTimestamp(Math.floor(date.getTime() / 1000)); // Convert to Unix timestamp in seconds
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -56,70 +69,75 @@ useEffect(() => {
       // This would call the smart contract function to create an escrow
       console.log({
         amount,
-        signees: signees.filter((s) => s.trim() !== ""),
         receiver,
-        reversal,
         duration: Number.parseInt(duration),
       })
-
+      const userAddress = account;
       // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      const res = await createEscrow(userAddress,receiver, amount, unixTimestamp, setIsSubmitting)
 
       // Reset form
       setAmount("")
-      setSignees([""])
       setReceiver("")
-      setReversal("")
-      setDuration("")
 
       // Show success message
-      alert("Escrow created successfully!")
     } catch (error) {
-      console.error("Error creating escrow:", error)
-      alert("Failed to create escrow. Please try again.")
+      console.error("Error creating escrow:", error)  
     } finally {
       setIsSubmitting(false)
     }
   }
 
 
+  const handleReceiverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const address = e.target.value;
+    setReceiver(address);
+
+    if (!ethers.isAddress(address)) {
+      setError("Invalid Ethereum address");
+    } else {
+      setError(""); // Clear error if valid
+    }
+  };
 
   return (
-    <Card
-      className="border-zinc-200/80 bg-gradient-to-b from-white to-zinc-50 shadow-lg text-zinc-900 
+    <div className="w-full max-w-xl mx-auto">
+
+      <Card
+        className="border-zinc-200/80 bg-gradient-to-b from-white to-zinc-50 shadow-lg text-zinc-900 
       dark:border-zinc-800 dark:bg-zinc-900 dark:from-zinc-900 dark:to-zinc-900 dark:text-zinc-100 dark:shadow-none"
-    >
-      <CardHeader>
-        <CardTitle
-          className="bg-gradient-to-r from-zinc-900 to-zinc-700 bg-clip-text text-transparent
+      >
+        <CardHeader>
+          <CardTitle
+            className="bg-gradient-to-r from-zinc-900 to-zinc-700 bg-clip-text text-transparent
           dark:from-white dark:to-zinc-300"
-        >
-          Create New Escrow
-        </CardTitle>
-        <CardDescription className="text-zinc-500 dark:text-zinc-400">
-          Set up a new multi-signature escrow transaction
-        </CardDescription>
-      </CardHeader>
-      <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="amount" className="text-zinc-700 font-medium dark:text-zinc-100">
-              Amount (ETH)
-            </Label>
-            <Input
-              id="amount"
-              type="text"
-              placeholder="e.g. 1.5"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
+          >
+            Create New Escrow
+          </CardTitle>
+          <CardDescription className="text-zinc-500 dark:text-zinc-400">
+            Set up a new multi-signature escrow transaction
+          </CardDescription>
+        </CardHeader>
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="amount" className="text-zinc-700 font-medium dark:text-zinc-100">
+                Amount (USDT)
+              </Label>
+              <Input
+                id="amount"
+                type="text"
+                placeholder="e.g. 1.5"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
                 transition-all duration-200 hover:border-zinc-300 focus:shadow-md
                 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-zinc-600"
-              required
-            />
-          </div>
+                required
+              />
+            </div>
 
-          <div className="space-y-3">
+            {/* <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label className="text-zinc-700 font-medium dark:text-zinc-100">Signees' Wallets</Label>
               <Button
@@ -165,27 +183,28 @@ useEffect(() => {
                 </div>
               ))}
             </div>
-          </div>
+          </div> */}
 
-          <Separator className="bg-zinc-200 dark:bg-zinc-800" />
+            <Separator className="bg-zinc-200 dark:bg-zinc-800" />
 
-          <div className="space-y-2">
-            <Label htmlFor="receiver" className="text-zinc-700 font-medium dark:text-zinc-100">
-              Receiver's Address
-            </Label>
-            <Input
-              id="receiver"
-              placeholder="Wallet address (0x...)"
-              value={receiver}
-              onChange={(e) => setReceiver(e.target.value)}
-              className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
+            <div className="space-y-2">
+              <Label htmlFor="receiver" className="text-zinc-700 font-medium dark:text-zinc-100">
+                Receiver's Address
+              </Label>
+              <Input
+                id="receiver"
+                placeholder="Wallet address (0x...)"
+                value={receiver}
+                onChange={handleReceiverChange}
+                className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
                 transition-all duration-200 hover:border-zinc-300 focus:shadow-md
                 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-zinc-600"
-              required
-            />
-          </div>
+                required
+              />
+              {error && <p className="text-red-500 text-sm">{error}</p>}
+            </div>
 
-          <div className="space-y-2">
+            {/* <div className="space-y-2">
             <Label htmlFor="reversal" className="text-zinc-700 font-medium dark:text-zinc-100">
               Reversal Address
             </Label>
@@ -202,40 +221,50 @@ useEffect(() => {
             <p className="text-xs text-zinc-500 dark:text-zinc-500">
               Funds will be returned to this address if the escrow expires
             </p>
-          </div>
+          </div> */}
 
-          <div className="space-y-2">
-            <Label htmlFor="duration" className="text-zinc-700 font-medium dark:text-zinc-100">
-              Duration (Days)
-            </Label>
-            <Input
-              id="duration"
-              type="number"
-              min="1"
-              placeholder="e.g. 30"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
-                transition-all duration-200 hover:border-zinc-300 focus:shadow-md
-                dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-zinc-600"
-              required
-            />
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button
-            type="submit"
-            className="w-full mt-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md hover:shadow-lg 
+            <div className="space-y-2">
+              <Label htmlFor="datetime" className="text-zinc-700 font-medium dark:text-zinc-100">
+                Select Date & Time
+              </Label>
+              <DatePicker
+                id="datetime"
+                selected={selectedDate}
+                onChange={handleDateChange}
+                showTimeSelect
+                timeFormat="HH:mm"
+                timeIntervals={15} // Time picker interval (15 min)
+                timeCaption="Time"
+                dateFormat="yyyy-MM-dd HH:mm"
+                minDate={now} // Disable past dates
+                className="border-zinc-200 p-1.5 text-center rounded-b-md cursor-pointer dark:hover:bg-zinc-600 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
+                   transition-all duration-200 hover:border-zinc-300 focus:shadow-md
+                   dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-zinc-600"
+                required
+              />
+              {unixTimestamp && (
+                <p className="text-sm text-zinc-500">
+                  Unix Timestamp: <strong>{unixTimestamp}</strong>
+                </p>
+              )}
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button
+              type="submit"
+              className="w-full mt-4 bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md hover:shadow-lg 
               hover:from-blue-500 hover:to-blue-400 transition-all duration-300
               dark:bg-blue-600 dark:from-blue-600 dark:to-blue-600 dark:text-white dark:hover:bg-blue-700 
               dark:hover:from-blue-700 dark:hover:to-blue-700 dark:shadow-none dark:hover:shadow-none"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Creating..." : "Create Escrow"}
-          </Button>
-        </CardFooter>
-      </form>
-    </Card>
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Creating..." : "Create Escrow"}
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
+
+    </div>
   )
 }
 

@@ -4,8 +4,10 @@ import { BrowserProvider, Eip1193Provider, ethers } from 'ethers'
 import { useAppKitAccount, useAppKitProvider, useDisconnect } from '@reown/appkit/react';
 import { useRouter } from 'next/navigation';
 //web-3 config
-import { MultiSig_Factory_Address } from '@/Web3/web3-config';
+import { escrow_Contract_Address, MultiSig_Factory_Address, Usdt_Contract_Address } from '@/Web3/web3-config';
 import MultiSigFactoryAbi from '@/Web3/abis/MultiSigFactoryAbi.json';
+import escrowContractAbi from '@/Web3/abis/EscrowAbi.json';
+import Erc20TokenAbi from '@/Web3/abis/Erc20TokenAbi.json';
 interface Web3ContextType {
     provider: BrowserProvider | null;
     signer: ethers.Signer | null;
@@ -13,6 +15,7 @@ interface Web3ContextType {
     isConnected: boolean;
     chainId: number | null;
     multisigFactoryContract: ethers.Contract | null;
+    erc20TokenContract: ethers.Contract | null;
     disconnectWallet: () => void;
 }
 
@@ -37,6 +40,8 @@ export function Web3Provider({ children }: Web3ProviderProps) {
     const [account, setAccount] = useState<string>('');
     const [chainId, setChainId] = useState<number | null>(null);
     const [multisigFactoryContract, setMultisigFactoryContract] = useState<ethers.Contract | null>(null);
+    const [escrowContract, setEscrowContract] = useState<ethers.Contract | null>(null);
+    const [erc20TokenContract, setErc20TokenContract] = useState<ethers.Contract | null>(null);
 
 
 
@@ -59,12 +64,15 @@ export function Web3Provider({ children }: Web3ProviderProps) {
             const ethersProvider = new BrowserProvider(walletProvider as Eip1193Provider);
             const signer = await ethersProvider.getSigner();
             const factoryContract = new ethers.Contract(MultiSig_Factory_Address, MultiSigFactoryAbi, signer);
-
+            const erc20TokenContract = new ethers.Contract(Usdt_Contract_Address, Erc20TokenAbi,signer);
+            const escrowContract = new ethers.Contract(escrow_Contract_Address, escrowContractAbi, signer);
+console.log("escrow contract", escrowContract)
 
             setProvider(ethersProvider);
             setSigner(signer);
             setAccount(await signer.getAddress());
             setMultisigFactoryContract(factoryContract);
+            setErc20TokenContract(erc20TokenContract);
 
             const { chainId } = await ethersProvider.getNetwork();
             setChainId(Number(chainId));
@@ -103,6 +111,7 @@ export function Web3Provider({ children }: Web3ProviderProps) {
             isConnected,
             chainId,
             multisigFactoryContract,
+            erc20TokenContract,
             disconnectWallet
         }}>
             {children}

@@ -5,10 +5,10 @@ import { useAppKitAccount, useAppKitProvider, useDisconnect } from '@reown/appki
 import { useRouter } from 'next/navigation';
 //web-3 config
 import { escrow_Contract_Address, MultiSig_Factory_Address, Usdt_Contract_Address } from '@/Web3/web3-config';
-import MultiSigFactoryAbi from '../Web3/abis/MultiSigFactoryAbi.json';
-import escrowContractAbi from '../Web3/Abis/EscrowAbi.json'
+import MultiSigFactoryAbi from '../Web3/Abis/MultiSigFactoryAbi.json';
 
-import Erc20TokenAbi from '../Web3/abis/Erc20TokenAbi.json';
+
+ import Erc20TokenAbi from '../Web3/Abis/Erc20TokenAbi.json';
 interface Web3ContextType {
     provider: BrowserProvider | null;
     signer: ethers.Signer | null;
@@ -66,8 +66,7 @@ export function Web3Provider({ children }: Web3ProviderProps) {
             const signer = await ethersProvider.getSigner();
             const factoryContract = new ethers.Contract(MultiSig_Factory_Address, MultiSigFactoryAbi, signer);
             const erc20TokenContract = new ethers.Contract(Usdt_Contract_Address, Erc20TokenAbi,signer);
-            const escrowContract = new ethers.Contract(escrow_Contract_Address, escrowContractAbi, signer);
-console.log("escrow contract", escrowContract)
+           
 
             setProvider(ethersProvider);
             setSigner(signer);

@@ -94,7 +94,8 @@ export function Header({ toggleMobileNav }: HeaderProps) {
                 dark:hover:shadow-none"
             >
               <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 shadow-md"></div>
-              <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">{isConnected ? `${address?.slice(0, 8)}...${address?.slice(-7)}` : 'Connect Wallet'}</span>
+              <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">{isConnected ? 
+              `${address?.slice(0, 8)}...${address?.slice(-7)}` : 'Connect Wallet'}</span>
               <ChevronDown className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>

@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode, use } from 'react'
 import { BrowserProvider, Eip1193Provider, ethers } from 'ethers'
 import { useAppKitAccount, useAppKitProvider, useDisconnect } from '@reown/appkit/react';
 import { useRouter } from 'next/navigation';
@@ -8,7 +8,7 @@ import { escrow_Contract_Address, MultiSig_Factory_Address, Usdt_Contract_Addres
 import MultiSigFactoryAbi from '../Web3/Abis/MultiSigFactoryAbi.json';
 
 import EscrowAbi from '../Web3/Abis/EscrowAbi.json';
- import Erc20TokenAbi from '../Web3/Abis/Erc20TokenAbi.json';
+import Erc20TokenAbi from '../Web3/Abis/Erc20TokenAbi.json';
 interface Web3ContextType {
     provider: BrowserProvider | null;
     signer: ethers.Signer | null;
@@ -17,6 +17,7 @@ interface Web3ContextType {
     chainId: number | null;
     multisigFactoryContract: ethers.Contract | null;
     erc20TokenContract: ethers.Contract | null;
+    isDisputeMember: boolean
     disconnectWallet: () => void;
 }
 
@@ -43,6 +44,7 @@ export function Web3Provider({ children }: Web3ProviderProps) {
     const [multisigFactoryContract, setMultisigFactoryContract] = useState<ethers.Contract | null>(null);
     const [escrowContract, setEscrowContract] = useState<ethers.Contract | null>(null);
     const [erc20TokenContract, setErc20TokenContract] = useState<ethers.Contract | null>(null);
+    const [isDisputeMember, setIsDisputeMember] = useState<boolean>(false);
 
 
 
@@ -65,14 +67,19 @@ export function Web3Provider({ children }: Web3ProviderProps) {
             const ethersProvider = new BrowserProvider(walletProvider as Eip1193Provider);
             const signer = await ethersProvider.getSigner();
             const factoryContract = new ethers.Contract(MultiSig_Factory_Address, MultiSigFactoryAbi, signer);
-            const erc20TokenContract = new ethers.Contract(Usdt_Contract_Address, Erc20TokenAbi,signer);
-           
+            const erc20TokenContract = new ethers.Contract(Usdt_Contract_Address, Erc20TokenAbi, signer);
+            const userAddress = await signer.getAddress()
 
+            const disputeMembers = await factoryContract.getDisputeTeamMembers();
+            const isUserInDisputeTeam = disputeMembers.includes(userAddress);
+
+console.log('checks that happen',isUserInDisputeTeam)
             setProvider(ethersProvider);
             setSigner(signer);
-            setAccount(await signer.getAddress());
+            setAccount(userAddress);
             setMultisigFactoryContract(factoryContract);
             setErc20TokenContract(erc20TokenContract);
+            setIsDisputeMember(isUserInDisputeTeam)
 
             const { chainId } = await ethersProvider.getNetwork();
             setChainId(Number(chainId));
@@ -81,7 +88,7 @@ export function Web3Provider({ children }: Web3ProviderProps) {
         }
     };
 
-    console.log("after intializations", provider, signer, account, chainId,multisigFactoryContract)
+    console.log("after intializations", provider, signer, account, chainId, multisigFactoryContract)
     // Handle disconnection: Reset state and redirect to "/"
     // useEffect(() => {
     //     if (!isConnected) {
@@ -112,7 +119,8 @@ export function Web3Provider({ children }: Web3ProviderProps) {
             chainId,
             multisigFactoryContract,
             erc20TokenContract,
-            disconnectWallet
+            disconnectWallet,
+            isDisputeMember
         }}>
             {children}
         </Web3Context.Provider>

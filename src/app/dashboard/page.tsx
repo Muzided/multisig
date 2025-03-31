@@ -9,6 +9,7 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { OverviewTab } from "@/components/dashboard/overview-tab"
 import { TransactionsTab } from "@/components/dashboard/transaction-tab"
 import { CreateTab } from "@/components/dashboard/create-tab"
+import { DisputeResolution } from "@/components/Global/dispute-resolution"
 
 export default function Dashboard() {
   const [isClient, setIsClient] = useState(false)
@@ -54,6 +55,9 @@ export default function Dashboard() {
 
             <TabsContent value="create" className="mt-0">
               <CreateTab />
+            </TabsContent>
+            <TabsContent value="dispute" className="mt-0">
+             <DisputeResolution/>
             </TabsContent>
           </Tabs>
         </main>

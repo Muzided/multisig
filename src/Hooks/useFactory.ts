@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 
 // Define the Factory Contract Interface
 interface UseEscrowFactoryReturn {
-    createEscrow: (userAddress:string,receiver: string, amount: string, duration: number, setLoading: Dispatch<SetStateAction<boolean>>) => Promise<void>;
+    createEscrow: (userAddress: string, receiver: string, amount: string, duration: number, setLoading: Dispatch<SetStateAction<boolean>>) => Promise<void>;
     fetchTotalEscrows: () => Promise<number>;
     fetchTotalPayments(): Promise<string>;
     fetchCreatorEscrows(creatorAddress: string): Promise<string[]>;
@@ -28,7 +28,7 @@ export const useFactory = () => {
     // }, [multisigFactoryContract]);
     //approve USDT
     const approveUSDT = async (usdtContract: Contract, factoryAddress: string, amount: BigInt) => {
-        
+
         const tx = await usdtContract.approve(factoryAddress, amount);
         await tx.wait(); // Wait for transaction confirmation
         console.log("Approval successful");
@@ -41,8 +41,8 @@ export const useFactory = () => {
         return formattedBalance;
     }
 
-    const showMetaMaskError = (error: any,id:any) => {
-        if (error.code === 4001) { 
+    const showMetaMaskError = (error: any, id: any) => {
+        if (error.code === 4001) {
             toast.update(id, {
                 render: "User rejected the request.",
                 type: "error",
@@ -63,7 +63,8 @@ export const useFactory = () => {
                 isLoading: false,
                 autoClose: 3000
             });
-        }}
+        }
+    }
     //fetch total escrows
     const fetchTotalEscrows = useCallback(async (): Promise<number> => {
         try {
@@ -153,6 +154,21 @@ export const useFactory = () => {
         }
     }, [])
 
+    //fetch dispute team members
+    const fetchDisputeTeamMembers = useCallback(async (): Promise<any> => {
+        try {
+            if (!multisigFactoryContract) return 0;
+            const disputeMembers = await multisigFactoryContract.getDisputeTeamMembers();
+           console.log("team memebers fetched",disputeMembers[0])
+
+        } catch (error) {
+            console.error("Error fetching total escrows", error);
+            return 0;
+        }
+
+
+    }, [multisigFactoryContract])
+
 
     //request for escrow release
     const requestPayment = useCallback(async (
@@ -161,12 +177,12 @@ export const useFactory = () => {
         setRefresh: Dispatch<SetStateAction<boolean>>
     ) => {
         setLoadingEscrows(prev => ({ ...prev, [escrowAddress]: true }));
-        let id:any;
+        let id: any;
         try {
             if (!multisigFactoryContract) return;
 
             id = toast.loading(`Requesting Claim...`);
-           
+
             const tx = await multisigFactoryContract.requestPayment(escrowAddress);
             const receipt = await tx.wait();
             console.log("Receipt:", receipt);
@@ -180,7 +196,7 @@ export const useFactory = () => {
 
         } catch (error) {
             console.error("Error requesting payment:", error);
-           
+
             toast.update(id, {
                 render: "Failed to request claim",
                 type: "error",
@@ -191,7 +207,7 @@ export const useFactory = () => {
         } finally {
             setLoadingEscrows(prev => ({ ...prev, [escrowAddress]: false }));
             setRefresh(prev => !prev); // Trigger a refresh of the escrow list
-           
+
         }
     }, [multisigFactoryContract]);
 
@@ -202,12 +218,12 @@ export const useFactory = () => {
         setRefresh: Dispatch<SetStateAction<boolean>>
     ) => {
         setLoadingEscrows(prev => ({ ...prev, [escrowAddress]: true }));
-       let id:any;
+        let id: any;
         try {
             if (!multisigFactoryContract) return;
 
             id = toast.loading(`Releasing Funds...`);
-         
+
             const tx = await multisigFactoryContract.releaseFunds(escrowAddress);
             const receipt = await tx.wait();
             console.log("Receipt:", receipt);
@@ -241,12 +257,12 @@ export const useFactory = () => {
         setRefresh: Dispatch<SetStateAction<boolean>>
     ) => {
         setLoadingEscrows(prev => ({ ...prev, [escrowAddress]: true }));
-        let id:any;
+        let id: any;
         try {
             if (!multisigFactoryContract) return;
 
-             id = toast.loading(`Approving Funds...`);
-         
+            id = toast.loading(`Approving Funds...`);
+
             const tx = await multisigFactoryContract.approvePayment(escrowAddress);
             const receipt = await tx.wait();
             console.log("Receipt:", receipt);
@@ -281,12 +297,12 @@ export const useFactory = () => {
         setRefresh: Dispatch<SetStateAction<boolean>>
     ) => {
         setLoadingEscrows(prev => ({ ...prev, [escrowAddress]: true }));
-     let id:any;
+        let id: any;
         try {
             if (!multisigFactoryContract) return;
 
             id = toast.loading(`Initiating dispute...`);
-           
+
             const tx = await multisigFactoryContract.initiateDispute(escrowAddress, disputeReason);
             const receipt = await tx.wait();
             console.log("Receipt:", receipt);
@@ -321,12 +337,12 @@ export const useFactory = () => {
         setRefresh: Dispatch<SetStateAction<boolean>>
     ) => {
         setLoadingEscrows(prev => ({ ...prev, [escrowAddress]: true }));
-      let id:any;
+        let id: any;
         try {
             if (!multisigFactoryContract) return;
 
             id = toast.loading(`Resolving dispute...`);
-        
+
             const tx = await multisigFactoryContract.resolveDispute(escrowAddress, resolveApproved);
             const receipt = await tx.wait();
             console.log("Receipt:", receipt);
@@ -361,13 +377,13 @@ export const useFactory = () => {
         duration: number,
         setLoading: Dispatch<SetStateAction<boolean>>
     ): Promise<string> => {
-        let id:any;
+        let id: any;
         try {
             setLoading(true)
 
             if (!multisigFactoryContract || !erc20TokenContract) return '';
-             id = toast.loading(`Executing USDT approval...`);
-        
+            id = toast.loading(`Executing USDT approval...`);
+
             const parsedAmount = ethers.parseUnits(amount, 6);
             // Check user balance before proceeding
             const userBalance = await checkUserBalance(erc20TokenContract, userAddress);
@@ -401,7 +417,7 @@ export const useFactory = () => {
             return receipt.hash
         } catch (err: any) {
             setLoading(false)
-           
+
             toast.update(id, {
                 render: "Failed to create escrow",
                 type: "error",
@@ -411,6 +427,49 @@ export const useFactory = () => {
             throw err
         }
     }, [multisigFactoryContract])
+
+    // update dispute team memebers 
+    const updateDisputeTeamMembers = useCallback(async (
+
+    ) => {
+
+        let id: any;
+        try {
+            if (!multisigFactoryContract) return;
+
+            id = toast.loading(`dispute team members...`);
+            const arry = [
+                "0x9DAb12814E892F89fd398c986D874fd8074A3D56",
+                "0x76399c8A5027fD58A1D1b07500ccC8a223BEE0c3",
+                "0x4FA703940fb3FDa9af3670213573dDf0a18E6a22"
+            ]
+            const tx = await multisigFactoryContract.updateDisputeTeamMember("0x76399c8A5027fD58A1D1b07500ccC8a223BEE0c3", true);
+            const receipt = await tx.wait();
+            console.log("Receipt:", receipt);
+
+
+
+
+            toast.update(id, {
+                render: `dispute team members`,
+                type: "success",
+                isLoading: false,
+                autoClose: 3000
+            });
+
+        } catch (error) {
+            console.error("Error requesting payment:", error);
+            toast.update(id, {
+                render: "Failed to resolve dispute",
+                type: "error",
+                isLoading: false,
+                autoClose: 3000
+            });
+
+        } finally {
+
+        }
+    }, [multisigFactoryContract]);
 
     return {
         createEscrow,
@@ -423,6 +482,8 @@ export const useFactory = () => {
         releaseFunds,
         approvePayment,
         initaiteDispute,
-        resolveDispute
+        resolveDispute,
+        fetchDisputeTeamMembers,
+        updateDisputeTeamMembers
     };
 };

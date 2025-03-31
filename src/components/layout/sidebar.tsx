@@ -1,7 +1,8 @@
 "use client"
 
-import { CreditCard, LayoutDashboard, Plus } from "lucide-react"
+import { CreditCard, LayoutDashboard, Plus,MessageSquareDot } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useWeb3 } from "@/context/Web3Context"
 
 interface SidebarProps {
   activeTab: string
@@ -9,7 +10,11 @@ interface SidebarProps {
   isMobileNavOpen: boolean
 }
 
+
 export function Sidebar({ activeTab, setActiveTab, isMobileNavOpen }: SidebarProps) {
+  const {isDisputeMember} = useWeb3()
+
+  console.log("isDisputeMember",isDisputeMember)
   const navItems = [
     {
       id: "overview",
@@ -26,8 +31,16 @@ export function Sidebar({ activeTab, setActiveTab, isMobileNavOpen }: SidebarPro
       label: "Create Escrow",
       icon: Plus,
     },
+    // {
+    //   id: "dispute",
+    //   label: "Dispute Resolution",
+    //   icon: MessageSquareDot,
+    // },
   ]
 
+  const filteredNavItems = isDisputeMember 
+  ? navItems.filter((item) => item.id !== "dispute") 
+  : navItems;
   return (
     <>
       {/* Desktop Sidebar */}
@@ -37,7 +50,7 @@ export function Sidebar({ activeTab, setActiveTab, isMobileNavOpen }: SidebarPro
         dark:to-zinc-950 dark:shadow-none md:block overflow-y-auto"
       >
         <nav className="flex flex-col gap-2 p-4">
-          {navItems.map((item) => (
+          {filteredNavItems.map((item) => (
             <Button
               key={item.id}
               variant={activeTab === item.id ? "default" : "ghost"}

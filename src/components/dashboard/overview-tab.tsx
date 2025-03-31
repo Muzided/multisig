@@ -9,6 +9,8 @@ export function OverviewTab() {
   //web 3 context
   const { signer } = useWeb3()
 
+  const {updateDisputeTeamMembers} =useFactory()
+
   //multi-sig factory contract hook
   const { fetchTotalEscrows,fetchTotalPayments } = useFactory()
 
@@ -39,6 +41,9 @@ export function OverviewTab() {
         {/* <StatsCard title="Pending Signatures" description="Transactions awaiting your approval" value="2" /> */}
         <StatsCard title="Total Value Locked" description="Value secured in escrow" value={`${totalPayments} usdt`} />
       </div>
+      {/* <button 
+      onClick={updateDisputeTeamMembers}
+      > click me </button> */}
 
       <div className="mt-8">
         <h2 className="mb-4 text-xl font-semibold text-zinc-900 dark:text-white">Recent Escrows</h2>

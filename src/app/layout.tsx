@@ -18,6 +18,12 @@ const customToastStyle = {
   border: '1px solid rgba(255, 255, 255, 0.2)', // Optional: subtle white border
   boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', // Optional: shadow for depth
 }
+
+export const metadata = {
+  title: 'MultiSig',
+  manifest: '/manifest.webmanifest',
+  themeColor: '#000000',
+};
 export default function RootLayout({
   children,
 }: {

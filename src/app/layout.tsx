@@ -19,7 +19,7 @@ const customToastStyle = {
   boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', // Optional: shadow for depth
 }
 
-export const metadata = {
+ const metadata = {
   title: 'MultiSig',
   manifest: '/manifest.webmanifest',
   themeColor: '#000000',

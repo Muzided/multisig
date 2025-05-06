@@ -25,10 +25,9 @@ import { Switch } from "@/components/ui/switch"
 import { useEscrow } from "@/Hooks/useEscrow"
 import { useDispute } from "@/Hooks/useDispute"
 import { Skeleton } from "../ui/skeleton"
-import { userEscrows } from "../../../public/Data/Ecsrows"
+import { disputesDemoData } from "../../../public/Data/Ecsrows"
 import { getStatusStyles } from "../../../utils/helper"
 import { useRouter } from "next/navigation"
-import PageHeading from "../ui/pageheading"
 // Mock data for escrow transactions
 const mockEscrows = [
   {
@@ -109,30 +108,21 @@ type EscrowOverviewProps = {
   limit?: number
 }
 
-export function TransactionsTab() {
+export function DisputeResolution() {
   const [statusFilter, setStatusFilter] = useState<string>("creator-escrows")
-  const [loadingEscrows, setLoadingEscrows] = useState<{ [key: string]: boolean }>({});
+  const [loadingEscrows] = useState<{ [key: string]: boolean }>({});
   const [escrows, setEscrows] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
-  const [escrowDetails, setEscrowDetails] = useState<any>()
   const [refresh, setRefresh] = useState(false)
-  const [openDialog, setOpenDialog] = useState(false);
-  const [openEscrowDetails, setOpenEscrowDetails] = useState(false);
-  const [openResolveDialog, setOpenResolveDialog] = useState(false);
-  const [resolveApproved, setResolveApproved] = useState(false);
-  const [disputeReason, setDisputeReason] = useState("");
-  const [selectedEscrow, setSelectedEscrow] = useState(null);
   const [createdEscrows, setCreatedEscrows] = useState<any[]>([])
-  const [disputeDetails, setDisputeDetails] = useState<any>()
 
   //next-router
   const router = useRouter()
 
 
 
-const navgateToDetailPage=(id:string)=>{
-  router.push(`/escrow/${id}`)
-}
+  const navgateToDetailPage = (id: string) => {
+    router.push(`/escrow/${id}`)
+  }
 
   const { fetchCreatorEscrows, fetchReceiverEscrows, fetchPaymentRequest, requestPayment, releaseFunds, approvePayment, initaiteDispute, resolveDispute } = useFactory();
   const { fetchEscrowDetails } = useEscrow();
@@ -232,82 +222,22 @@ const navgateToDetailPage=(id:string)=>{
       setEscrows([]); // Ensure state consistency in case of an error
     }
   };
+  const limit = 5;
 
   // Filter escrows based on status
-  const filteredEscrows =
-    statusFilter === "creator-escrows" ? userEscrows : escrows;
+  const filteredEscrows = disputesDemoData;
 
 
 
 
-  
-
-  const handleOpenDialog = async (escrow: any) => {
 
 
-    setSelectedEscrow(escrow);
-    setOpenDialog(true);
-  };
-
-  const handleOpenEscrow = async (escrow: any) => {
-    setLoading(true);
-    setSelectedEscrow(null);
-    setDisputeDetails(null);
-
-    try {
-      // Fetch the escrow details here 
-      const escrowDetails = await fetchEscrowDetails(escrow.escrowAddress);
-      console.log("run-address", escrowDetails);
-
-      if (escrowDetails?.isEscrowDisputed) {
-        const disputedDetails = await fetchDisputeDetails(escrowDetails?.disputeContract);
-        console.log("dispute-details", disputedDetails);
-        setDisputeDetails(disputedDetails);
-      }
-
-      setEscrowDetails(escrowDetails);
-      // Set the selected escrow to display in the dialog
-      setSelectedEscrow(escrow);
-      setOpenEscrowDetails(true);
-    } catch (error) {
-      console.error("Error fetching escrow details:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const closeEscrowDetailModal = () => {
-    setSelectedEscrow(null)
-    setDisputeDetails(null)
-    setOpenEscrowDetails(false);
-  }
+  console.log("filtered-escrows", filteredEscrows)
 
 
-  const handleSubmitDispute = () => {
-    if (selectedEscrow) {
-      console.log("Dispute reason:", disputeReason);
-      // Here you would call your dispute initiation function
-      setOpenDialog(false);
-      setDisputeReason("");
-    }
-  };
-
-
-  const handleOpenResolveDialog = (escrow: any) => {
-    setSelectedEscrow(escrow);
-    setOpenResolveDialog(true);
-  };
-
-  console.log("filteredEscrows", filteredEscrows)
-
-
-  
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between pb-6">
-        <PageHeading
-        text="History"
-        />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger
             className="w-full sm:w-[180px] border-zinc-200 bg-white text-zinc-900 
@@ -319,15 +249,16 @@ const navgateToDetailPage=(id:string)=>{
             className="border-zinc-200 bg-white text-zinc-900 
             dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
           >
-            <SelectItem value="creator-escrows">All Escrows</SelectItem>
-            <SelectItem value="claimable-escrows">Active Escrows</SelectItem>
-            <SelectItem value="claimable-escrows">Disputed Escrows</SelectItem>
+            <SelectItem value="creator-escrows">All Disputes</SelectItem>
+            <SelectItem value="claimable-escrows">Active Disputes</SelectItem>
+            <SelectItem value="claimable-escrows">Pedning Disputes</SelectItem>
+            <SelectItem value="claimable-escrows">Resolved Disputes</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <Tabs defaultValue="table" className="w-full">
-      
+
 
         <TabsContent value="table" className="mt-0">
           <div className="rounded-md border border-zinc-200 dark:border-zinc-800">
@@ -337,14 +268,12 @@ const navgateToDetailPage=(id:string)=>{
                   className="border-zinc-200 hover:bg-zinc-100/50 
                   dark:border-zinc-800 dark:hover:bg-zinc-800/50"
                 >
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">ID</TableHead>
-
-                  {/* <TableHead className="text-zinc-500 dark:text-zinc-400">Signees</TableHead> */}
-                  {/* <TableHead className="text-zinc-500 dark:text-zinc-400">Dispute</TableHead> */}
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">tx hash</TableHead>
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">type</TableHead>
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">date</TableHead>
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">View on Scan</TableHead>
+                  <TableHead className="text-zinc-500 dark:text-zinc-400">Dispute Address</TableHead>
+                  <TableHead className="text-zinc-500 dark:text-zinc-400">	Escrow Address</TableHead>
+                  <TableHead className="text-zinc-500 dark:text-zinc-400">Disputer Address</TableHead>
+                  <TableHead className="text-zinc-500 dark:text-zinc-400">	Status</TableHead>
+                  <TableHead className="text-zinc-500 dark:text-zinc-400">	Unread Messages</TableHead>
+                  <TableHead className="text-zinc-500 dark:text-zinc-400">View Details</TableHead>
 
                 </TableRow>
               </TableHeader>
@@ -361,51 +290,59 @@ const navgateToDetailPage=(id:string)=>{
                 ) : (
                   filteredEscrows.map((escrow) => (
                     <TableRow
-                      key={escrow.escrowId}
+                      key={escrow.disputeAddress}
                       className="border-zinc-200 hover:bg-zinc-100/50 
                       dark:border-zinc-800 dark:hover:bg-zinc-800/50"
                     >
                       <TableCell className="font-medium text-zinc-900 dark:text-white">
+                        {escrow.disputeAddress?.slice(0, 8)}...{escrow.disputeAddress?.slice(-7)}
+                      </TableCell>
+
+
+
+                      <TableCell>
                         {escrow.escrowAddress?.slice(0, 8)}...{escrow.escrowAddress?.slice(-7)}
+
                       </TableCell>
 
 
-                   
-                      <TableCell>
-                        {escrow.receiver}
-                       
-                      </TableCell>
-
-                      <TableCell>
-                        {escrow.amount}
-                      </TableCell>
-
+                      {escrow.disputerAddress ?
+                        <TableCell>
+                          {escrow.disputerAddress?.slice(0, 8)}...{escrow.disputerAddress?.slice(-7)}
+                        </TableCell> :
+                        <TableCell>
+                          "Not Adopted"
+                        </TableCell>}
 
                       <TableCell>
-                            <Badge variant="outline" className={getStatusStyles(escrow.status)}>
-                              {escrow.status}
-                            </Badge>
-                          
+                        <Badge variant="outline" className={getStatusStyles(escrow.status)}>
+                          {escrow.status}
+                        </Badge>
                       </TableCell>
+                      <TableCell>
+                        {escrow.unreadMessages}
+                      </TableCell>
+
+
 
                       {/* viewEscrow details */}
 
-                      
-                          <Button
-                            size="sm"
-                            disabled={loadingEscrows[escrow.escrowAddress] || false}
-                            className="bg-blue-600 text-white hover:bg-blue-700 my-2 w dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
-                            onClick={() => navgateToDetailPage("3f4#fsd4")}
-                          >
-                            View Details
-                          </Button>
-                     
-                      
-                      
+
+                      <Button
+                        size="sm"
+                        // disabled={loadingEscrows[escrow.escrowAddress] || false}
+                        className="bg-blue-600 text-white hover:bg-blue-700 my-2 w dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
+                        onClick={() => navgateToDetailPage("3f4#fsd4")}
+                      >
+                        View Details
+                      </Button>
 
 
 
-                    
+
+
+
+
                     </TableRow>
                   ))
                 )}
@@ -414,9 +351,9 @@ const navgateToDetailPage=(id:string)=>{
           </div>
         </TabsContent>
 
-    
 
-      
+
+
       </Tabs>
     </div>
   )

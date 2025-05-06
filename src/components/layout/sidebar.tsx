@@ -1,6 +1,6 @@
 "use client"
 
-import { CreditCard, LayoutDashboard, Plus,MessageSquareDot } from "lucide-react"
+import { CreditCard, LayoutDashboard, Plus,MessageSquareDot , ReceiptText ,BadgeAlert} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useWeb3 } from "@/context/Web3Context"
 
@@ -22,14 +22,24 @@ export function Sidebar({ activeTab, setActiveTab, isMobileNavOpen }: SidebarPro
       icon: LayoutDashboard,
     },
     {
-      id: "transactions",
-      label: "Transactions",
+      id: "escrows",
+      label: "Escrow",
       icon: CreditCard,
     },
     {
       id: "create",
       label: "Create Escrow",
       icon: Plus,
+    },
+    {
+      id: "dispute",
+      label: "Dispute",
+      icon: BadgeAlert,
+    },
+    {
+      id: "transaction",
+      label: "History",
+      icon: ReceiptText,
     },
     // {
     //   id: "dispute",

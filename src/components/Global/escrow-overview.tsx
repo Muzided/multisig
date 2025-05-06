@@ -25,6 +25,9 @@ import { Switch } from "@/components/ui/switch"
 import { useEscrow } from "@/Hooks/useEscrow"
 import { useDispute } from "@/Hooks/useDispute"
 import { Skeleton } from "../ui/skeleton"
+import { userEscrows } from "../../../public/Data/Ecsrows"
+import { getStatusStyles } from "../../../utils/helper"
+import { useRouter } from "next/navigation"
 // Mock data for escrow transactions
 const mockEscrows = [
   {
@@ -120,6 +123,16 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
   const [selectedEscrow, setSelectedEscrow] = useState(null);
   const [createdEscrows, setCreatedEscrows] = useState<any[]>([])
   const [disputeDetails, setDisputeDetails] = useState<any>()
+
+  //next-router
+  const router = useRouter()
+
+
+
+const navgateToDetailPage=(id:string)=>{
+  router.push(`/escrow/${id}`)
+}
+
   const { fetchCreatorEscrows, fetchReceiverEscrows, fetchPaymentRequest, requestPayment, releaseFunds, approvePayment, initaiteDispute, resolveDispute } = useFactory();
   const { fetchEscrowDetails } = useEscrow();
   const { fetchDisputeDetails } = useDispute()
@@ -221,29 +234,14 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
 
   // Filter escrows based on status
   const filteredEscrows =
-    statusFilter === "creator-escrows" ? createdEscrows : escrows
+    statusFilter === "creator-escrows" ? userEscrows : escrows;
 
   // Apply limit if provided
   const displayEscrows = limit ? filteredEscrows.slice(0, limit) : filteredEscrows
 
 
 
-  const getStatusStyles = (status: string) => {
-    const baseClasses = "border bg-opacity-10 dark:bg-opacity-10"
-
-    switch (status) {
-      case "active":
-        return `${baseClasses} border-green-500 bg-green-500/10 text-green-600 dark:border-green-500 dark:text-green-500`
-      case "pending":
-        return `${baseClasses} border-yellow-500 bg-yellow-500/10 text-yellow-600 dark:border-yellow-500 dark:text-yellow-500`
-      case "completed":
-        return `${baseClasses} border-blue-500 bg-blue-500/10 text-blue-600 dark:border-blue-500 dark:text-blue-500`
-      case "expired":
-        return `${baseClasses} border-red-500 bg-red-500/10 text-red-600 dark:border-red-500 dark:text-red-500`
-      default:
-        return `${baseClasses} border-gray-500 bg-gray-500/10 text-gray-600 dark:border-gray-500 dark:text-gray-500`
-    }
-  }
+  
 
   const handleOpenDialog = async (escrow: any) => {
 
@@ -251,6 +249,7 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
     setSelectedEscrow(escrow);
     setOpenDialog(true);
   };
+
   const handleOpenEscrow = async (escrow: any) => {
     setLoading(true);
     setSelectedEscrow(null);
@@ -293,11 +292,17 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
       setDisputeReason("");
     }
   };
+
+
   const handleOpenResolveDialog = (escrow: any) => {
     setSelectedEscrow(escrow);
     setOpenResolveDialog(true);
   };
 
+  console.log("filteredEscrows", filteredEscrows)
+
+
+  
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -312,14 +317,15 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
             className="border-zinc-200 bg-white text-zinc-900 
             dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
           >
-            <SelectItem value="creator-escrows">My Escrows</SelectItem>
-            <SelectItem value="claimable-escrows">Calimable Escrows</SelectItem>
+            <SelectItem value="creator-escrows">All Escrows</SelectItem>
+            <SelectItem value="claimable-escrows">Active Escrows</SelectItem>
+            <SelectItem value="claimable-escrows">Disputed Escrows</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
       <Tabs defaultValue="table" className="w-full">
-        <TabsList className="bg-zinc-100 dark:bg-zinc-800 mb-4">
+        {/* <TabsList className="bg-zinc-100 dark:bg-zinc-800 mb-4">
           <TabsTrigger
             value="table"
             className="data-[state=active]:bg-white data-[state=active]:text-zinc-900 
@@ -334,7 +340,7 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
           >
             Cards
           </TabsTrigger>
-        </TabsList>
+        </TabsList> */}
 
         <TabsContent value="table" className="mt-0">
           <div className="rounded-md border border-zinc-200 dark:border-zinc-800">
@@ -348,10 +354,13 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
 
                   {/* <TableHead className="text-zinc-500 dark:text-zinc-400">Signees</TableHead> */}
                   {/* <TableHead className="text-zinc-500 dark:text-zinc-400">Dispute</TableHead> */}
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">Status</TableHead>
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">Claim Status</TableHead>
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">Escrow Details</TableHead>
-                  <TableHead className="text-right text-zinc-500 dark:text-zinc-400">Actions</TableHead>
+                  <TableHead className="text-zinc-500 dark:text-zinc-400">Receiver</TableHead>
+                  <TableHead className="text-zinc-500 dark:text-zinc-400">Amount</TableHead>
+                  <TableHead className="text-zinc-500 dark:text-zinc-400">Payment Type</TableHead>
+                  <TableHead className="text-zinc-500 dark:text-zinc-400">Jurisdiction</TableHead>
+                  <TableHead className="text-zinc-500 dark:text-zinc-400">Status </TableHead>
+                  <TableHead className="text-zinc-500 dark:text-zinc-400">View Details</TableHead>
+
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -367,7 +376,7 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
                 ) : (
                   filteredEscrows.map((escrow) => (
                     <TableRow
-                      key={escrow.id}
+                      key={escrow.escrowId}
                       className="border-zinc-200 hover:bg-zinc-100/50 
                       dark:border-zinc-800 dark:hover:bg-zinc-800/50"
                     >
@@ -376,201 +385,48 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
                       </TableCell>
 
 
-                      {/* <TableCell className="text-zinc-500 dark:text-zinc-400">
-                        {escrow.diputed ?
-                          <Badge variant="outline" className={getStatusStyles("expired")}>
-                            {"Disputed"}
-                          </Badge> :
-                          <Badge variant="outline" className={getStatusStyles("pending")}>
-                            {"---"}
-                          </Badge>}
-                      </TableCell> */}
+                   
                       <TableCell>
-                        <Badge variant="outline" className={getStatusStyles(escrow.status)}>
-                          {escrow.status.charAt(0).toUpperCase() + escrow.status.slice(1)}
-                        </Badge>
+                        {escrow.receiver}
+                       
                       </TableCell>
 
-
+                      <TableCell>
+                        {escrow.amount}
+                      </TableCell>
 
                       <TableCell>
-                        {escrow.requested ?
-                          <Badge variant="outline" className={getStatusStyles("active")}>
-                            {"Requested"}
-                          </Badge> :
-                          <Badge variant="outline" className={getStatusStyles("pending")}>
-                            {statusFilter === "creator-escrows" ? "Not requested" : "Claimable"}
-                          </Badge>
-                        }
+                        {escrow.paymentType}
+                      </TableCell>
+                      <TableCell>
+                        {escrow.jurisdiction}
+                      </TableCell>
+
+                      <TableCell>
+                            <Badge variant="outline" className={getStatusStyles(escrow.status)}>
+                              {escrow.status}
+                            </Badge>
+                          
                       </TableCell>
 
                       {/* viewEscrow details */}
 
-                      <Dialog open={openEscrowDetails} onOpenChange={setOpenEscrowDetails}>
-                        <DialogTrigger asChild>
+                      
                           <Button
                             size="sm"
                             disabled={loadingEscrows[escrow.escrowAddress] || false}
                             className="bg-blue-600 text-white hover:bg-blue-700 my-2 w dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
-                            onClick={() => handleOpenEscrow(escrow)}
+                            onClick={() => navgateToDetailPage("3f4#fsd4")}
                           >
                             View Details
                           </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <div className="flex justify-between items-center pt-2">
-                              <DialogTitle>Escrow Details</DialogTitle>
-                              <TableCell>
-                                <span className="text-zinc-500 dark:text-zinc-400"> Status : </span>
-                                <Badge variant="outline" className={getStatusStyles(escrowDetails?.isEscrowDisputed ? "Disputed" : "Active")}>
-                                  {escrowDetails?.isEscrowDisputed ? "Disputed" : "Active"}
-                                </Badge>
-                              </TableCell>
-                            </div>
-                          </DialogHeader>
-
-                          {loading ? (
-        <div className="space-y-2">
-          <Skeleton className="w-40 h-6" />
-          <Skeleton className="w-60 h-6" />
-          <Skeleton className="w-80 h-6" />
-        </div>
-      ) : (
-                          <div className="flex flex-col gap-2">
-                            <p className="text-zinc-500 dark:text-zinc-400">Amount: {escrowDetails?.escrowAmount} USDT</p>
-                            <p className="text-zinc-500 dark:text-zinc-400">Deadline: {escrowDetails?.deadline}</p>
-                            {escrowDetails?.isEscrowDisputed && <p className="text-zinc-500 dark:text-zinc-400">Dispute Reason: {disputeDetails?.reason}</p>}
-                          </div>)}
-                          <DialogFooter>
-
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
+                     
+                      
+                      
 
 
 
-
-                      {/* action buttons */}
-                      <TableCell className="text-right ">
-                        <div className="flex justify-end gap-2">
-
-                          {!escrow.disputed && escrow.requested && statusFilter === 'creator-escrows' && <Button
-                            size="sm"
-                            disabled={loadingEscrows[escrow.escrowAddress] || false}
-                            className="bg-blue-600 text-white hover:bg-blue-700 
-                                dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
-                            onClick={() => approvePayment(escrow.escrowAddress, setLoadingEscrows, setRefresh)}
-                          >
-                            {loadingEscrows[escrow.escrowAddress] ? "processing..." : "Release Funds"}
-                          </Button>}
-                          {!escrow.disputed && !escrow.requested && statusFilter === 'claimable-escrows' && <Button
-                            size="sm"
-                            disabled={loadingEscrows[escrow.escrowAddress] || false}
-                            className="bg-blue-600 text-white hover:bg-blue-700 
-                                dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
-                            onClick={() => requestPayment(escrow.escrowAddress, setLoadingEscrows, setRefresh)}
-                          >
-                            {loadingEscrows[escrow.escrowAddress] ? "processing..." : "Request Claim"}
-                          </Button>}
-                          {!escrow.disputed && escrow.requested && statusFilter === 'claimable-escrows' && (
-                            <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-                              <DialogTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  disabled={loadingEscrows[escrow.escrowAddress] || false}
-                                  className="bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:text-white dark:hover:bg-red-700"
-                                  onClick={() => handleOpenDialog(escrow)}
-                                >
-                                  Initiate Dispute
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Initiate Dispute</DialogTitle>
-                                </DialogHeader>
-                                <textarea
-                                  placeholder="Enter reason for dispute..."
-                                  rows={6}
-                                  value={disputeReason}
-                                  onChange={(e) => setDisputeReason(e.target.value)}
-                                  className="mt-2 p-2"
-                                />
-                                <DialogFooter>
-                                  <Button variant="outline" onClick={() => setOpenDialog(false)}>Cancel</Button>
-                                  <Button
-                                    disabled={loadingEscrows[escrow.escrowAddress] || false}
-                                    onClick={(() => {
-                                      initaiteDispute(escrow.escrowAddress, disputeReason, setLoadingEscrows, setRefresh)
-                                    })}
-                                    className="bg-red-600 text-white hover:bg-red-700">
-                                    {loadingEscrows[escrow.escrowAddress] ? "processing..." : "Submit Dispute"}
-
-                                  </Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
-                          )}
-                          {/* {escrow.disputed && statusFilter === 'creator-escrows' && (
-                            <Dialog open={openResolveDialog} onOpenChange={setOpenResolveDialog}>
-                              <DialogTrigger asChild>
-                                <Button size="sm" className="bg-green-600 text-white hover:bg-green-700" onClick={() => handleOpenResolveDialog(escrow)}>
-                                  Resolve Dispute
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Resolve Dispute</DialogTitle>
-                                </DialogHeader>
-                                <div className="flex items-center gap-2 mt-2">
-                                  <Switch checked={resolveApproved} onCheckedChange={setResolveApproved} />
-                                  <span>{resolveApproved ? "Approve Resolution" : "Reject Resolution"}</span>
-                                </div>
-                                <DialogFooter>
-                                  <Button variant="outline" onClick={() => setOpenResolveDialog(false)}>Cancel</Button>
-                                  <Button onClick={(() => { resolveDispute(escrow.escrowAddress, resolveApproved, setLoadingEscrows, setRefresh) })} className="bg-green-600 text-white hover:bg-green-700">
-                                    Submit Resolution
-                                  </Button>
-                                </DialogFooter>
-                              </DialogContent>
-                            </Dialog>
-                          )} */}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-zinc-500 hover:text-zinc-900 
-                                dark:text-zinc-400 dark:hover:text-white"
-                              >
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">More</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              align="end"
-                              className="border-zinc-200 bg-white text-zinc-900 
-                              dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
-                            >
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator className="bg-zinc-200 dark:bg-zinc-800" />
-                              <DropdownMenuItem className="flex items-center hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer">
-                                <ExternalLink className="mr-2 h-4 w-4" />
-                                View Details
-                              </DropdownMenuItem>
-                              {escrow.status === "active" && (
-                                <DropdownMenuItem
-                                  className="flex items-center text-red-600 hover:bg-zinc-100 hover:text-red-600 
-                                  dark:text-red-500 dark:hover:bg-zinc-800 dark:hover:text-red-500 cursor-pointer"
-                                >
-                                  <X className="mr-2 h-4 w-4" />
-                                  Cancel Escrow
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </TableCell>
+                    
                     </TableRow>
                   ))
                 )}
@@ -579,167 +435,9 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
           </div>
         </TabsContent>
 
-        {/* Cards */}
+    
 
-        <TabsContent value="cards" className="mt-0">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {displayEscrows.length === 0 ? (
-              <Card
-                className="col-span-full border-zinc-200 bg-white text-zinc-900 
-                dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
-              >
-                <CardContent className="flex h-40 items-center justify-center">
-                  <p className="text-zinc-500 dark:text-zinc-500">No escrows found.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              displayEscrows.map((escrow) => (
-                <Card
-                  key={escrow.id}
-                  className="border-zinc-200 bg-white text-zinc-900 
-                  dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
-                >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg text-zinc-900 dark:text-white">{escrow.id}</CardTitle>
-                      <Badge variant="outline" className={getStatusStyles(escrow.status)}>
-                        {escrow.status.charAt(0).toUpperCase() + escrow.status.slice(1)}
-                      </Badge>
-                    </div>
-                    {/* <CardDescription className="text-zinc-500 dark:text-zinc-400">
-                      Created on {new Date(escrow.createdAt).toLocaleDateString()}
-                    </CardDescription> */}
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex justify-between">
-                      <span className="text-zinc-500 dark:text-zinc-400">Escrow Details:</span>
-                      <Dialog open={openEscrowDetails} onOpenChange={setOpenEscrowDetails}>
-                        <DialogTrigger asChild>
-                          <Button
-                            size="sm"
-                            disabled={loadingEscrows[escrow.escrowAddress] || false}
-                            className="bg-blue-600 text-white hover:bg-blue-700 my-2 w dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
-                            onClick={() => handleOpenEscrow(escrow)}
-                          >
-                            View Details
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <div className="flex justify-between items-center pt-2">
-                              <DialogTitle>Escrow Details</DialogTitle>
-                              <TableCell>
-                                <span className="text-zinc-500 dark:text-zinc-400"> Status : </span>
-                                <Badge variant="outline" className={getStatusStyles(escrowDetails?.isEscrowDisputed ? "Disputed" : "Active")}>
-                                  {escrowDetails?.isEscrowDisputed ? "Disputed" : "Active"}
-                                </Badge>
-                              </TableCell>
-                            </div>
-                          </DialogHeader>
-                          <div className="flex flex-col gap-2">
-                            <p className="text-zinc-500 dark:text-zinc-400">Amount: {escrowDetails?.escrowAmount} USDT</p>
-                            <p className="text-zinc-500 dark:text-zinc-400">Deadline: {escrowDetails?.deadline}</p>
-                            {escrowDetails?.isEscrowDisputed && <p className="text-zinc-500 dark:text-zinc-400">Dispute Reason: {disputeDetails?.reason}</p>}
-                          </div>
-                          <DialogFooter>
-                            <Button variant="outline" onClick={() => setOpenEscrowDetails(false)}>Close</Button>
-                            {/* <Button
-                              disabled={loadingEscrows[escrow.escrowAddress] || false}
-                              onClick={(() => {
-                                initaiteDispute(escrow.escrowAddress, disputeReason, setLoadingEscrows, setRefresh)
-                              })}
-                              className="bg-red-600 text-white hover:bg-red-700">
-                              {loadingEscrows[escrow.escrowAddress] ? "processing..." : "Submit Dispute"}
-
-                            </Button> */}
-                          </DialogFooter>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-500 dark:text-zinc-400">Claim Status:</span>
-                      <span className="text-zinc-700 dark:text-zinc-300">
-                        {escrow.requested ?
-                          <Badge variant="outline" className={getStatusStyles("active")}>
-                            {"Requested"}
-                          </Badge> :
-                          <Badge variant="outline" className={getStatusStyles("pending")}>
-                            {statusFilter === "creator-escrows" ? "Not requested" : "Claimable"}
-                          </Badge>
-                        }
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-500 dark:text-zinc-400">Expiry:</span>
-                      <span className="text-zinc-700 dark:text-zinc-300">
-
-                      </span>
-                    </div>
-                    {/* Action buttons */}
-                    <div className="pt-2">
-                      {!escrow.disputed && escrow.requested && statusFilter === 'creator-escrows' && <Button
-                        size="sm"
-                        disabled={loadingEscrows[escrow.escrowAddress] || false}
-                        className="bg-blue-600 text-white hover:bg-blue-700 w-full
-                                dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
-                        onClick={() => approvePayment(escrow.escrowAddress, setLoadingEscrows, setRefresh)}
-                      >
-                        {loadingEscrows[escrow.escrowAddress] ? "processing..." : "Release Funds"}
-                      </Button>}
-                      {!escrow.disputed && !escrow.requested && statusFilter === 'claimable-escrows' && <Button
-                        size="sm"
-                        disabled={loadingEscrows[escrow.escrowAddress] || false}
-                        className="bg-blue-600 text-white hover:bg-blue-700 w-full 
-                                dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
-                        onClick={() => requestPayment(escrow.escrowAddress, setLoadingEscrows, setRefresh)}
-                      >
-                        {loadingEscrows[escrow.escrowAddress] ? "processing..." : "Request Claim"}
-                      </Button>}
-                      {!escrow.disputed && escrow.requested && statusFilter === 'claimable-escrows' && (
-                        <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-                          <DialogTrigger asChild>
-                            <Button
-                              size="sm"
-                              disabled={loadingEscrows[escrow.escrowAddress] || false}
-                              className="bg-red-600 text-white w-full hover:bg-red-700 dark:bg-red-600 dark:text-white dark:hover:bg-red-700"
-                              onClick={() => handleOpenDialog(escrow)}
-                            >
-                              Initiate Dispute
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Initiate Dispute</DialogTitle>
-                            </DialogHeader>
-                            <textarea
-                              placeholder="Enter reason for dispute..."
-                              rows={6}
-                              value={disputeReason}
-                              onChange={(e) => setDisputeReason(e.target.value)}
-                              className="mt-2 p-2"
-                            />
-                            <DialogFooter>
-                              <Button variant="outline" onClick={() => setOpenDialog(false)}>Cancel</Button>
-                              <Button
-                                disabled={loadingEscrows[escrow.escrowAddress] || false}
-                                onClick={(() => {
-                                  initaiteDispute(escrow.escrowAddress, disputeReason, setLoadingEscrows, setRefresh)
-                                })}
-                                className="bg-red-600 text-white hover:bg-red-700">
-                                {loadingEscrows[escrow.escrowAddress] ? "processing..." : "Submit Dispute"}
-
-                              </Button>
-                            </DialogFooter>
-                          </DialogContent>
-                        </Dialog>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-        </TabsContent>
+      
       </Tabs>
     </div>
   )

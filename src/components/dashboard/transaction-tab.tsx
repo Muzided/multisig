@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Check, Clock, ExternalLink, MoreHorizontal, X } from "lucide-react"
+import { Check, Clock, ExternalLink, Filter, MoreHorizontal, X } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -25,63 +25,11 @@ import { Switch } from "@/components/ui/switch"
 import { useEscrow } from "@/Hooks/useEscrow"
 import { useDispute } from "@/Hooks/useDispute"
 import { Skeleton } from "../ui/skeleton"
-import { userEscrows } from "../../../public/Data/Ecsrows"
+import { userTransactionHistory } from "../../../public/Data/Ecsrows"
 import { getStatusStyles } from "../../../utils/helper"
 import { useRouter } from "next/navigation"
 import PageHeading from "../ui/pageheading"
-// Mock data for escrow transactions
-const mockEscrows = [
-  {
-    id: "ESC-001",
-    amount: "1.5 ETH",
-    diputed: false,
-    requested: false,
-    status: "active",
-    receiver: "0x2b3c4d5e6f7g8h9i0j1a",
-    reversal: "0x3c4d5e6f7g8h9i0j1a2b",
-    createdAt: "2023-11-15",
-  },
-  {
-    id: "ESC-002",
-    amount: "0.75 ETH",
-    diputed: false,
-    requested: false,
-    status: "completed",
-    receiver: "0x4d5e6f7g8h9i0j1a2b3c",
-    reversal: "0x5e6f7g8h9i0j1a2b3c4d",
-    createdAt: "2023-11-10",
-  },
-  {
-    id: "ESC-003",
-    amount: "2.0 ETH",
-    diputed: false,
-    requested: false,
-    status: "pending",
-    receiver: "0x6f7g8h9i0j1a2b3c4d5e",
-    reversal: "0x7g8h9i0j1a2b3c4d5e6f",
-    createdAt: "2023-11-20",
-  },
-  {
-    id: "ESC-004",
-    amount: "0.5 ETH",
-    diputed: false,
-    requested: false,
-    status: "expired",
-    receiver: "0x8h9i0j1a2b3c4d5e6f7g",
-    reversal: "0x9i0j1a2b3c4d5e6f7g8h",
-    createdAt: "2023-10-25",
-  },
-  {
-    id: "ESC-005",
-    amount: "3.2 ETH",
-    diputed: false,
-    requested: false,
-    status: "active",
-    receiver: "0x0j1a2b3c4d5e6f7g8h9i",
-    reversal: "0x1a2b3c4d5e6f7g8h9i0j",
-    createdAt: "2023-11-25",
-  },
-]
+
 
 
 type FormattedEscrow = {
@@ -95,19 +43,7 @@ type FormattedEscrow = {
   reversal: string;
   createdAt: string;
 };
-// Helper function to format wallet address
-const formatAddress = (address: string) => {
-  return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`
-}
 
-
-interface EscrowDetails {
-  amount: string;
-  deadline: string;
-}
-type EscrowOverviewProps = {
-  limit?: number
-}
 
 export function TransactionsTab() {
   const [statusFilter, setStatusFilter] = useState<string>("creator-escrows")
@@ -119,7 +55,6 @@ export function TransactionsTab() {
   const [openDialog, setOpenDialog] = useState(false);
   const [openEscrowDetails, setOpenEscrowDetails] = useState(false);
   const [openResolveDialog, setOpenResolveDialog] = useState(false);
-  const [resolveApproved, setResolveApproved] = useState(false);
   const [disputeReason, setDisputeReason] = useState("");
   const [selectedEscrow, setSelectedEscrow] = useState(null);
   const [createdEscrows, setCreatedEscrows] = useState<any[]>([])
@@ -235,68 +170,13 @@ const navgateToDetailPage=(id:string)=>{
 
   // Filter escrows based on status
   const filteredEscrows =
-    statusFilter === "creator-escrows" ? userEscrows : escrows;
+    statusFilter === "creator-escrows" ? userTransactionHistory : escrows;
 
 
 
 
   
 
-  const handleOpenDialog = async (escrow: any) => {
-
-
-    setSelectedEscrow(escrow);
-    setOpenDialog(true);
-  };
-
-  const handleOpenEscrow = async (escrow: any) => {
-    setLoading(true);
-    setSelectedEscrow(null);
-    setDisputeDetails(null);
-
-    try {
-      // Fetch the escrow details here 
-      const escrowDetails = await fetchEscrowDetails(escrow.escrowAddress);
-      console.log("run-address", escrowDetails);
-
-      if (escrowDetails?.isEscrowDisputed) {
-        const disputedDetails = await fetchDisputeDetails(escrowDetails?.disputeContract);
-        console.log("dispute-details", disputedDetails);
-        setDisputeDetails(disputedDetails);
-      }
-
-      setEscrowDetails(escrowDetails);
-      // Set the selected escrow to display in the dialog
-      setSelectedEscrow(escrow);
-      setOpenEscrowDetails(true);
-    } catch (error) {
-      console.error("Error fetching escrow details:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const closeEscrowDetailModal = () => {
-    setSelectedEscrow(null)
-    setDisputeDetails(null)
-    setOpenEscrowDetails(false);
-  }
-
-
-  const handleSubmitDispute = () => {
-    if (selectedEscrow) {
-      console.log("Dispute reason:", disputeReason);
-      // Here you would call your dispute initiation function
-      setOpenDialog(false);
-      setDisputeReason("");
-    }
-  };
-
-
-  const handleOpenResolveDialog = (escrow: any) => {
-    setSelectedEscrow(escrow);
-    setOpenResolveDialog(true);
-  };
 
   console.log("filteredEscrows", filteredEscrows)
 
@@ -304,10 +184,17 @@ const navgateToDetailPage=(id:string)=>{
   
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between pb-6">
-        <PageHeading
-        text="History"
-        />
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <Button
+          variant="outline"
+          className="flex items-center gap-2 border-zinc-200 bg-white shadow-sm text-zinc-700 
+            hover:bg-zinc-50 hover:border-zinc-300 hover:shadow-md transition-all duration-200
+            dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none 
+            dark:hover:bg-zinc-700 dark:hover:border-zinc-600 dark:hover:shadow-none"
+        >
+          <Filter className="h-4 w-4" />
+          Filter
+        </Button>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger
             className="w-full sm:w-[180px] border-zinc-200 bg-white text-zinc-900 
@@ -324,9 +211,9 @@ const navgateToDetailPage=(id:string)=>{
             <SelectItem value="claimable-escrows">Disputed Escrows</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+        </div>
 
-      <Tabs defaultValue="table" className="w-full">
+      <Tabs defaultValue="table" className="w-full ">
       
 
         <TabsContent value="table" className="mt-0">
@@ -355,7 +242,7 @@ const navgateToDetailPage=(id:string)=>{
                     dark:border-zinc-800 dark:hover:bg-zinc-800/50"
                   >
                     <TableCell colSpan={6} className="h-24 text-center text-zinc-500 dark:text-zinc-500">
-                      No escrows found.
+                      No history found.
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -366,31 +253,22 @@ const navgateToDetailPage=(id:string)=>{
                       dark:border-zinc-800 dark:hover:bg-zinc-800/50"
                     >
                       <TableCell className="font-medium text-zinc-900 dark:text-white">
-                        {escrow.escrowAddress?.slice(0, 8)}...{escrow.escrowAddress?.slice(-7)}
-                      </TableCell>
-
-
-                   
-                      <TableCell>
-                        {escrow.receiver}
-                       
+                        {escrow.id}
                       </TableCell>
 
                       <TableCell>
-                        {escrow.amount}
+                      {escrow.tx_hash}
                       </TableCell>
 
+                      <TableCell>
+                      {escrow.type}
+                      </TableCell>
 
                       <TableCell>
-                            <Badge variant="outline" className={getStatusStyles(escrow.status)}>
-                              {escrow.status}
-                            </Badge>
-                          
+                          {escrow.date}
                       </TableCell>
 
                       {/* viewEscrow details */}
-
-                      
                           <Button
                             size="sm"
                             disabled={loadingEscrows[escrow.escrowAddress] || false}
@@ -399,13 +277,6 @@ const navgateToDetailPage=(id:string)=>{
                           >
                             View Details
                           </Button>
-                     
-                      
-                      
-
-
-
-                    
                     </TableRow>
                   ))
                 )}

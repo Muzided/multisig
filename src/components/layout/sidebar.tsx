@@ -37,7 +37,7 @@ export function Sidebar({ activeTab, setActiveTab, isMobileNavOpen }: SidebarPro
       icon: BadgeAlert,
     },
     {
-      id: "transaction",
+      id: "history",
       label: "History",
       icon: ReceiptText,
     },

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Check, Clock, ExternalLink, MoreHorizontal, X } from "lucide-react"
+import { Check, Clock, ExternalLink, Filter, MoreHorizontal, X } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -28,6 +28,7 @@ import { Skeleton } from "../ui/skeleton"
 import { userEscrows } from "../../../public/Data/Ecsrows"
 import { getStatusStyles } from "../../../utils/helper"
 import { useRouter } from "next/navigation"
+import PageHeading from "../ui/pageheading"
 // Mock data for escrow transactions
 const mockEscrows = [
   {
@@ -129,9 +130,9 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
 
 
 
-const navgateToDetailPage=(id:string)=>{
-  router.push(`/escrow/${id}`)
-}
+  const navgateToDetailPage = (id: string) => {
+    router.push(`/escrow/${id}`)
+  }
 
   const { fetchCreatorEscrows, fetchReceiverEscrows, fetchPaymentRequest, requestPayment, releaseFunds, approvePayment, initaiteDispute, resolveDispute } = useFactory();
   const { fetchEscrowDetails } = useEscrow();
@@ -241,7 +242,7 @@ const navgateToDetailPage=(id:string)=>{
 
 
 
-  
+
 
   const handleOpenDialog = async (escrow: any) => {
 
@@ -302,10 +303,22 @@ const navgateToDetailPage=(id:string)=>{
   console.log("filteredEscrows", filteredEscrows)
 
 
-  
+
   return (
     <div className="space-y-4">
+
+      
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <Button
+          variant="outline"
+          className="flex items-center gap-2 border-zinc-200 bg-white shadow-sm text-zinc-700 
+            hover:bg-zinc-50 hover:border-zinc-300 hover:shadow-md transition-all duration-200
+            dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none 
+            dark:hover:bg-zinc-700 dark:hover:border-zinc-600 dark:hover:shadow-none"
+        >
+          <Filter className="h-4 w-4" />
+          Filter
+        </Button>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger
             className="w-full sm:w-[180px] border-zinc-200 bg-white text-zinc-900 
@@ -385,10 +398,10 @@ const navgateToDetailPage=(id:string)=>{
                       </TableCell>
 
 
-                   
+
                       <TableCell>
                         {escrow.receiver}
-                       
+
                       </TableCell>
 
                       <TableCell>
@@ -403,30 +416,30 @@ const navgateToDetailPage=(id:string)=>{
                       </TableCell>
 
                       <TableCell>
-                            <Badge variant="outline" className={getStatusStyles(escrow.status)}>
-                              {escrow.status}
-                            </Badge>
-                          
+                        <Badge variant="outline" className={getStatusStyles(escrow.status)}>
+                          {escrow.status}
+                        </Badge>
+
                       </TableCell>
 
                       {/* viewEscrow details */}
 
-                      
-                          <Button
-                            size="sm"
-                            disabled={loadingEscrows[escrow.escrowAddress] || false}
-                            className="bg-blue-600 text-white hover:bg-blue-700 my-2 w dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
-                            onClick={() => navgateToDetailPage("3f4#fsd4")}
-                          >
-                            View Details
-                          </Button>
-                     
-                      
-                      
+
+                      <Button
+                        size="sm"
+                        disabled={loadingEscrows[escrow.escrowAddress] || false}
+                        className="bg-blue-600 text-white hover:bg-blue-700 my-2 w dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
+                        onClick={() => navgateToDetailPage("3f4#fsd4")}
+                      >
+                        View Details
+                      </Button>
 
 
 
-                    
+
+
+
+
                     </TableRow>
                   ))
                 )}
@@ -435,9 +448,9 @@ const navgateToDetailPage=(id:string)=>{
           </div>
         </TabsContent>
 
-    
 
-      
+
+
       </Tabs>
     </div>
   )

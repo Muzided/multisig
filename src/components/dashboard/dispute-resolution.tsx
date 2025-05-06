@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Check, Clock, ExternalLink, MoreHorizontal, X } from "lucide-react"
+import { Check, Clock, ExternalLink, Filter, MoreHorizontal, X } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -28,6 +28,7 @@ import { Skeleton } from "../ui/skeleton"
 import { disputesDemoData } from "../../../public/Data/Ecsrows"
 import { getStatusStyles } from "../../../utils/helper"
 import { useRouter } from "next/navigation"
+import PageHeading from "../ui/pageheading"
 // Mock data for escrow transactions
 const mockEscrows = [
   {
@@ -237,7 +238,18 @@ export function DisputeResolution() {
 
   return (
     <div className="space-y-4">
+      
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <Button
+          variant="outline"
+          className="flex items-center gap-2 border-zinc-200 bg-white shadow-sm text-zinc-700 
+            hover:bg-zinc-50 hover:border-zinc-300 hover:shadow-md transition-all duration-200
+            dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none 
+            dark:hover:bg-zinc-700 dark:hover:border-zinc-600 dark:hover:shadow-none"
+        >
+          <Filter className="h-4 w-4" />
+          Filter
+        </Button>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger
             className="w-full sm:w-[180px] border-zinc-200 bg-white text-zinc-900 
@@ -256,7 +268,7 @@ export function DisputeResolution() {
           </SelectContent>
         </Select>
       </div>
-
+      
       <Tabs defaultValue="table" className="w-full">
 
 

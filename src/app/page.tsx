@@ -11,11 +11,15 @@ import { TransactionsTab } from "@/components/dashboard/transaction-tab"
 import { CreateTab } from "@/components/dashboard/create-tab"
 import { DisputeResolution } from "@/components/dashboard/dispute-resolution"
 import { Escrows } from "@/components/dashboard/Escrows"
+import ConnectPage from "@/components/dashboard/ConnectPage"
+import { useAppKitAccount } from "@reown/appkit/react"
 
 export default function Dashboard() {
   const [isClient, setIsClient] = useState(false)
   const [activeTab, setActiveTab] = useState("overview")
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
+
+  const { address, isConnected } = useAppKitAccount();
 
   useEffect(() => {
     setIsClient(true) // Ensures document-related code runs only on the client
@@ -43,10 +47,14 @@ export default function Dashboard() {
 
         {/* Main content area with left padding to account for fixed sidebar */}
         <main className="flex-1 overflow-auto p-4 md:p-6 md:ml-64">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        {!isConnected? 
+          <ConnectPage/>
+           :
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <DashboardHeader activeTab={activeTab} />
 
             <TabsContent value="overview" className="mt-0">
+           
               <OverviewTab />
             </TabsContent>
 
@@ -60,10 +68,11 @@ export default function Dashboard() {
             <TabsContent value="dispute" className="mt-0">
              <DisputeResolution/>
             </TabsContent>
-            <TabsContent value="transaction" className="mt-0">
+            <TabsContent value="history" className="mt-0">
             <TransactionsTab />
             </TabsContent>
           </Tabs>
+          }
         </main>
       </div>
 

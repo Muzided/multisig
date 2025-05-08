@@ -41,11 +41,6 @@ export function Sidebar({ activeTab, setActiveTab, isMobileNavOpen }: SidebarPro
       label: "History",
       icon: ReceiptText,
     },
-    // {
-    //   id: "dispute",
-    //   label: "Dispute Resolution",
-    //   icon: MessageSquareDot,
-    // },
   ]
 
   const filteredNavItems = isDisputeMember 

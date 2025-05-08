@@ -25,6 +25,9 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "ethers": "^6.13.5",
+    "html2canvas-pro": "^1.5.10",
+    "html2pdf.js": "^0.10.3",
+    "jspdf": "^3.0.1",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.483.0",
     "next": "15.2.3",
@@ -35,6 +38,7 @@
     "react-dom": "^19.0.0",
     "react-lottie": "^1.2.10",
     "react-toastify": "^11.0.5",
+    "signature_pad": "^5.0.7",
     "tailwind-merge": "^3.0.2",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^11.1.0"

@@ -2,7 +2,10 @@
 
 import type React from "react"
 import { useEffect, useState } from "react"
-import { Plus, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
+import { Plus, Trash2, ChevronLeft, ChevronRight, Download } from "lucide-react"
+// @ts-ignore
+import html2canvas from 'html2canvas-pro'
+import { jsPDF } from 'jspdf'
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,6 +20,9 @@ import { ethers } from "ethers"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
+import { contractTemplates } from "../../../public/Data/ContractHtmls"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { SignaturePadComponent } from './signature-pad'
 
 export function CreateEscrowForm() {
   const [amount, setAmount] = useState("")
@@ -40,12 +46,20 @@ export function CreateEscrowForm() {
   }>>([{ amount: "", date: now, description: "" }])
   const [totalMilestoneAmount, setTotalMilestoneAmount] = useState("")
   const [milestoneError, setMilestoneError] = useState("")
+  const [showContractTerms, setShowContractTerms] = useState(false)
+  const [contractContent, setContractContent] = useState<string>("")
+  const [clientSignature, setClientSignature] = useState<string>("")
+  const [providerSignature, setProviderSignature] = useState<string>("")
+  const [isEditingContract, setIsEditingContract] = useState(false)
+  const [editedContractContent, setEditedContractContent] = useState<string>("")
+  const [hasContractBeenSaved, setHasContractBeenSaved] = useState(false)
+  const [showDownloadButton, setShowDownloadButton] = useState(false)
   //web 3 context
   const { signer, account } = useWeb3()
   // multi-sig factory contract hook
   const { fetchTotalEscrows, createEscrow } = useFactory()
   const [currentStep, setCurrentStep] = useState(1)
-  const totalSteps = 5
+  const totalSteps = 6
 
   const steps = [
     {
@@ -70,6 +84,11 @@ export function CreateEscrowForm() {
     },
     {
       id: 5,
+      title: "Contract Terms",
+      description: "Add custom contract terms (Optional)"
+    },
+    {
+      id: 6,
       title: "Review & Create",
       description: "Review details and create escrow"
     }
@@ -82,21 +101,7 @@ export function CreateEscrowForm() {
   }, [signer])
   // This would fetch the user's wallet address from the wallet provider)
 
-  const addSignee = () => {
-    setSignees([...signees, ""])
-  }
-
-  const removeSignee = (index: number) => {
-    const newSignees = [...signees]
-    newSignees.splice(index, 1)
-    setSignees(newSignees)
-  }
-
-  const updateSignee = (index: number, value: string) => {
-    const newSignees = [...signees]
-    newSignees[index] = value
-    setSignees(newSignees)
-  }
+  
 
   const handleDateChange = (date: Date | null) => {
     if (date) {
@@ -201,6 +206,323 @@ export function CreateEscrowForm() {
     }
   }
 
+  const handleClientSignature = (signatureData: string) => {
+    setClientSignature(signatureData)
+    // Update contract content with the new signature
+    let updatedContent = contractContent
+    const clientSignaturePlaceholder = '<div id="client-signature-canvas"></div>'
+    const clientSignatureImg = `<img src="${signatureData}" alt="Client Signature" style="max-width: 100%; height: auto;" />`
+    
+    if (updatedContent.includes(clientSignaturePlaceholder)) {
+      updatedContent = updatedContent.replace(clientSignaturePlaceholder, clientSignatureImg)
+    } else {
+      // If there's already a signature, replace it
+      const existingSignature = updatedContent.match(/<img[^>]*alt="Client Signature"[^>]*>/)
+      if (existingSignature) {
+        updatedContent = updatedContent.replace(existingSignature[0], clientSignatureImg)
+      }
+    }
+    
+    setContractContent(updatedContent)
+    setEditedContractContent(updatedContent)
+    alert("Client signature saved")
+  }
+
+  const handleProviderSignature = (signatureData: string) => {
+    setProviderSignature(signatureData)
+    // Update contract content with the new signature
+    let updatedContent = contractContent
+    const providerSignaturePlaceholder = '<div id="provider-signature-canvas"></div>'
+    const providerSignatureImg = `<img src="${signatureData}" alt="Provider Signature" style="max-width: 100%; height: auto;" />`
+    
+    if (updatedContent.includes(providerSignaturePlaceholder)) {
+      updatedContent = updatedContent.replace(providerSignaturePlaceholder, providerSignatureImg)
+    } else {
+      // If there's already a signature, replace it
+      const existingSignature = updatedContent.match(/<img[^>]*alt="Provider Signature"[^>]*>/)
+      if (existingSignature) {
+        updatedContent = updatedContent.replace(existingSignature[0], providerSignatureImg)
+      }
+    }
+    
+    setContractContent(updatedContent)
+    setEditedContractContent(updatedContent)
+    alert("Service provider signature saved")
+  }
+
+  // Add this new function to handle content updates
+  const handleContractContentChange = (content: string) => {
+    setEditedContractContent(content)
+  }
+
+  // Update the handleSaveChanges function
+  const handleSaveChanges = () => {
+    if (editedContractContent) {
+      setContractContent(editedContractContent)
+      setHasContractBeenSaved(true)
+      setShowDownloadButton(true)
+      setShowContractTerms(false)
+    }
+  }
+
+  // Update the checkbox handler to respect saved content
+  const handleContractTermsCheckbox = (checked: boolean) => {
+    setShowContractTerms(checked)
+    if (checked && !hasContractBeenSaved) {
+      // Only load template if contract hasn't been saved before
+      setContractContent(contractTemplates["service-agreement"].content)
+    }
+  }
+
+  const handleDownloadPDF = async () => {
+    try {
+      // First, ensure we're using the most up-to-date content
+      // If we're in edit mode, get content directly from the contentEditable div
+      let currentContent = contractContent;
+      const editableContentElement = document.querySelector('[contenteditable="true"]');
+      
+      if (isEditingContract && editableContentElement) {
+        // Capture the current content from the contentEditable element
+        currentContent = editableContentElement.innerHTML;
+        
+        // Save this content to our state as well
+        setEditedContractContent(currentContent);
+        setContractContent(currentContent);
+      }
+  
+      // Create a container and append it to the document temporarily
+      const container = document.createElement('div');
+      container.style.cssText = `
+        position: fixed;
+        left: -9999px;
+        top: -9999px;
+        width: 8.5in;
+        padding: 1rem;
+        background-color: #ffffff;
+        color: #000000;
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        z-index: -1;
+      `;
+      document.body.appendChild(container);
+  
+      // Create a clean copy of the current contract content
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = currentContent;
+      
+      // Process editable fields to show their content instead of placeholders
+      const editableFields = tempDiv.querySelectorAll('[contenteditable="true"]');
+      editableFields.forEach(field => {
+        if (field instanceof HTMLElement) {
+          // Replace the editable field with a div containing its content
+          const contentDiv = document.createElement('div');
+          contentDiv.innerHTML = field.innerHTML;
+          contentDiv.style.cssText = field.style.cssText;
+          field.parentNode?.replaceChild(contentDiv, field);
+        }
+      });
+  
+      // Process input fields to show their values
+      const inputFields = tempDiv.querySelectorAll('input, textarea');
+      inputFields.forEach(input => {
+        if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement) {
+          const valueDiv = document.createElement('div');
+          valueDiv.textContent = input.value || input.placeholder;
+          valueDiv.style.cssText = `
+            padding: 2px;
+            margin: 2px 0;
+          `;
+          input.parentNode?.replaceChild(valueDiv, input);
+        }
+      });
+      
+      // Add custom CSS to remove borders and styles from any remaining editable elements
+      const styleTag = document.createElement('style');
+      styleTag.textContent = `
+        input, textarea, [contenteditable="true"] {
+          border: none !important;
+          outline: none !important;
+          box-shadow: none !important;
+          -webkit-appearance: none !important;
+          background-color: transparent !important;
+        }
+        body, div, p, span, h1, h2, h3, h4, h5, h6 {
+          color: #000000 !important;
+          background-color: transparent !important;
+        }
+      `;
+      tempDiv.prepend(styleTag);
+      
+      // Apply proper styling to ensure visibility in PDF
+      tempDiv.style.backgroundColor = '#ffffff';
+      tempDiv.style.color = '#000000';
+      
+      // Force all elements to have appropriate colors and remove borders from editable fields
+      const elements = tempDiv.querySelectorAll('*');
+      elements.forEach(el => {
+        if (el instanceof HTMLElement) {
+          el.style.backgroundColor = 'transparent';
+          el.style.color = '#000000';
+          
+          // Remove borders from input fields, textareas, and contenteditable elements
+          if (
+            el.tagName === 'INPUT' || 
+            el.tagName === 'TEXTAREA' || 
+            el.getAttribute('contenteditable') === 'true'
+          ) {
+            el.style.border = 'none';
+            el.style.outline = 'none';
+            el.style.boxShadow = 'none';
+          }
+        }
+      });
+      
+      container.appendChild(tempDiv);
+  
+      // Wait for any images to load
+      const images = container.getElementsByTagName('img');
+      await Promise.all(Array.from(images).map(img => {
+        return new Promise((resolve, reject) => {
+          if (img.complete) {
+            resolve(null);
+          } else {
+            img.onload = () => resolve(null);
+            img.onerror = reject;
+          }
+        });
+      }));
+  
+      // Handle signatures if they exist
+      if (clientSignature || providerSignature) {
+        // Find signature placeholders and replace them
+        if (clientSignature) {
+          const clientPlaceholder = container.querySelector('#client-signature-canvas');
+          if (clientPlaceholder) {
+            const imgEl = document.createElement('img');
+            imgEl.src = clientSignature;
+            imgEl.alt = "Client Signature";
+            imgEl.style.maxWidth = "100%";
+            imgEl.style.height = "auto";
+            clientPlaceholder.parentNode?.replaceChild(imgEl, clientPlaceholder);
+          }
+        }
+        
+        if (providerSignature) {
+          const providerPlaceholder = container.querySelector('#provider-signature-canvas');
+          if (providerPlaceholder) {
+            const imgEl = document.createElement('img');
+            imgEl.src = providerSignature;
+            imgEl.alt = "Provider Signature";
+            imgEl.style.maxWidth = "100%";
+            imgEl.style.height = "auto";
+            providerPlaceholder.parentNode?.replaceChild(imgEl, providerPlaceholder);
+          }
+        }
+      }
+  
+      // Give the browser a moment to render
+      await new Promise(resolve => setTimeout(resolve, 300));
+  
+      // Generate canvas using html2canvas-pro
+      const canvas = await html2canvas(container, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff',
+        allowTaint: true,
+        removeContainer: true,
+        windowWidth: 8.5 * 96,
+        windowHeight: 11 * 96,
+        onclone: (clonedDoc) => {
+          const clonedContainer = clonedDoc.querySelector('div');
+          if (clonedContainer) {
+            // Force white background on the container
+            clonedContainer.style.backgroundColor = '#ffffff';
+            
+            // Process all elements in the clone
+            const clonedElements = clonedContainer.querySelectorAll('*');
+            clonedElements.forEach(el => {
+              if (el instanceof HTMLElement && el.style) {
+                // Ensure text is black and backgrounds are transparent or white
+                el.style.color = '#000000';
+                if (el.style.backgroundColor && 
+                    el.style.backgroundColor !== '#ffffff' && 
+                    el.style.backgroundColor !== 'white' && 
+                    el.style.backgroundColor !== 'transparent') {
+                  el.style.backgroundColor = 'transparent';
+                }
+                
+                // Remove borders from any remaining editable elements
+                if (
+                  el.tagName === 'INPUT' || 
+                  el.tagName === 'TEXTAREA' || 
+                  el.getAttribute('contenteditable') === 'true'
+                ) {
+                  el.style.border = 'none';
+                  el.style.outline = 'none';
+                  el.style.boxShadow = 'none';
+                }
+              }
+            });
+          }
+        }
+      });
+  
+      // Create PDF using jsPDF
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'in',
+        format: 'letter'
+      });
+  
+      // Calculate dimensions to fit the page
+      const pageWidth = 7.5;
+      const pageHeight = 10;
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      // Split into multiple pages if needed
+      let heightLeft = imgHeight;
+      let position = 0;
+      
+      // Add first page
+      pdf.addImage(
+        canvas.toDataURL('image/png', 1.0),
+        'PNG',
+        0.5,
+        0.5,
+        imgWidth,
+        imgHeight
+      );
+      
+      // Add additional pages if content overflows
+      heightLeft -= pageHeight;
+      while (heightLeft > 0) {
+        position += pageHeight;
+        pdf.addPage();
+        pdf.addImage(
+          canvas.toDataURL('image/png', 1.0),
+          'PNG',
+          0.5,
+          0.5 - position,
+          imgWidth,
+          imgHeight
+        );
+        heightLeft -= pageHeight;
+      }
+  
+      // Save the PDF
+      pdf.save('contract.pdf');
+  
+      // Clean up
+      document.body.removeChild(container);
+  
+    } catch (error) {
+      console.error('Error in PDF generation:', error);
+      alert('Error generating PDF. Please try again.');
+    }
+  }
+  console.log("contractContent", contractContent)
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
@@ -484,6 +806,95 @@ export function CreateEscrowForm() {
         )
       case 5:
         return (
+          <div className="space-y-6 w-full">
+            <div className="space-y-4 w-full">
+             {!contractContent && <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="showContractTerms"
+                  checked={showContractTerms}
+                  onCheckedChange={handleContractTermsCheckbox}
+                />
+                <Label htmlFor="showContractTerms" className="text-zinc-700 font-medium dark:text-zinc-100">
+                  Add Custom Contract Terms
+                </Label>
+              </div>}
+
+              {contractContent && (
+                <div className="space-y-4 w-full">
+                  <div className={ `flex  justify-between items-center`}>
+                      {! contractContent ? <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                      Add Contract Terms 
+                      </p>:
+                      <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                      Contract terms have been added. Click below to view to edit.
+                    </p>
+                    }
+                    <Dialog open={showContractTerms} onOpenChange={setShowContractTerms}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline">
+                          View Contract
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="w-full lg:min-w-3xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Contract Terms</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div
+                            contentEditable
+                            className="prose max-w-none p-4 border rounded-lg min-h-[400px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            dangerouslySetInnerHTML={{ __html: editedContractContent || contractContent }}
+                            onBlur={(e) => handleContractContentChange(e.currentTarget.innerHTML)}
+                          />
+                          <div className="mt-8 space-y-6">
+                            <div className="space-y-4">
+                              <h3 className="text-lg font-medium text-white">Client Signature</h3>
+                              <SignaturePadComponent 
+                                onSave={handleClientSignature}
+                                canvasId="client-signature-canvas"
+                              />
+                            </div>
+                            <div className="space-y-4">
+                              <h3 className="text-lg font-medium text-white">Service Provider Signature</h3>
+                              <SignaturePadComponent 
+                                onSave={handleProviderSignature}
+                                canvasId="provider-signature-canvas"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex justify-end mt-4">
+                            <Button
+                              type="button"
+                              onClick={handleSaveChanges}
+                              className="flex items-center gap-2"
+                            >
+                              Save Changes
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </div>
+              )}
+            </div>
+            {  showDownloadButton && (
+              <div className="flex justify-end gap-2 mt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleDownloadPDF}
+                  className="flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Download PDF
+                </Button>
+              </div>
+            )}
+          </div>
+        )
+      case 6:
+        return (
           <div className="space-y-6">
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Review Details</h3>
@@ -494,6 +905,7 @@ export function CreateEscrowForm() {
                 <p><strong>Project Duration:</strong> {selectedDate.toLocaleString()}</p>
                 {observer && <p><strong>Observer:</strong> {observer}</p>}
                 {jurisdiction && <p><strong>Jurisdiction:</strong> {jurisdiction}</p>}
+                {showContractTerms && <p><strong>Custom Contract Terms:</strong> Added</p>}
               </div>
             </div>
             <div className="flex items-center space-x-2">
@@ -539,7 +951,7 @@ export function CreateEscrowForm() {
                   {step.id}
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={` w-4 md:w-12 lg:w-16 h-1 mx-2 lg:mx-4 ${currentStep > index + 1 ? 'bg-blue-600' : 'bg-zinc-200 dark:bg-zinc-700'}`} />
+                  <div className={` w-4 md:w-10 lg:w-14 h-1 mx-2 lg:mx-2 ${currentStep > index + 1 ? 'bg-blue-600' : 'bg-zinc-200 dark:bg-zinc-700'}`} />
                 )}
               </div>
             ))}

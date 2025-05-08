@@ -67,11 +67,11 @@ export function Web3Provider({ children }: Web3ProviderProps) {
             const ethersProvider = new BrowserProvider(walletProvider as Eip1193Provider);
             const signer = await ethersProvider.getSigner();
 
-            // if(signer ){
-            //     const signature = await signer.signMessage("681a20bdb688daae6afb87db");
-            //     console.log("signature",signature)
+             if(signer ){
+                 const signature = await signer.signMessage("681a2b2a764c1512696332c3");
+                 console.log("signature",signature)
 
-            // }
+             }
             const factoryContract = new ethers.Contract(MultiSig_Factory_Address, MultiSigFactoryAbi, signer);
             const erc20TokenContract = new ethers.Contract(Usdt_Contract_Address, Erc20TokenAbi, signer);
             const userAddress = await signer.getAddress()

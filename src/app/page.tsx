@@ -13,6 +13,7 @@ import { DisputeResolution } from "@/components/dashboard/dispute-resolution"
 import { Escrows } from "@/components/dashboard/Escrows"
 import ConnectPage from "@/components/dashboard/ConnectPage"
 import { useAppKitAccount } from "@reown/appkit/react"
+import DaoTab from "@/components/dashboard/doa-tab"
 
 export default function Dashboard() {
   const [isClient, setIsClient] = useState(false)
@@ -70,6 +71,9 @@ export default function Dashboard() {
             </TabsContent>
             <TabsContent value="history" className="mt-0">
             <TransactionsTab />
+            </TabsContent>
+            <TabsContent value="history" className="mt-0">
+           <DaoTab/>
             </TabsContent>
           </Tabs>
           }

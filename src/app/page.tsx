@@ -14,11 +14,13 @@ import { Escrows } from "@/components/dashboard/Escrows"
 import ConnectPage from "@/components/dashboard/ConnectPage"
 import { useAppKitAccount } from "@reown/appkit/react"
 import DaoTab from "@/components/dashboard/doa-tab"
+import { useUser } from "@/context/userContext"
 
 export default function Dashboard() {
   const [isClient, setIsClient] = useState(false)
   const [activeTab, setActiveTab] = useState("overview")
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
+  const { isAuthenticated} = useUser()
 
   const { address, isConnected } = useAppKitAccount();
 
@@ -48,7 +50,7 @@ export default function Dashboard() {
 
         {/* Main content area with left padding to account for fixed sidebar */}
         <main className="flex-1 overflow-auto p-4 md:p-6 md:ml-64">
-        {!isConnected? 
+        {!isAuthenticated? 
           <ConnectPage/>
            :
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

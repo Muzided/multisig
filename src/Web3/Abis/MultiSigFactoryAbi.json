@@ -5,10 +5,39 @@
                 "internalType": "address",
                 "name": "_usdt",
                 "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "_feeRecipient",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "_dao",
+                "type": "address"
             }
         ],
         "stateMutability": "nonpayable",
         "type": "constructor"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "oldDao",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "newDao",
+                "type": "address"
+            }
+        ],
+        "name": "DaoUpdated",
+        "type": "event"
     },
     {
         "anonymous": false,
@@ -24,34 +53,21 @@
                 "internalType": "address",
                 "name": "disputeContract",
                 "type": "address"
-            }
-        ],
-        "name": "DisputeInitiated",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "escrow",
-                "type": "address"
             },
             {
                 "indexed": true,
                 "internalType": "address",
-                "name": "beneficiary",
+                "name": "initiator",
                 "type": "address"
             },
             {
                 "indexed": false,
-                "internalType": "bool",
-                "name": "approved",
-                "type": "bool"
+                "internalType": "string",
+                "name": "reason",
+                "type": "string"
             }
         ],
-        "name": "DisputeResolved",
+        "name": "DisputeInitiated",
         "type": "event"
     },
     {
@@ -85,8 +101,26 @@
             {
                 "indexed": true,
                 "internalType": "address",
-                "name": "owner",
+                "name": "payer",
                 "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "receiver",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "totalAmount",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "fee",
+                "type": "uint256"
             }
         ],
         "name": "EscrowCreated",
@@ -96,102 +130,77 @@
         "anonymous": false,
         "inputs": [
             {
-                "indexed": true,
-                "internalType": "address",
-                "name": "escrow",
-                "type": "address"
-            },
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "receiver",
-                "type": "address"
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "threshold",
+                "type": "uint256"
             },
             {
                 "indexed": false,
                 "internalType": "uint256",
-                "name": "amount",
+                "name": "fixedFee",
                 "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint16",
+                "name": "feeBps",
+                "type": "uint16"
             }
         ],
-        "name": "PaymentApproved",
+        "name": "FeeParamsUpdated",
         "type": "event"
     },
     {
         "anonymous": false,
         "inputs": [
             {
-                "indexed": true,
-                "internalType": "address",
-                "name": "escrow",
-                "type": "address"
-            },
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "receiver",
-                "type": "address"
-            },
-            {
                 "indexed": false,
-                "internalType": "uint256",
-                "name": "amount",
-                "type": "uint256"
+                "internalType": "address",
+                "name": "newRecipient",
+                "type": "address"
             }
         ],
-        "name": "PaymentReleased",
+        "name": "FeeRecipientUpdated",
         "type": "event"
     },
     {
         "anonymous": false,
         "inputs": [
             {
-                "indexed": true,
-                "internalType": "address",
-                "name": "escrow",
-                "type": "address"
-            },
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "receiver",
-                "type": "address"
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "oldMax",
+                "type": "uint256"
             },
             {
                 "indexed": false,
                 "internalType": "uint256",
-                "name": "amount",
+                "name": "newMax",
                 "type": "uint256"
             }
         ],
-        "name": "PaymentRequested",
+        "name": "MaxResolvesUpdated",
         "type": "event"
     },
     {
         "anonymous": false,
         "inputs": [
             {
-                "indexed": true,
-                "internalType": "address",
-                "name": "newAddress",
-                "type": "address"
-            }
-        ],
-        "name": "USDTAddressUpdated",
-        "type": "event"
-    },
-    {
-        "inputs": [
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "oldWindow",
+                "type": "uint256"
+            },
             {
-                "internalType": "address",
-                "name": "escrowAddress",
-                "type": "address"
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "newWindow",
+                "type": "uint256"
             }
         ],
-        "name": "approvePayment",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
+        "name": "ResolutionWindowUpdated",
+        "type": "event"
     },
     {
         "inputs": [
@@ -201,14 +210,19 @@
                 "type": "address"
             },
             {
-                "internalType": "uint256",
-                "name": "_amount",
-                "type": "uint256"
+                "internalType": "address",
+                "name": "_observer",
+                "type": "address"
             },
             {
-                "internalType": "uint256",
-                "name": "_duration",
-                "type": "uint256"
+                "internalType": "uint256[]",
+                "name": "_amounts",
+                "type": "uint256[]"
+            },
+            {
+                "internalType": "uint256[]",
+                "name": "_dueDates",
+                "type": "uint256[]"
             }
         ],
         "name": "createEscrow",
@@ -217,14 +231,8 @@
         "type": "function"
     },
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "name": "disputeContracts",
+        "inputs": [],
+        "name": "dao",
         "outputs": [
             {
                 "internalType": "address",
@@ -255,38 +263,13 @@
         "type": "function"
     },
     {
-        "inputs": [
+        "inputs": [],
+        "name": "disputeWindow",
+        "outputs": [
             {
                 "internalType": "uint256",
                 "name": "",
                 "type": "uint256"
-            }
-        ],
-        "name": "disputeTeamMembers",
-        "outputs": [
-            {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "name": "escrowCompleted",
-        "outputs": [
-            {
-                "internalType": "bool",
-                "name": "",
-                "type": "bool"
             }
         ],
         "stateMutability": "view",
@@ -312,19 +295,13 @@
         "type": "function"
     },
     {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "creator",
-                "type": "address"
-            }
-        ],
-        "name": "getCreatorEscrows",
+        "inputs": [],
+        "name": "feeBps",
         "outputs": [
             {
-                "internalType": "address[]",
+                "internalType": "uint16",
                 "name": "",
-                "type": "address[]"
+                "type": "uint16"
             }
         ],
         "stateMutability": "view",
@@ -332,7 +309,33 @@
     },
     {
         "inputs": [],
-        "name": "getDisputeTeamMembers",
+        "name": "feeRecipient",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "fixedFee",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getDisputeTeam",
         "outputs": [
             {
                 "internalType": "address[]",
@@ -347,37 +350,32 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "receiver",
+                "name": "",
                 "type": "address"
             }
         ],
-        "name": "getReceiverEscrows",
+        "name": "latestEscrowByUser",
         "outputs": [
             {
-                "internalType": "address[]",
+                "internalType": "address",
                 "name": "",
-                "type": "address[]"
+                "type": "address"
             }
         ],
         "stateMutability": "view",
         "type": "function"
     },
     {
-        "inputs": [
+        "inputs": [],
+        "name": "maxResolvesPerWindow",
+        "outputs": [
             {
-                "internalType": "address",
-                "name": "escrowAddress",
-                "type": "address"
-            },
-            {
-                "internalType": "string",
-                "name": "_reason",
-                "type": "string"
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
             }
         ],
-        "name": "initiateDispute",
-        "outputs": [],
-        "stateMutability": "nonpayable",
+        "stateMutability": "view",
         "type": "function"
     },
     {
@@ -397,31 +395,36 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "",
+                "name": "resolver",
                 "type": "address"
             }
         ],
-        "name": "paymentRequests",
+        "name": "recordResolution",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "releaseWindow",
         "outputs": [
             {
-                "internalType": "address",
-                "name": "receiver",
-                "type": "address"
-            },
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "resolutionWindow",
+        "outputs": [
             {
                 "internalType": "uint256",
-                "name": "amount",
+                "name": "",
                 "type": "uint256"
-            },
-            {
-                "internalType": "bool",
-                "name": "completed",
-                "type": "bool"
-            },
-            {
-                "internalType": "bool",
-                "name": "disputed",
-                "type": "bool"
             }
         ],
         "stateMutability": "view",
@@ -431,44 +434,32 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "escrowAddress",
+                "name": "",
                 "type": "address"
             }
         ],
-        "name": "releaseFunds",
-        "outputs": [],
-        "stateMutability": "nonpayable",
+        "name": "resolvesInWindow",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
         "type": "function"
     },
     {
-        "inputs": [
+        "inputs": [],
+        "name": "threshold",
+        "outputs": [
             {
-                "internalType": "address",
-                "name": "escrowAddress",
-                "type": "address"
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
             }
         ],
-        "name": "requestPayment",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [
-            {
-                "internalType": "address",
-                "name": "escrowAddress",
-                "type": "address"
-            },
-            {
-                "internalType": "bool",
-                "name": "approve",
-                "type": "bool"
-            }
-        ],
-        "name": "resolveDispute",
-        "outputs": [],
-        "stateMutability": "nonpayable",
+        "stateMutability": "view",
         "type": "function"
     },
     {
@@ -501,6 +492,19 @@
         "inputs": [
             {
                 "internalType": "address",
+                "name": "newDao",
+                "type": "address"
+            }
+        ],
+        "name": "updateDao",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
                 "name": "member",
                 "type": "address"
             },
@@ -510,7 +514,43 @@
                 "type": "bool"
             }
         ],
-        "name": "updateDisputeTeamMember",
+        "name": "updateDisputeTeam",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "_window",
+                "type": "uint256"
+            }
+        ],
+        "name": "updateDisputeWindow",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "_threshold",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "_fixedFee",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint16",
+                "name": "_feeBps",
+                "type": "uint16"
+            }
+        ],
+        "name": "updateFeeParams",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
@@ -519,11 +559,50 @@
         "inputs": [
             {
                 "internalType": "address",
-                "name": "_usdt",
+                "name": "newRecipient",
                 "type": "address"
             }
         ],
-        "name": "updateUSDTAddress",
+        "name": "updateFeeRecipient",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "_max",
+                "type": "uint256"
+            }
+        ],
+        "name": "updateMaxResolvesPerWindow",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "_window",
+                "type": "uint256"
+            }
+        ],
+        "name": "updateReleaseWindow",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "_window",
+                "type": "uint256"
+            }
+        ],
+        "name": "updateResolutionWindow",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
@@ -536,6 +615,25 @@
                 "internalType": "contract IERC20",
                 "name": "",
                 "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "name": "windowStart",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
             }
         ],
         "stateMutability": "view",

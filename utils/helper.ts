@@ -1,3 +1,5 @@
+import { AxiosError } from "axios";
+
 export function convertUnixToDate(unixTimestamp: number): string {
   const date = new Date(unixTimestamp * 1000);
   return date.toLocaleString("en-US", {
@@ -35,4 +37,16 @@ export const getStatusStyles = (status: string) => {
       return `${baseClasses} border-gray-500 bg-gray-500/10 text-gray-600 dark:border-gray-500 dark:text-gray-500`
   }
 }
+
+
+
+
+export const unixToDate = (unixTimestamp: number): Date => {
+    return new Date(unixTimestamp * 1000); // Convert seconds to milliseconds
+};
+
+
+export const dateToUnix = (date: Date): number => {
+    return Math.floor(date.getTime() / 1000); // Convert milliseconds to seconds
+};
 

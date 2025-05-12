@@ -67,25 +67,21 @@ export function Web3Provider({ children }: Web3ProviderProps) {
             const ethersProvider = new BrowserProvider(walletProvider as Eip1193Provider);
             const signer = await ethersProvider.getSigner();
 
-             if(signer ){
-                 const signature = await signer.signMessage("681a2b2a764c1512696332c3");
-                 console.log("signature",signature)
-
-             }
+         
             const factoryContract = new ethers.Contract(MultiSig_Factory_Address, MultiSigFactoryAbi, signer);
             const erc20TokenContract = new ethers.Contract(Usdt_Contract_Address, Erc20TokenAbi, signer);
             const userAddress = await signer.getAddress()
 
-            const disputeMembers = await factoryContract.getDisputeTeamMembers();
-            const isUserInDisputeTeam = disputeMembers.includes(userAddress);
+            // const disputeMembers = await factoryContract.getDisputeTeamMembers();
+            // const isUserInDisputeTeam = disputeMembers.includes(userAddress);
 
-console.log('checks that happen',isUserInDisputeTeam)
+//console.log('checks that happen',isUserInDisputeTeam)
             setProvider(ethersProvider);
             setSigner(signer);
             setAccount(userAddress);
             setMultisigFactoryContract(factoryContract);
             setErc20TokenContract(erc20TokenContract);
-            setIsDisputeMember(isUserInDisputeTeam)
+           // setIsDisputeMember(isUserInDisputeTeam)
 
             const { chainId } = await ethersProvider.getNetwork();
             setChainId(Number(chainId));
@@ -94,7 +90,7 @@ console.log('checks that happen',isUserInDisputeTeam)
         }
     };
 
-    console.log("after intializations", provider, signer, account, chainId, multisigFactoryContract)
+    //console.log("after intializations", provider, signer, account, chainId, multisigFactoryContract)
     // Handle disconnection: Reset state and redirect to "/"
     // useEffect(() => {
     //     if (!isConnected) {

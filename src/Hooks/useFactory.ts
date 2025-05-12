@@ -3,6 +3,7 @@ import { ethers, Contract } from "ethers";
 import { useWeb3 } from "../context/Web3Context"; // Import your Web3 context
 import { MultiSig_Factory_Address, tokenDecimals, Usdt_Contract_Address } from "@/Web3/web3-config";
 import { toast } from "react-toastify";
+import { createEscrowResponse } from "@/types/escrow";
 
 // Define the Factory Contract Interface
 interface UseEscrowFactoryReturn {
@@ -27,12 +28,48 @@ export const useFactory = () => {
     //     fetchTotalEscrows();
     // }, [multisigFactoryContract]);
     //approve USDT
-    const approveUSDT = async (usdtContract: Contract, factoryAddress: string, amount: BigInt) => {
+    const approveUSDT = async (usdtContract: Contract, factoryAddress: string, amount: string) => {
 
         const tx = await usdtContract.approve(factoryAddress, amount);
         await tx.wait(); // Wait for transaction confirmation
         console.log("Approval successful");
     };
+
+    const fetchThreshold = async (): Promise<number> => {
+        try {
+            if (!multisigFactoryContract) return 0;
+            const feeThreshold = await multisigFactoryContract.threshold();
+            return Number(feeThreshold);
+
+        } catch (error) {
+            console.error("Error fetching total escrows", error);
+            return 0;
+        }
+    }
+
+    const fetchFixedFee = async (): Promise<number> => {
+        try {
+            if (!multisigFactoryContract) return 0;
+            const fixedFee = await multisigFactoryContract.fixedFee();
+            return Number(fixedFee);
+
+        } catch (error) {
+            console.error("Error fetching total escrows", error);
+            return 0;
+        }
+    }
+
+    const fetchPercentageFee = async (): Promise<number> => {
+        try {
+            if (!multisigFactoryContract) return 0;
+            const feePercentage = await multisigFactoryContract.feeBps();
+            return Number(feePercentage);
+        } catch (error) {
+            console.error("Error fetching total escrows", error);
+            return 0;
+        }
+    }
+
 
     const checkUserBalance = async (usdtContract: Contract, userAddress: string) => {
         const balance = await usdtContract.balanceOf(userAddress);
@@ -159,7 +196,7 @@ export const useFactory = () => {
         try {
             if (!multisigFactoryContract) return 0;
             const disputeMembers = await multisigFactoryContract.getDisputeTeamMembers();
-           console.log("team memebers fetched",disputeMembers[0])
+            console.log("team memebers fetched", disputeMembers[0])
 
         } catch (error) {
             console.error("Error fetching total escrows", error);
@@ -370,11 +407,12 @@ export const useFactory = () => {
     }, [multisigFactoryContract]);
 
     //  Create Escrow 
-    const createEscrow = useCallback(async (
+    const createMilestoneEscrow = async (
         userAddress: string,
         receiver: string,
-        amount: string,
-        duration: number,
+        observer: string,
+        amount: string[],
+        duration: number[],
         setLoading: Dispatch<SetStateAction<boolean>>
     ): Promise<string> => {
         let id: any;
@@ -384,10 +422,14 @@ export const useFactory = () => {
             if (!multisigFactoryContract || !erc20TokenContract) return '';
             id = toast.loading(`Executing USDT approval...`);
 
-            const parsedAmount = ethers.parseUnits(amount, 6);
+            const parsedAmounts = amount.map(amt => ethers.parseUnits(amt, 6));
+            console.log("parsedAmounts", parsedAmounts)
+            const totalparsedAmount = parsedAmounts.reduce((sum, amts) => sum + BigInt(amts?.toString()), BigInt(0));
+            console.log("totalparsedAmount", totalparsedAmount)
             // Check user balance before proceeding
             const userBalance = await checkUserBalance(erc20TokenContract, userAddress);
-            if (parseFloat(userBalance) < parseFloat(amount)) {
+            const totalAmount = amount.reduce((sum, amt) => sum + parseFloat(amt), 0);
+            if (parseFloat(userBalance) < parseFloat(totalAmount?.toString())) {
                 toast.update(id, {
                     render: "Insufficient USDT balance",
                     type: "error",
@@ -397,12 +439,12 @@ export const useFactory = () => {
                 setLoading(false)
                 return ''
             }
-            await approveUSDT(erc20TokenContract, MultiSig_Factory_Address, parsedAmount);
+            await approveUSDT(erc20TokenContract, MultiSig_Factory_Address, totalparsedAmount?.toString());
             toast.update(id, { render: "Creating Escrow", isLoading: true });
             const tx = await multisigFactoryContract.createEscrow(
                 receiver,
-                parsedAmount?.toString(),
-                duration?.toString(),
+                totalparsedAmount?.toString(),
+                duration[0]?.toString(),
             )
 
             const receipt = await tx.wait()
@@ -426,7 +468,119 @@ export const useFactory = () => {
             });
             throw err
         }
-    }, [multisigFactoryContract])
+    }
+    const createEscrow = async (
+        userAddress: string,
+        receiver: string,
+        observer: string,
+        amount: string[],
+        duration: number[],
+        setLoading: Dispatch<SetStateAction<boolean>>
+    ): Promise<createEscrowResponse> => {
+        let id: any;
+        try {
+            setLoading(true)
+
+            if (!multisigFactoryContract || !erc20TokenContract)
+                return {
+                    success: true,
+                    escrow_contract_address: '',
+                    transaction_hash: '',
+                }
+            id = toast.loading(`Executing USDT approval...`);
+            //fetch fee structure
+            const feeThreshold = await fetchThreshold();
+            const fixedFee = await fetchFixedFee();
+            const feePercentage = await fetchPercentageFee();
+
+            console.log("feeThreshold", BigInt(feeThreshold))
+            console.log("fixedFee", BigInt(fixedFee))
+            console.log("feePercentage", BigInt(feePercentage))
+
+            //parse amount in wei
+            const parsedAmounts = amount.map(amt => ethers.parseUnits(amt, 6));
+            console.log("parsedAmounts", parsedAmounts)
+
+            //sum of all the parsed amounts
+            const totalparsedAmount = parsedAmounts.reduce((sum, amts) => sum + BigInt(amts?.toString()), BigInt(0));
+            console.log("totalparsedAmount", totalparsedAmount)
+
+            // Calculate fee based on threshold
+            let feeAmount;
+            if (totalparsedAmount <= BigInt(feeThreshold)) {
+                // If amount is less than or equal to threshold, use fixed fee
+                feeAmount = BigInt(fixedFee);
+            } else {
+                // If amount exceeds threshold, calculate percentage-based fee
+                // Multiply first to avoid precision loss, then divide
+                feeAmount = (totalparsedAmount * BigInt(feePercentage)) / BigInt(10000);
+            }
+            console.log("feeAmount", feeAmount)
+
+            // Add fee to total amount
+            const totalAmountWithFee = totalparsedAmount + feeAmount;
+            console.log("totalAmountWithFee", totalAmountWithFee)
+
+            // Check user balance before proceeding
+            const userBalance = await checkUserBalance(erc20TokenContract, userAddress);
+            const totalAmount = amount.reduce((sum, amt) => sum + parseFloat(amt), 0);
+
+            if (parseFloat(userBalance) < parseFloat(totalAmount?.toString())) {
+                toast.update(id, {
+                    render: "Insufficient USDT balance",
+                    type: "error",
+                    isLoading: false,
+                    autoClose: 3000
+                });
+                setLoading(false)
+                return {
+                    success: true,
+                    escrow_contract_address: '',
+                    transaction_hash: '',
+                }
+            }
+            await approveUSDT(erc20TokenContract, MultiSig_Factory_Address, totalAmountWithFee.toString());
+            toast.update(id, { render: "Creating Escrow", isLoading: true });
+
+            console.log("Receiver:", receiver);
+            console.log("Amounts:", parsedAmounts.map(a => a.toString()));
+            console.log("Due dates:", duration.map(d => d.toString()));
+            console.log("Observer:", observer);
+            console.log("MultiSig_Factory_Address", MultiSig_Factory_Address)
+
+            const tx = await multisigFactoryContract.createEscrow(
+                receiver,
+                observer,
+                parsedAmounts.map(a => a.toString()),  // Pass array of individual amounts
+                duration.map(d => d.toString())
+            )
+
+            const receipt = await tx.wait()
+            console.log("receipt", receipt)
+            toast.update(id, { render: `Escrow Created hash: ${receipt.hash}`, type: "success", isLoading: false, autoClose: 3000 });
+
+            // // Find the escrow address from event logs
+            // const event = receipt.events?.find(e => e.event === 'EscrowCreated')
+            // const escrowAddress = event?.args?.escrowAddress || ''
+
+            setLoading(false)
+            return {
+                success: true,
+                escrow_contract_address: receipt.hash,
+                transaction_hash: receipt.hash,
+            }
+        } catch (err: any) {
+            setLoading(false)
+
+            toast.update(id, {
+                render: "Failed to create escrow",
+                type: "error",
+                isLoading: false,
+                autoClose: 3000
+            });
+            throw err
+        }
+    }
 
     // update dispute team memebers 
     const updateDisputeTeamMembers = useCallback(async (
@@ -473,6 +627,10 @@ export const useFactory = () => {
 
     return {
         createEscrow,
+        createMilestoneEscrow,
+        fetchThreshold,
+        fetchFixedFee,
+        fetchPercentageFee,
         fetchTotalEscrows,
         fetchTotalPayments,
         fetchCreatorEscrows,

@@ -12,99 +12,50 @@
                 "type": "address"
             },
             {
-                "internalType": "uint256",
-                "name": "_amount",
-                "type": "uint256"
-            },
-            {
-                "internalType": "uint256",
-                "name": "_duration",
-                "type": "uint256"
+                "internalType": "address",
+                "name": "_observer",
+                "type": "address"
             },
             {
                 "internalType": "address",
                 "name": "_usdt",
                 "type": "address"
+            },
+            {
+                "internalType": "uint256[]",
+                "name": "_amounts",
+                "type": "uint256[]"
+            },
+            {
+                "internalType": "uint256[]",
+                "name": "_dueDates",
+                "type": "uint256[]"
+            },
+            {
+                "internalType": "uint256",
+                "name": "_releaseWindow",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "_disputeWindow",
+                "type": "uint256"
             }
         ],
         "stateMutability": "nonpayable",
         "type": "constructor"
     },
     {
-        "anonymous": false,
         "inputs": [
             {
-                "indexed": true,
-                "internalType": "address",
-                "name": "escrow",
-                "type": "address"
-            }
-        ],
-        "name": "FundsFrozen",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "owner",
-                "type": "address"
-            },
-            {
-                "indexed": false,
                 "internalType": "uint256",
-                "name": "amount",
+                "name": "idx",
                 "type": "uint256"
             }
         ],
-        "name": "FundsRefunded",
-        "type": "event"
-    },
-    {
-        "anonymous": false,
-        "inputs": [
-            {
-                "indexed": true,
-                "internalType": "address",
-                "name": "recipient",
-                "type": "address"
-            },
-            {
-                "indexed": false,
-                "internalType": "uint256",
-                "name": "amount",
-                "type": "uint256"
-            }
-        ],
-        "name": "FundsReleased",
-        "type": "event"
-    },
-    {
-        "inputs": [],
-        "name": "amount",
-        "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "deadline",
-        "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "stateMutability": "view",
+        "name": "approveRequest",
+        "outputs": [],
+        "stateMutability": "nonpayable",
         "type": "function"
     },
     {
@@ -115,6 +66,19 @@
                 "internalType": "address",
                 "name": "",
                 "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "disputeWindow",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
             }
         ],
         "stateMutability": "view",
@@ -135,13 +99,6 @@
     },
     {
         "inputs": [],
-        "name": "freezeFunds",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [],
         "name": "frozen",
         "outputs": [
             {
@@ -155,12 +112,101 @@
     },
     {
         "inputs": [],
-        "name": "fundsReleased",
+        "name": "getMilestones",
         "outputs": [
             {
-                "internalType": "bool",
+                "components": [
+                    {
+                        "internalType": "uint256",
+                        "name": "amount",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "dueDate",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "released",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "disputed",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "requested",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "requestTime",
+                        "type": "uint256"
+                    }
+                ],
+                "internalType": "struct Escrow.Milestone[]",
                 "name": "",
+                "type": "tuple[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "name": "milestones",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "dueDate",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bool",
+                "name": "released",
                 "type": "bool"
+            },
+            {
+                "internalType": "bool",
+                "name": "disputed",
+                "type": "bool"
+            },
+            {
+                "internalType": "bool",
+                "name": "requested",
+                "type": "bool"
+            },
+            {
+                "internalType": "uint256",
+                "name": "requestTime",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "observer",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
             }
         ],
         "stateMutability": "view",
@@ -180,6 +226,24 @@
         "type": "function"
     },
     {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "idx",
+                "type": "uint256"
+            },
+            {
+                "internalType": "string",
+                "name": "reason",
+                "type": "string"
+            }
+        ],
+        "name": "raiseDispute",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
         "inputs": [],
         "name": "receiver",
         "outputs": [
@@ -193,15 +257,14 @@
         "type": "function"
     },
     {
-        "inputs": [],
-        "name": "refundOwner",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "releaseFunds",
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "idx",
+                "type": "uint256"
+            }
+        ],
+        "name": "reclaimUnrequested",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
@@ -209,19 +272,38 @@
     {
         "inputs": [
             {
-                "internalType": "address",
-                "name": "_disputeContract",
-                "type": "address"
+                "internalType": "uint256",
+                "name": "idx",
+                "type": "uint256"
             }
         ],
-        "name": "setDisputeContract",
+        "name": "rejectRequest",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
     },
     {
         "inputs": [],
-        "name": "unfreezeFunds",
+        "name": "releaseWindow",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "idx",
+                "type": "uint256"
+            }
+        ],
+        "name": "requestMilestone",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"

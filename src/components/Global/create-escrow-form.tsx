@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
 import { useWeb3 } from "@/context/Web3Context"
 import { useFactory } from "@/Hooks/useFactory"
 import DatePicker from "react-datepicker";
@@ -23,17 +22,21 @@ import { Textarea } from "@/components/ui/textarea"
 import { contractTemplates } from "../../../public/Data/ContractHtmls"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { SignaturePadComponent } from './signature-pad'
+import { dateToUnix } from "../../../utils/helper"
+import { EscrowCreationData } from "@/types/user"
+import { saveEscrow } from "@/services/Api/escrow/escrow"
+import { handleError } from "../../../utils/errorHandler"
+import { toast } from "react-toastify"
 
 export function CreateEscrowForm() {
   const [amount, setAmount] = useState("")
-  const [signees, setSignees] = useState<string[]>([""])
   const [receiver, setReceiver] = useState("")
   const [receiverEmail, setReceiverEmail] = useState("")
   const [error, setError] = useState("")
-  const [duration, setDuration] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const now = new Date(); // Define 'now' as the current date and time
   const [selectedDate, setSelectedDate] = useState<Date>(now); // Default to now
+  const [totalProjectDate, setTotalProjectDate] = useState<Date>(now); // Default to now
   const [unixTimestamp, setUnixTimestamp] = useState<number>(Math.floor(now.getTime() / 1000)); // Default Unix timestamp
   const [paymentType, setPaymentType] = useState<"full" | "milestone">("full")
   const [observer, setObserver] = useState("")
@@ -57,7 +60,7 @@ export function CreateEscrowForm() {
   //web 3 context
   const { signer, account } = useWeb3()
   // multi-sig factory contract hook
-  const { fetchTotalEscrows, createEscrow } = useFactory()
+  const { fetchTotalEscrows, createEscrow, createMilestoneEscrow } = useFactory()
   const [currentStep, setCurrentStep] = useState(1)
   const totalSteps = 6
 
@@ -101,12 +104,36 @@ export function CreateEscrowForm() {
   }, [signer])
   // This would fetch the user's wallet address from the wallet provider)
 
-  
+
 
   const handleDateChange = (date: Date | null) => {
     if (date) {
+      // Check if the selected date is at least 24 hours from now
+      const now = new Date();
+      const hoursDifference = (date.getTime() - now.getTime()) / (1000 * 60 * 60);
+      
+      if (hoursDifference < 24) {
+        toast.error("Project duration must be at least 24 hours");
+        return;
+      }
+
       setSelectedDate(date);
-      setUnixTimestamp(Math.floor(date.getTime() / 1000)); // Convert to Unix timestamp in seconds
+      setUnixTimestamp(Math.floor(date.getTime() / 1000));
+    }
+  };
+  const handleTotalProjectDateChange = (date: Date | null) => {
+    if (date) {
+      // Check if the selected date is at least 24 hours from now
+      const now = new Date();
+      const hoursDifference = (date.getTime() - now.getTime()) / (1000 * 60 * 60);
+      
+      if (hoursDifference < 24) {
+        toast.error("Project duration must be at least 24 hours");
+        return;
+      }
+
+      setTotalProjectDate(date);
+      setUnixTimestamp(Math.floor(date.getTime() / 1000));
     }
   };
 
@@ -124,7 +151,7 @@ export function CreateEscrowForm() {
     const newMilestones = [...milestones]
     newMilestones[index] = { ...newMilestones[index], [field]: value }
     setMilestones(newMilestones)
-    
+
     // Validate milestone amounts sum up to total
     if (field === "amount") {
       const total = newMilestones.reduce((sum, m) => sum + Number(m.amount || 0), 0)
@@ -133,6 +160,30 @@ export function CreateEscrowForm() {
       } else {
         setMilestoneError("")
       }
+    }
+
+    // Validate milestone dates
+    if (field === "date" && value instanceof Date) {
+      const currentMilestoneDate = new Date(value);
+      
+      // Check if date is at least 24 hours from now for first milestone
+      if (index === 0) {
+        const now = new Date();
+        const hoursDifference = (currentMilestoneDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+        if (hoursDifference < 24) {
+          setMilestoneError("First milestone must be at least 24 hours from now");
+          return;
+        }
+      } else {
+        // For subsequent milestones, check if they're at least 24 hours after previous milestone
+        const prevMilestoneDate = new Date(newMilestones[index - 1].date);
+        const hoursDifference = (currentMilestoneDate.getTime() - prevMilestoneDate.getTime()) / (1000 * 60 * 60);
+        if (hoursDifference < 24) {
+          setMilestoneError(`Milestone ${index + 1} must be at least 24 hours after Milestone ${index}`);
+          return;
+        }
+      }
+      setMilestoneError("");
     }
   }
 
@@ -151,33 +202,98 @@ export function CreateEscrowForm() {
     setIsSubmitting(true)
 
     try {
+      // Validate receiver information
+      if (!receiver || !receiverEmail) {
+        toast.error("Receiver's wallet address and email are required");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!ethers.isAddress(receiver)) {
+        toast.error("Please enter a valid Ethereum address");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!receiverEmail.includes('@')) {
+        toast.error("Please enter a valid email address");
+        setIsSubmitting(false);
+        return;
+      }
+
       const userAddress = account
-      // Calculate total amount based on payment type
-      const totalAmount = paymentType === "full" 
-        ? amount 
-        : totalMilestoneAmount
 
-      const res = await createEscrow(
-        userAddress,
-        receiver,
-        totalAmount,
-        unixTimestamp,
-        setIsSubmitting
-      )
+      const milestoneAmounts = milestones.map(milestone => milestone.amount)
+      const milestoneTimestamps = milestones.map(milestone => dateToUnix(milestone.date))
+      console.log("milestoneAmounts", milestoneAmounts, milestoneTimestamps)
 
-      // Reset form
-      setAmount("")
-      setReceiver("")
-      setMilestones([{ amount: "", date: now, description: "" }])
-      setTotalMilestoneAmount("")
-      setPaymentType("full")
-      setObserver("")
-      setJurisdiction("")
-      setLegalAgreement(false)
-      setMilestoneError("")
+      let escrowCreationResponse: any;
+      if (paymentType === "full") {
+        const amounts = [amount];
+        const timestamps = [unixTimestamp];
+        escrowCreationResponse = await createEscrow(
+          userAddress,
+          receiver,
+          observer || "0x0000000000000000000000000000000000000000", // Use zero address if no observer
+          amounts,
+          timestamps,
+          setIsSubmitting
+        )
+      } else {
+        escrowCreationResponse = await createEscrow(
+          userAddress,
+          receiver,
+          observer || "0x0000000000000000000000000000000000000000", // Use zero address if no observer
+          milestoneAmounts,
+          milestoneTimestamps,
+          setIsSubmitting
+        )
+      }
+      // if (escrowCreationResponse) {
+      //   const escrowCreationData: EscrowCreationData = {
+      //     receiver_walletaddress: receiver,
+      //     receiver_email: receiverEmail,
+      //     amount: paymentType === "full" ? parseFloat(amount) : parseFloat(totalMilestoneAmount),
+      //     due_date: paymentType === "full" ? unixTimestamp : dateToUnix(milestones[milestones.length - 1].date),
+      //     payment_type: paymentType,
+      //     jurisdiction_tag: jurisdiction,
+      //     document_html: editedContractContent,
+      //     kyc_required: false,
+      //     observer_wallet: observer || "0x0000000000000000000000000000000000000000", // Use zero address if no observer
+      //     platform_fee_type: "percentage",
+      //     platform_fee_value: 1,
+      //     creator_signature: true,
+      //     receiver_signature: false,
+      //     escrow_contract_address: "resrser",
+      //     transaction_hash: "xsxsxxsxs",
+      //     ...(paymentType === "milestone" && {
+      //       milestones: milestones.map(milestone => ({
+      //         amount: parseFloat(milestone.amount),
+      //         due_date: dateToUnix(milestone.date),
+      //         description: milestone.description
+      //       }))
+      //     })
+      //   }
+      //   console.log("escrowCreationData", escrowCreationData);
+      //   const response = await saveEscrow(escrowCreationData)
+      //   console.log("response", response)
+      //   if (response.status === 201) {
+      //     toast.success(response?.data?.message);
+      //     setAmount("")
+      //     setReceiver("")
+      //     setMilestones([{ amount: "", date: now, description: "" }])
+      //     setTotalMilestoneAmount("")
+      //     setPaymentType("full")
+      //     setObserver("")
+      //     setJurisdiction("")
+      //     setLegalAgreement(false)
+      //     setMilestoneError("")
+      //   }
+      // }
 
     } catch (error) {
       console.error("Error creating escrow:", error)
+      handleError(error)
     } finally {
       setIsSubmitting(false)
     }
@@ -195,6 +311,91 @@ export function CreateEscrowForm() {
   };
 
   const nextStep = () => {
+    // Add validation for step 2 (Receiver Information)
+    if (currentStep === 2) {
+      if (!receiver || !receiverEmail) {
+        toast.error("Please fill in both receiver's wallet address and email");
+        return;
+      }
+      if (!ethers.isAddress(receiver)) {
+        toast.error("Please enter a valid Ethereum address");
+        return;
+      }
+      if (!receiverEmail.includes('@')) {
+        toast.error("Please enter a valid email address");
+        return;
+      }
+    }
+
+    // Add validation for step 3 (Project Timeline)
+    if (currentStep === 3) {
+      if (paymentType === "full") {
+        // Check if amount is provided and valid
+        if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
+          toast.error("Please enter a valid amount greater than 0");
+          return;
+        }
+
+        // Check if duration is at least 24 hours
+        const now = new Date();
+        const selectedDateTime = new Date(selectedDate);
+        const hoursDifference = (selectedDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+        
+        if (hoursDifference < 24) {
+          toast.error("Project duration must be at least 24 hours");
+          return;
+        }
+      } else {
+        // Milestone payment type validations
+        if (!totalMilestoneAmount || isNaN(parseFloat(totalMilestoneAmount)) || parseFloat(totalMilestoneAmount) <= 0) {
+          toast.error("Please enter a valid total project amount");
+          return;
+        }
+
+        // Check if all milestones have valid amounts
+        const invalidMilestone = milestones.find(m => 
+          !m.amount || 
+          isNaN(parseFloat(m.amount)) || 
+          parseFloat(m.amount) <= 0 
+        );
+        
+        if (invalidMilestone) {
+          toast.error("All milestones must have valid amounts");
+          return;
+        }
+
+        // Check if milestone amounts sum up to total
+        const total = milestones.reduce((sum, m) => sum + Number(m.amount || 0), 0);
+        if (total !== Number(totalMilestoneAmount)) {
+          toast.error("Milestone amounts must sum up to the total amount");
+          return;
+        }
+
+        // Check milestone dates
+        const now = new Date();
+        for (let i = 0; i < milestones.length; i++) {
+          const milestoneDate = new Date(milestones[i].date);
+          
+          if (i === 0) {
+            // First milestone must be at least 24 hours from now
+            const hoursDifference = (milestoneDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+            if (hoursDifference < 24) {
+              toast.error("First milestone must be at least 24 hours from now");
+              return;
+            }
+          } else {
+            // Subsequent milestones must be at least 24 hours after previous milestone
+            const prevMilestoneDate = new Date(milestones[i - 1].date);
+            const hoursDifference = (milestoneDate.getTime() - prevMilestoneDate.getTime()) / (1000 * 60 * 60);
+            if (hoursDifference < 24) {
+              toast.error(`Milestone ${i + 1} must be at least 24 hours after Milestone ${i}`);
+              return;
+            }
+          }
+        }
+      }
+    }
+
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1)
     }
@@ -212,7 +413,7 @@ export function CreateEscrowForm() {
     let updatedContent = contractContent
     const clientSignaturePlaceholder = '<div id="client-signature-canvas"></div>'
     const clientSignatureImg = `<img src="${signatureData}" alt="Client Signature" style="max-width: 100%; height: auto;" />`
-    
+
     if (updatedContent.includes(clientSignaturePlaceholder)) {
       updatedContent = updatedContent.replace(clientSignaturePlaceholder, clientSignatureImg)
     } else {
@@ -222,7 +423,7 @@ export function CreateEscrowForm() {
         updatedContent = updatedContent.replace(existingSignature[0], clientSignatureImg)
       }
     }
-    
+
     setContractContent(updatedContent)
     setEditedContractContent(updatedContent)
     alert("Client signature saved")
@@ -234,7 +435,7 @@ export function CreateEscrowForm() {
     let updatedContent = contractContent
     const providerSignaturePlaceholder = '<div id="provider-signature-canvas"></div>'
     const providerSignatureImg = `<img src="${signatureData}" alt="Provider Signature" style="max-width: 100%; height: auto;" />`
-    
+
     if (updatedContent.includes(providerSignaturePlaceholder)) {
       updatedContent = updatedContent.replace(providerSignaturePlaceholder, providerSignatureImg)
     } else {
@@ -244,7 +445,7 @@ export function CreateEscrowForm() {
         updatedContent = updatedContent.replace(existingSignature[0], providerSignatureImg)
       }
     }
-    
+
     setContractContent(updatedContent)
     setEditedContractContent(updatedContent)
     alert("Service provider signature saved")
@@ -280,16 +481,16 @@ export function CreateEscrowForm() {
       // If we're in edit mode, get content directly from the contentEditable div
       let currentContent = contractContent;
       const editableContentElement = document.querySelector('[contenteditable="true"]');
-      
+
       if (isEditingContract && editableContentElement) {
         // Capture the current content from the contentEditable element
         currentContent = editableContentElement.innerHTML;
-        
+
         // Save this content to our state as well
         setEditedContractContent(currentContent);
         setContractContent(currentContent);
       }
-  
+
       // Create a container and append it to the document temporarily
       const container = document.createElement('div');
       container.style.cssText = `
@@ -305,11 +506,11 @@ export function CreateEscrowForm() {
         z-index: -1;
       `;
       document.body.appendChild(container);
-  
+
       // Create a clean copy of the current contract content
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = currentContent;
-      
+
       // Process editable fields to show their content instead of placeholders
       const editableFields = tempDiv.querySelectorAll('[contenteditable="true"]');
       editableFields.forEach(field => {
@@ -321,7 +522,7 @@ export function CreateEscrowForm() {
           field.parentNode?.replaceChild(contentDiv, field);
         }
       });
-  
+
       // Process input fields to show their values
       const inputFields = tempDiv.querySelectorAll('input, textarea');
       inputFields.forEach(input => {
@@ -335,7 +536,7 @@ export function CreateEscrowForm() {
           input.parentNode?.replaceChild(valueDiv, input);
         }
       });
-      
+
       // Add custom CSS to remove borders and styles from any remaining editable elements
       const styleTag = document.createElement('style');
       styleTag.textContent = `
@@ -352,22 +553,22 @@ export function CreateEscrowForm() {
         }
       `;
       tempDiv.prepend(styleTag);
-      
+
       // Apply proper styling to ensure visibility in PDF
       tempDiv.style.backgroundColor = '#ffffff';
       tempDiv.style.color = '#000000';
-      
+
       // Force all elements to have appropriate colors and remove borders from editable fields
       const elements = tempDiv.querySelectorAll('*');
       elements.forEach(el => {
         if (el instanceof HTMLElement) {
           el.style.backgroundColor = 'transparent';
           el.style.color = '#000000';
-          
+
           // Remove borders from input fields, textareas, and contenteditable elements
           if (
-            el.tagName === 'INPUT' || 
-            el.tagName === 'TEXTAREA' || 
+            el.tagName === 'INPUT' ||
+            el.tagName === 'TEXTAREA' ||
             el.getAttribute('contenteditable') === 'true'
           ) {
             el.style.border = 'none';
@@ -376,9 +577,9 @@ export function CreateEscrowForm() {
           }
         }
       });
-      
+
       container.appendChild(tempDiv);
-  
+
       // Wait for any images to load
       const images = container.getElementsByTagName('img');
       await Promise.all(Array.from(images).map(img => {
@@ -391,7 +592,7 @@ export function CreateEscrowForm() {
           }
         });
       }));
-  
+
       // Handle signatures if they exist
       if (clientSignature || providerSignature) {
         // Find signature placeholders and replace them
@@ -406,7 +607,7 @@ export function CreateEscrowForm() {
             clientPlaceholder.parentNode?.replaceChild(imgEl, clientPlaceholder);
           }
         }
-        
+
         if (providerSignature) {
           const providerPlaceholder = container.querySelector('#provider-signature-canvas');
           if (providerPlaceholder) {
@@ -419,10 +620,10 @@ export function CreateEscrowForm() {
           }
         }
       }
-  
+
       // Give the browser a moment to render
       await new Promise(resolve => setTimeout(resolve, 300));
-  
+
       // Generate canvas using html2canvas-pro
       const canvas = await html2canvas(container, {
         scale: 2,
@@ -438,24 +639,24 @@ export function CreateEscrowForm() {
           if (clonedContainer) {
             // Force white background on the container
             clonedContainer.style.backgroundColor = '#ffffff';
-            
+
             // Process all elements in the clone
             const clonedElements = clonedContainer.querySelectorAll('*');
             clonedElements.forEach(el => {
               if (el instanceof HTMLElement && el.style) {
                 // Ensure text is black and backgrounds are transparent or white
                 el.style.color = '#000000';
-                if (el.style.backgroundColor && 
-                    el.style.backgroundColor !== '#ffffff' && 
-                    el.style.backgroundColor !== 'white' && 
-                    el.style.backgroundColor !== 'transparent') {
+                if (el.style.backgroundColor &&
+                  el.style.backgroundColor !== '#ffffff' &&
+                  el.style.backgroundColor !== 'white' &&
+                  el.style.backgroundColor !== 'transparent') {
                   el.style.backgroundColor = 'transparent';
                 }
-                
+
                 // Remove borders from any remaining editable elements
                 if (
-                  el.tagName === 'INPUT' || 
-                  el.tagName === 'TEXTAREA' || 
+                  el.tagName === 'INPUT' ||
+                  el.tagName === 'TEXTAREA' ||
                   el.getAttribute('contenteditable') === 'true'
                 ) {
                   el.style.border = 'none';
@@ -467,24 +668,24 @@ export function CreateEscrowForm() {
           }
         }
       });
-  
+
       // Create PDF using jsPDF
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'in',
         format: 'letter'
       });
-  
+
       // Calculate dimensions to fit the page
       const pageWidth = 7.5;
       const pageHeight = 10;
       const imgWidth = pageWidth;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
+
       // Split into multiple pages if needed
       let heightLeft = imgHeight;
       let position = 0;
-      
+
       // Add first page
       pdf.addImage(
         canvas.toDataURL('image/png', 1.0),
@@ -494,7 +695,7 @@ export function CreateEscrowForm() {
         imgWidth,
         imgHeight
       );
-      
+
       // Add additional pages if content overflows
       heightLeft -= pageHeight;
       while (heightLeft > 0) {
@@ -510,19 +711,19 @@ export function CreateEscrowForm() {
         );
         heightLeft -= pageHeight;
       }
-  
+
       // Save the PDF
       pdf.save('contract.pdf');
-  
+
       // Clean up
       document.body.removeChild(container);
-  
+
     } catch (error) {
       console.error('Error in PDF generation:', error);
       alert('Error generating PDF. Please try again.');
     }
   }
-  console.log("contractContent", contractContent)
+ // console.log("contractContent", contractContent)
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
@@ -543,25 +744,95 @@ export function CreateEscrowForm() {
               </Select>
             </div>
 
+
+          </div>
+        )
+      case 2:
+        return (
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="receiver" className="text-zinc-700 font-medium dark:text-zinc-100">
+                Receiver's Information
+              </Label>
+              <Input
+                id="receiver"
+                placeholder="Wallet address (0x...)"
+                value={receiver}
+                onChange={handleReceiverChange}
+                className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
+                  transition-all duration-200 hover:border-zinc-300 focus:shadow-md
+                  dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-zinc-600"
+                required
+              />
+              {error && <p className="text-red-500 text-sm">{error}</p>}
+              <Input
+                type="email"
+                placeholder="Receiver's email"
+                value={receiverEmail}
+                onChange={(e) => setReceiverEmail(e.target.value)}
+                className="mt-2"
+                required
+              />
+            </div>
+          </div>
+        )
+      case 3:
+        return (
+          <div className="space-y-6">
             {paymentType === "full" ? (
-              <div className="space-y-2">
-                <Label htmlFor="amount" className="text-zinc-700 font-medium dark:text-zinc-100">
-                  Amount (USDT)
-                </Label>
-                <Input
-                  id="amount"
-                  type="text"
-                  placeholder="e.g. 1.5"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="datetime" className="text-zinc-700 font-medium dark:text-zinc-100">
+                    Project Duration
+                  </Label>
+                  <DatePicker
+                    id="datetime"
+                    selected={selectedDate}
+                    onChange={handleDateChange}
+                    showTimeSelect
+                    timeFormat="HH:mm"
+                    timeIntervals={15}
+                    timeCaption="Time"
+                    dateFormat="yyyy-MM-dd HH:mm"
+                    minDate={now}
+                    className="border-zinc-200 p-1.5 text-center rounded-b-md cursor-pointer dark:hover:bg-zinc-600 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
+                  transition-all duration-200 hover:border-zinc-300 focus:shadow-md
+                  dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-zinc-600"
+                    required
+                  />
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                    ⓘ Project duration must be at least 24 hours from now
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="amount" className="text-zinc-700 font-medium dark:text-zinc-100">
+                    Amount (USDT)
+                  </Label>
+                  <Input
+                    id="amount"
+                    type="text"
+                    placeholder="e.g. 1.5"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
                     transition-all duration-200 hover:border-zinc-300 focus:shadow-md
                     dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-zinc-600"
-                  required
-                />
+                    required
+                  />
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
+                  <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Milestone Guidelines</h4>
+                  <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                    <li>• Each milestone must be at least 24 hours apart</li>
+                    <li>• Milestones must be in chronological order</li>
+                    <li>• Total of all milestone amounts must equal the project amount</li>
+                    <li>• Each milestone must have a valid amount greater than 0</li>
+                  </ul>
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="totalAmount" className="text-zinc-700 font-medium dark:text-zinc-100">
                     Total Project Amount (USDT)
@@ -621,148 +892,25 @@ export function CreateEscrowForm() {
                         className="w-full"
                         required
                       />
-                       <Label className="text-sm text-zinc-500 mb-1 block">
-                          Milestone Completion Date
+                      <div className="space-y-1">
+                        <Label className="text-sm text-zinc-500 mb-1 block">
+                          Select Milestone Completion Date
                         </Label>
-                      <DatePicker
-                        selected={milestone.date}
-                        onChange={(date) => date && updateMilestone(index, "date", date)}
-                        showTimeSelect
-                        timeFormat="HH:mm"
-                        timeIntervals={15}
-                        dateFormat="yyyy-MM-dd HH:mm"
-                        minDate={now}
-                        className="w-full"
-                        required
-                      />
-                      <Textarea
-                        placeholder="Milestone description"
-                        value={milestone.description}
-                        onChange={(e) => updateMilestone(index, "description", e.target.value)}
-                        className="w-full"
-                        required
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )
-      case 2:
-        return (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="receiver" className="text-zinc-700 font-medium dark:text-zinc-100">
-                Receiver's Information
-              </Label>
-              <Input
-                id="receiver"
-                placeholder="Wallet address (0x...)"
-                value={receiver}
-                onChange={handleReceiverChange}
-                className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
-                  transition-all duration-200 hover:border-zinc-300 focus:shadow-md
-                  dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-zinc-600"
-                required
-              />
-              {error && <p className="text-red-500 text-sm">{error}</p>}
-              <Input
-                type="email"
-                placeholder="Receiver's email"
-                value={receiverEmail}
-                onChange={(e) => setReceiverEmail(e.target.value)}
-                className="mt-2"
-                required
-              />
-            </div>
-          </div>
-        )
-      case 3:
-        return (
-          <div className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="datetime" className="text-zinc-700 font-medium dark:text-zinc-100">
-                Project Duration
-              </Label>
-              <DatePicker
-                id="datetime"
-                selected={selectedDate}
-                onChange={handleDateChange}
-                showTimeSelect
-                timeFormat="HH:mm"
-                timeIntervals={15}
-                timeCaption="Time"
-                dateFormat="yyyy-MM-dd HH:mm"
-                minDate={now}
-                className="border-zinc-200 p-1.5 text-center rounded-b-md cursor-pointer dark:hover:bg-zinc-600 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
-                  transition-all duration-200 hover:border-zinc-300 focus:shadow-md
-                  dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-zinc-600"
-                required
-              />
-            </div>
-            {paymentType === "milestone" && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-zinc-700 font-medium dark:text-zinc-100">Milestones</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addMilestone}
-                    className="h-8"
-                  >
-                    <Plus className="mr-2 h-3.5 w-3.5" />
-                    Add Milestone
-                  </Button>
-                </div>
-                {milestones.map((milestone, index) => (
-                  <div key={index} className="space-y-2 p-4 border rounded-lg">
-                    <div className="flex justify-between items-center">
-                      <Label className="text-zinc-700 font-medium dark:text-zinc-100">
-                        Milestone {index + 1}
-                      </Label>
-                      {milestones.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeMilestone(index)}
-                          className="h-8 w-8"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Input
-                        placeholder="Amount (USDT)"
-                        value={milestone.amount}
-                        onChange={(e) => updateMilestone(index, "amount", e.target.value)}
-                        className="w-full"
-                        required
-                      />
-                       <Label className="text-sm text-zinc-500 mb-1 block">
-                          Milestone Completion Date
-                        </Label>
-                      <DatePicker
-                        selected={milestone.date}
-                        onChange={(date) => date && updateMilestone(index, "date", date)}
-                        showTimeSelect
-                        timeFormat="HH:mm"
-                        timeIntervals={15}
-                        dateFormat="yyyy-MM-dd HH:mm"
-                        minDate={now}
-                        className="w-full"
-                        required
-                      />
-                      <Textarea
-                        placeholder="Milestone description"
-                        value={milestone.description}
-                        onChange={(e) => updateMilestone(index, "description", e.target.value)}
-                        className="w-full"
-                        required
-                      />
+                        <DatePicker
+                          selected={milestone.date}
+                          onChange={(date) => date && updateMilestone(index, "date", date)}
+                          showTimeSelect
+                          timeFormat="HH:mm"
+                          timeIntervals={15}
+                          dateFormat="yyyy-MM-dd HH:mm"
+                          minDate={now}
+                          className="w-full cursor-pointer border p-1.5 rounded-md text-center"
+                          required
+                        />
+                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                          ⓘ Must be at least 24 hours from now and after previous milestone
+                        </p>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -808,7 +956,7 @@ export function CreateEscrowForm() {
         return (
           <div className="space-y-6 w-full">
             <div className="space-y-4 w-full">
-             {!contractContent && <div className="flex items-center space-x-2">
+              {!contractContent && <div className="flex items-center space-x-2">
                 <Checkbox
                   id="showContractTerms"
                   checked={showContractTerms}
@@ -821,13 +969,13 @@ export function CreateEscrowForm() {
 
               {contractContent && (
                 <div className="space-y-4 w-full">
-                  <div className={ `flex  justify-between items-center`}>
-                      {! contractContent ? <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                      Add Contract Terms 
-                      </p>:
+                  <div className={`flex  justify-between items-center`}>
+                    {!contractContent ? <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                      Add Contract Terms
+                    </p> :
                       <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                      Contract terms have been added. Click below to view to edit.
-                    </p>
+                        Contract terms have been added. Click below to view to edit.
+                      </p>
                     }
                     <Dialog open={showContractTerms} onOpenChange={setShowContractTerms}>
                       <DialogTrigger asChild>
@@ -849,14 +997,14 @@ export function CreateEscrowForm() {
                           <div className="mt-8 space-y-6">
                             <div className="space-y-4">
                               <h3 className="text-lg font-medium text-white">Client Signature</h3>
-                              <SignaturePadComponent 
+                              <SignaturePadComponent
                                 onSave={handleClientSignature}
                                 canvasId="client-signature-canvas"
                               />
                             </div>
                             <div className="space-y-4">
                               <h3 className="text-lg font-medium text-white">Service Provider Signature</h3>
-                              <SignaturePadComponent 
+                              <SignaturePadComponent
                                 onSave={handleProviderSignature}
                                 canvasId="provider-signature-canvas"
                               />
@@ -878,7 +1026,7 @@ export function CreateEscrowForm() {
                 </div>
               )}
             </div>
-            {  showDownloadButton && (
+            {showDownloadButton && (
               <div className="flex justify-end gap-2 mt-4">
                 <Button
                   type="button"
@@ -902,7 +1050,7 @@ export function CreateEscrowForm() {
                 <p><strong>Payment Type:</strong> {paymentType === "full" ? "Full Amount" : "Milestone-based"}</p>
                 <p><strong>Amount:</strong> {paymentType === "full" ? amount : totalMilestoneAmount} USDT</p>
                 <p><strong>Receiver:</strong> {receiver}</p>
-                <p><strong>Project Duration:</strong> {selectedDate.toLocaleString()}</p>
+                <p><strong>Project Duration:</strong>{paymentType === "full" ? selectedDate.toLocaleString() : totalProjectDate.toLocaleString()} </p>
                 {observer && <p><strong>Observer:</strong> {observer}</p>}
                 {jurisdiction && <p><strong>Jurisdiction:</strong> {jurisdiction}</p>}
                 {showContractTerms && <p><strong>Custom Contract Terms:</strong> Added</p>}
@@ -925,6 +1073,7 @@ export function CreateEscrowForm() {
         return null
     }
   }
+  console.log("milestones-detials", milestones)
 
   return (
     <div className="w-full max-w-2xl mx-auto">
@@ -945,9 +1094,9 @@ export function CreateEscrowForm() {
             {steps.map((step, index) => (
               <div key={step.id} className="flex items-center">
                 <div className={`flex items-center justify-center w-8 h-8 lg:w-10 lg:h-10 rounded-full 
-                  ${currentStep > index + 1 ? 'bg-blue-600 text-white' : 
-                    currentStep === index + 1 ? 'bg-blue-600 text-white' : 
-                    'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400'}`}>
+                  ${currentStep > index + 1 ? 'bg-blue-600 text-white' :
+                    currentStep === index + 1 ? 'bg-blue-600 text-white' :
+                      'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400'}`}>
                   {step.id}
                 </div>
                 {index < steps.length - 1 && (
@@ -987,7 +1136,10 @@ export function CreateEscrowForm() {
             ) : (
               <Button
                 type="button"
-                onClick={nextStep}
+                onClick={(e) => {
+                  e.preventDefault();
+                  nextStep();
+                }}
                 className="bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md hover:shadow-lg 
                   hover:from-blue-500 hover:to-blue-400 transition-all duration-300 px-6
                   dark:bg-blue-600 dark:from-blue-600 dark:to-blue-600 dark:text-white dark:hover:bg-blue-700 

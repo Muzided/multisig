@@ -6,6 +6,11 @@ import { Poppins } from "next/font/google";
 import './globals.css'
 import { AppKit } from '@/context/appkit';
 import { Web3Provider } from '@/context/Web3Context';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { UserProvider } from '@/context/userContext';
+
+const queryClient = new QueryClient()
+
 const poppins = Poppins({
   variable: "--font-poppins",
   subsets: ["latin"],
@@ -35,7 +40,7 @@ export default function RootLayout({
         className={` ${poppins.variable} antialiased`}
       >
         <ToastContainer
-          position="top-center"
+          position="top-right"
           autoClose={5000}
           hideProgressBar={false}
           newestOnTop={false}
@@ -49,12 +54,15 @@ export default function RootLayout({
           toastStyle={customToastStyle}
         />
         <ThemeProvider attribute="class" defaultTheme="dark" >
-          <AppKit>
-
-            <Web3Provider>
-              {children}
-            </Web3Provider>
-          </AppKit>
+          <QueryClientProvider client={queryClient}>
+            <AppKit>
+              <Web3Provider>
+                <UserProvider>
+                  {children}
+                </UserProvider>
+              </Web3Provider>
+            </AppKit>
+          </QueryClientProvider>
         </ThemeProvider>
       </body>
     </html>

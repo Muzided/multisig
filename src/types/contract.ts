@@ -22,4 +22,10 @@ export interface PaymentRequest {
     totalEscrows: number;
     totalPayments: string;
   }
+
+  export interface EscrowCreationResponse {
+    message:string;
+    escrow_id:string;
+  }
+
   

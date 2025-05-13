@@ -30,7 +30,7 @@ class AxiosService {
   private constructor() {
     this.axiosInstance = axios.create({
       baseURL: 'https://multisig-escrow-backend.onrender.com/',
-      timeout: 10000,
+      timeout: 50000,
       headers: {
         'Content-Type': 'application/json',
       },

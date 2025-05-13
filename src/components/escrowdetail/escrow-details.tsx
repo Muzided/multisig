@@ -182,7 +182,7 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
 
   return (
     <div className="container mx-auto p-1 md:p-4 space-y-6">
-      <div className="flex flex-col gap-4 shadow-xl border border-gray-500/10 rounded-lg  md:px-4 py-6">
+      <div className="flex flex-col gap-4 shadow-xl border   border-gray-500/10 rounded-lg  md:px-4 py-6">
         {/* <CardHeader>
           <CardTitle className="text-2xl">Escrow Details</CardTitle>
         </CardHeader> */}

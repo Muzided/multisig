@@ -28,6 +28,7 @@ import { saveEscrow } from "@/services/Api/escrow/escrow"
 import { handleError } from "../../../utils/errorHandler"
 import { toast } from "react-toastify"
 import { createEscrowResponse } from "@/types/escrow"
+import { useUser } from "@/context/userContext"
 
 export function CreateEscrowForm() {
   const [amount, setAmount] = useState("")
@@ -61,8 +62,9 @@ export function CreateEscrowForm() {
   const [showDownloadButton, setShowDownloadButton] = useState(false)
   //web 3 context
   const { signer, account } = useWeb3()
+  const { user } = useUser()
   // multi-sig factory contract hook
-  const { fetchTotalEscrows,fetchCreatedEsrowAddress, createEscrow, createMilestoneEscrow } = useFactory()
+  const { fetchTotalEscrows, createEscrow  } = useFactory()
   const [currentStep, setCurrentStep] = useState(1)
   const totalSteps = 6
 
@@ -106,7 +108,7 @@ export function CreateEscrowForm() {
   }, [signer])
   // This would fetch the user's wallet address from the wallet provider)
 
-
+console.log("user", user)
 
   const handleDateChange = (date: Date | null) => {
     if (date) {

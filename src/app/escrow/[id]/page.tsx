@@ -35,7 +35,7 @@ export default function EscrowDetailsPage() {
        
       <div className=" w-full max-w-screen-xl mx-auto bg-zinc-950 rounded-lg p-1 md:p-6">
         <div className="flex items-center justify-start   gap-4 ">
-        <Link href="/dashboard">
+        <Link href="/">
           <Button variant="outline" size="icon">
             <ArrowLeft className="h-4 w-4" />
           </Button>

@@ -20,7 +20,7 @@ interface UseEscrowFactoryReturn {
 }
 
 export const useFactory = () => {
-    const { multisigFactoryContract, erc20TokenContract } = useWeb3(); // Get signer & provider from context
+    const { multisigFactoryContract, erc20TokenContract ,provider} = useWeb3(); // Get signer & provider from context
 
 
     // useEffect(() => {
@@ -534,7 +534,7 @@ export const useFactory = () => {
                 });
                 setLoading(false)
                 return {
-                    success: true,
+                    success: false,
                     escrow_contract_address: '',
                     transaction_hash: '',
                 }
@@ -556,7 +556,7 @@ export const useFactory = () => {
             )
 
             const receipt = await tx.wait()
-            console.log("receipt", receipt)
+            const escrowContractAddress = await fetchCreatedEsrowAddress(receipt);
             toast.update(id, { render: `Escrow Created hash: ${receipt.hash}`, type: "success", isLoading: false, autoClose: 3000 });
 
             // // Find the escrow address from event logs
@@ -566,7 +566,7 @@ export const useFactory = () => {
             setLoading(false)
             return {
                 success: true,
-                escrow_contract_address: receipt.hash,
+                escrow_contract_address: escrowContractAddress || '',
                 transaction_hash: receipt.hash,
             }
         } catch (err: any) {
@@ -581,7 +581,40 @@ export const useFactory = () => {
             throw err
         }
     }
+    const fetchCreatedEsrowAddress = async (receipt: any): Promise<string | null> => {
+        try {
 
+           
+            const factoryAbi = [
+                "event EscrowCreated(address indexed escrow, address indexed payer, address indexed receiver, uint256 totalAmount, uint256 fee)"
+            ];
+            const iface = new ethers.Interface(factoryAbi);
+            let escrowAddress = null;
+
+            for (const log of receipt?.logs || []) {
+                try {
+                    const parsed = iface.parseLog(log);
+                    if (parsed && parsed.name === "EscrowCreated") {
+                        escrowAddress = parsed.args.escrow;
+                        console.log("🟢 Escrow contract deployed at:", escrowAddress);
+                        break;
+                    }
+                } catch (err) {
+                    // Not the right event, ignore
+                    continue;
+                }
+            }
+            
+            if (!escrowAddress) {
+                console.warn("⚠️ EscrowCreated event not found in transaction logs.");
+            }
+
+            return escrowAddress;
+        } catch (error) {
+            console.error("Error fetching escrow address from logs:", error);
+            return null;
+        }
+    }
     // update dispute team memebers 
     const updateDisputeTeamMembers = useCallback(async (
 
@@ -631,6 +664,7 @@ export const useFactory = () => {
         fetchThreshold,
         fetchFixedFee,
         fetchPercentageFee,
+        fetchCreatedEsrowAddress,
         fetchTotalEscrows,
         fetchTotalPayments,
         fetchCreatorEscrows,

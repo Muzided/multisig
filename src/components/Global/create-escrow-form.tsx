@@ -27,6 +27,7 @@ import { EscrowCreationData } from "@/types/user"
 import { saveEscrow } from "@/services/Api/escrow/escrow"
 import { handleError } from "../../../utils/errorHandler"
 import { toast } from "react-toastify"
+import { createEscrowResponse } from "@/types/escrow"
 
 export function CreateEscrowForm() {
   const [amount, setAmount] = useState("")
@@ -54,13 +55,14 @@ export function CreateEscrowForm() {
   const [clientSignature, setClientSignature] = useState<string>("")
   const [providerSignature, setProviderSignature] = useState<string>("")
   const [isEditingContract, setIsEditingContract] = useState(false)
+  const [userSignature, setUserSignature] = useState<boolean>(false)
   const [editedContractContent, setEditedContractContent] = useState<string>("")
   const [hasContractBeenSaved, setHasContractBeenSaved] = useState(false)
   const [showDownloadButton, setShowDownloadButton] = useState(false)
   //web 3 context
   const { signer, account } = useWeb3()
   // multi-sig factory contract hook
-  const { fetchTotalEscrows, createEscrow, createMilestoneEscrow } = useFactory()
+  const { fetchTotalEscrows,fetchCreatedEsrowAddress, createEscrow, createMilestoneEscrow } = useFactory()
   const [currentStep, setCurrentStep] = useState(1)
   const totalSteps = 6
 
@@ -227,7 +229,7 @@ export function CreateEscrowForm() {
       const milestoneTimestamps = milestones.map(milestone => dateToUnix(milestone.date))
       console.log("milestoneAmounts", milestoneAmounts, milestoneTimestamps)
 
-      let escrowCreationResponse: any;
+      let escrowCreationResponse: createEscrowResponse;
       if (paymentType === "full") {
         const amounts = [amount];
         const timestamps = [unixTimestamp];
@@ -249,47 +251,47 @@ export function CreateEscrowForm() {
           setIsSubmitting
         )
       }
-      // if (escrowCreationResponse) {
-      //   const escrowCreationData: EscrowCreationData = {
-      //     receiver_walletaddress: receiver,
-      //     receiver_email: receiverEmail,
-      //     amount: paymentType === "full" ? parseFloat(amount) : parseFloat(totalMilestoneAmount),
-      //     due_date: paymentType === "full" ? unixTimestamp : dateToUnix(milestones[milestones.length - 1].date),
-      //     payment_type: paymentType,
-      //     jurisdiction_tag: jurisdiction,
-      //     document_html: editedContractContent,
-      //     kyc_required: false,
-      //     observer_wallet: observer || "0x0000000000000000000000000000000000000000", // Use zero address if no observer
-      //     platform_fee_type: "percentage",
-      //     platform_fee_value: 1,
-      //     creator_signature: true,
-      //     receiver_signature: false,
-      //     escrow_contract_address: "resrser",
-      //     transaction_hash: "xsxsxxsxs",
-      //     ...(paymentType === "milestone" && {
-      //       milestones: milestones.map(milestone => ({
-      //         amount: parseFloat(milestone.amount),
-      //         due_date: dateToUnix(milestone.date),
-      //         description: milestone.description
-      //       }))
-      //     })
-      //   }
-      //   console.log("escrowCreationData", escrowCreationData);
-      //   const response = await saveEscrow(escrowCreationData)
-      //   console.log("response", response)
-      //   if (response.status === 201) {
-      //     toast.success(response?.data?.message);
-      //     setAmount("")
-      //     setReceiver("")
-      //     setMilestones([{ amount: "", date: now, description: "" }])
-      //     setTotalMilestoneAmount("")
-      //     setPaymentType("full")
-      //     setObserver("")
-      //     setJurisdiction("")
-      //     setLegalAgreement(false)
-      //     setMilestoneError("")
-      //   }
-      // }
+      if (escrowCreationResponse.success) {
+        const escrowCreationData: EscrowCreationData = {
+          receiver_walletaddress: receiver,
+          receiver_email: receiverEmail,
+          amount: paymentType === "full" ? parseFloat(amount) : parseFloat(totalMilestoneAmount),
+          due_date: paymentType === "full" ? unixTimestamp : dateToUnix(milestones[milestones.length - 1].date),
+          payment_type: paymentType,
+          jurisdiction_tag: jurisdiction,
+          document_html: editedContractContent,
+          kyc_required: false,
+          observer_wallet: observer || "0x0000000000000000000000000000000000000000", // Use zero address if no observer
+          platform_fee_type: "percentage",
+          platform_fee_value: 1,
+          creator_signature: userSignature,
+          receiver_signature: false,
+          escrow_contract_address: escrowCreationResponse.escrow_contract_address,
+          transaction_hash: escrowCreationResponse.transaction_hash,
+          ...(paymentType === "milestone" && {
+            milestones: milestones.map(milestone => ({
+              amount: parseFloat(milestone.amount),
+              due_date: dateToUnix(milestone.date),
+              description: milestone.description
+            }))
+          })
+        }
+        console.log("escrowCreationData", escrowCreationData);
+        const response = await saveEscrow(escrowCreationData)
+        console.log("response", response)
+        if (response.status === 201) {
+          toast.success(response?.data?.message);
+          setAmount("")
+          setReceiver("")
+          setMilestones([{ amount: "", date: now, description: "" }])
+          setTotalMilestoneAmount("")
+          setPaymentType("full")
+          setObserver("")
+          setJurisdiction("")
+          setLegalAgreement(false)
+          setMilestoneError("")
+        }
+      }
 
     } catch (error) {
       console.error("Error creating escrow:", error)
@@ -426,7 +428,8 @@ export function CreateEscrowForm() {
 
     setContractContent(updatedContent)
     setEditedContractContent(updatedContent)
-    alert("Client signature saved")
+    setUserSignature(true);
+    toast.success(" signature saved")
   }
 
   const handleProviderSignature = (signatureData: string) => {
@@ -946,7 +949,6 @@ export function CreateEscrowForm() {
                 <SelectContent>
                   <SelectItem value="EU">European Union</SelectItem>
                   <SelectItem value="US">United States</SelectItem>
-                  <SelectItem value="UAE">United Arab Emirates</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -963,7 +965,7 @@ export function CreateEscrowForm() {
                   onCheckedChange={handleContractTermsCheckbox}
                 />
                 <Label htmlFor="showContractTerms" className="text-zinc-700 font-medium dark:text-zinc-100">
-                  Add Custom Contract Terms
+                  Add  Contract Terms <span className=" text-zinc-500 dark:text-zinc-400">(optional)</span>
                 </Label>
               </div>}
 
@@ -996,19 +998,19 @@ export function CreateEscrowForm() {
                           />
                           <div className="mt-8 space-y-6">
                             <div className="space-y-4">
-                              <h3 className="text-lg font-medium text-white">Client Signature</h3>
+                              <h3 className="text-lg font-medium text-white">Your Signature</h3>
                               <SignaturePadComponent
                                 onSave={handleClientSignature}
                                 canvasId="client-signature-canvas"
                               />
                             </div>
-                            <div className="space-y-4">
+                            {/* <div className="space-y-4">
                               <h3 className="text-lg font-medium text-white">Service Provider Signature</h3>
                               <SignaturePadComponent
                                 onSave={handleProviderSignature}
                                 canvasId="provider-signature-canvas"
                               />
-                            </div>
+                            </div> */}
                           </div>
                           <div className="flex justify-end mt-4">
                             <Button

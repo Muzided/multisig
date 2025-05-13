@@ -159,7 +159,7 @@ export const contractTemplates = {
     <div class="section">
       <h2 class="contract-subtitle">5. Signatures</h2>
       <div class="signature-block">
-        <div class="signature-label">Client Signature:</div>
+        <div class="signature-label">Creator Signature:</div>
         <div id="client-signature-canvas"></div>
         <div class="signature-line"></div>
         <p class="signature-name editable" contenteditable="true">[Client Name]</p>

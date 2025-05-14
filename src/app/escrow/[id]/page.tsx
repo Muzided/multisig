@@ -33,7 +33,7 @@ export default function EscrowDetailsPage() {
        <Header toggleMobileNav={toggleMobileNav} />
 
        
-      <div className=" w-full max-w-screen-xl mx-auto bg-zinc-100 darkbg-zinc-950 rounded-lg p-1 md:p-6">
+      <div className=" w-full max-w-screen-xl mx-auto bg-zinc-100 dark:bg-zinc-950 rounded-lg p-1 md:p-6">
         <div className="flex items-center justify-start   gap-4 ">
         <Link href="/">
           <Button variant="outline" size="icon">

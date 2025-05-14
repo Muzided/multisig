@@ -5,7 +5,7 @@ const ConnectPage = () => {
 
    
     return (
-        <div className='flex pt-14 items-start md:items-center justify-center flex-col gap-6'>
+        <div className='flex pt-14 items-start md:items-center justify-center flex-col bg-red-400 gap-6'>
             <div className='font-bold text-3xl md:text-4xl '>🔐 Connect Your Wallet</div>
             <h2 className='font-medium'>" Unlock your escrow dashboard "</h2>
 

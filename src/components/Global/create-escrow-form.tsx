@@ -25,10 +25,12 @@ import { SignaturePadComponent } from './signature-pad'
 import { dateToUnix } from "../../../utils/helper"
 import { EscrowCreationData } from "@/types/user"
 import { saveEscrow } from "@/services/Api/escrow/escrow"
-import { handleError } from "../../../utils/errorHandler"
+import { handleApiError, handleError } from "../../../utils/errorHandler"
 import { toast } from "react-toastify"
 import { createEscrowResponse } from "@/types/escrow"
 import { useUser } from "@/context/userContext"
+import { axiosService } from "@/services/Api/apiConfig"
+import { updateUserEmail } from "@/services/Api/auth/auth"
 
 export function CreateEscrowForm() {
   const [amount, setAmount] = useState("")
@@ -48,6 +50,10 @@ export function CreateEscrowForm() {
     amount: string
     date: Date
     description: string
+    released?: boolean
+    disputed?: boolean
+    requested?: boolean
+    requestTime?: number
   }>>([{ amount: "", date: now, description: "" }])
   const [totalMilestoneAmount, setTotalMilestoneAmount] = useState("")
   const [milestoneError, setMilestoneError] = useState("")
@@ -60,14 +66,17 @@ export function CreateEscrowForm() {
   const [editedContractContent, setEditedContractContent] = useState<string>("")
   const [hasContractBeenSaved, setHasContractBeenSaved] = useState(false)
   const [showDownloadButton, setShowDownloadButton] = useState(false)
+  const [showEmailModal, setShowEmailModal] = useState(false)
+  const [userEmail, setUserEmail] = useState("")
+  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false)
   //web 3 context
   const { signer, account } = useWeb3()
-  const { user } = useUser()
+  const { user, setUser } = useUser()
   // multi-sig factory contract hook
   const { fetchTotalEscrows, createEscrow  } = useFactory()
   const [currentStep, setCurrentStep] = useState(1)
   const totalSteps = 6
-
+console.log("user", user)
   const steps = [
     {
       id: 1,
@@ -105,10 +114,19 @@ export function CreateEscrowForm() {
     if (!signer) return
     fetchTotalEscrows()
 
-  }, [signer])
+    // Check if user needs to register email
+    if (user && !user.email) {
+      setShowEmailModal(true)
+    }
+  }, [signer, user])
   // This would fetch the user's wallet address from the wallet provider)
 
-console.log("user", user)
+  const toggleEmailModal = () => {
+    if (user && !user.email) {
+      setShowEmailModal(true)
+      toast.error("Please register your email address first")
+    }
+  }
 
   const handleDateChange = (date: Date | null) => {
     if (date) {
@@ -204,8 +222,16 @@ console.log("user", user)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-
+    
     try {
+      // Check if user has registered email
+      if (!user?.email) {
+        toast.error("Please register your email address first")
+        setShowEmailModal(true)
+        setIsSubmitting(false)
+        return
+      }
+
       // Validate receiver information
       if (!receiver || !receiverEmail) {
         toast.error("Receiver's wallet address and email are required");
@@ -229,8 +255,7 @@ console.log("user", user)
 
       const milestoneAmounts = milestones.map(milestone => milestone.amount)
       const milestoneTimestamps = milestones.map(milestone => dateToUnix(milestone.date))
-      console.log("milestoneAmounts", milestoneAmounts, milestoneTimestamps)
-
+      
       let escrowCreationResponse: createEscrowResponse;
       if (paymentType === "full") {
         const amounts = [amount];
@@ -254,6 +279,8 @@ console.log("user", user)
         )
       }
       if (escrowCreationResponse.success) {
+        
+       
         const escrowCreationData: EscrowCreationData = {
           receiver_walletaddress: receiver,
           receiver_email: receiverEmail,
@@ -278,11 +305,12 @@ console.log("user", user)
             }))
           })
         }
-        console.log("escrowCreationData", escrowCreationData);
+       
         const response = await saveEscrow(escrowCreationData)
-        console.log("response", response)
+       
         if (response.status === 201) {
-          toast.success(response?.data?.message);
+         
+         toast.success(response?.data?.message);
           setAmount("")
           setReceiver("")
           setMilestones([{ amount: "", date: now, description: "" }])
@@ -297,7 +325,7 @@ console.log("user", user)
 
     } catch (error) {
       console.error("Error creating escrow:", error)
-      handleError(error)
+      handleError(error )
     } finally {
       setIsSubmitting(false)
     }
@@ -315,6 +343,10 @@ console.log("user", user)
   };
 
   const nextStep = () => {
+    if(user && !user.email){
+      setShowEmailModal(true)
+      return;
+    }
     // Add validation for step 2 (Receiver Information)
     if (currentStep === 2) {
       if (!receiver || !receiverEmail) {
@@ -476,202 +508,85 @@ console.log("user", user)
     setShowContractTerms(checked)
     if (checked && !hasContractBeenSaved) {
       // Only load template if contract hasn't been saved before
-      setContractContent(contractTemplates["service-agreement"].content)
+      setContractContent(contractTemplates["service-agreement-classic"].content)
     }
   }
 
   const handleDownloadPDF = async () => {
     try {
-      // First, ensure we're using the most up-to-date content
-      // If we're in edit mode, get content directly from the contentEditable div
+    // Get the most up-to-date content
       let currentContent = contractContent;
       const editableContentElement = document.querySelector('[contenteditable="true"]');
 
       if (isEditingContract && editableContentElement) {
-        // Capture the current content from the contentEditable element
         currentContent = editableContentElement.innerHTML;
-
-        // Save this content to our state as well
         setEditedContractContent(currentContent);
         setContractContent(currentContent);
       }
 
-      // Create a container and append it to the document temporarily
+    // Create a container for the PDF content
       const container = document.createElement('div');
-      container.style.cssText = `
-        position: fixed;
-        left: -9999px;
-        top: -9999px;
-        width: 8.5in;
-        padding: 1rem;
-        background-color: #ffffff;
-        color: #000000;
-        font-family: Arial, sans-serif;
-        line-height: 1.6;
-        z-index: -1;
-      `;
+    container.style.width = '8.5in';
+    container.style.position = 'fixed';
+    container.style.left = '-9999px';
+    container.style.top = '-9999px';
+    container.style.backgroundColor = '#ffffff';
       document.body.appendChild(container);
 
-      // Create a clean copy of the current contract content
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = currentContent;
+    // Insert the contract content
+    container.innerHTML = currentContent;
 
-      // Process editable fields to show their content instead of placeholders
-      const editableFields = tempDiv.querySelectorAll('[contenteditable="true"]');
-      editableFields.forEach(field => {
-        if (field instanceof HTMLElement) {
-          // Replace the editable field with a div containing its content
-          const contentDiv = document.createElement('div');
-          contentDiv.innerHTML = field.innerHTML;
-          contentDiv.style.cssText = field.style.cssText;
-          field.parentNode?.replaceChild(contentDiv, field);
-        }
-      });
-
-      // Process input fields to show their values
-      const inputFields = tempDiv.querySelectorAll('input, textarea');
-      inputFields.forEach(input => {
-        if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement) {
-          const valueDiv = document.createElement('div');
-          valueDiv.textContent = input.value || input.placeholder;
-          valueDiv.style.cssText = `
-            padding: 2px;
-            margin: 2px 0;
-          `;
-          input.parentNode?.replaceChild(valueDiv, input);
-        }
-      });
-
-      // Add custom CSS to remove borders and styles from any remaining editable elements
-      const styleTag = document.createElement('style');
-      styleTag.textContent = `
-        input, textarea, [contenteditable="true"] {
-          border: none !important;
-          outline: none !important;
-          box-shadow: none !important;
-          -webkit-appearance: none !important;
-          background-color: transparent !important;
-        }
-        body, div, p, span, h1, h2, h3, h4, h5, h6 {
-          color: #000000 !important;
-          background-color: transparent !important;
-        }
-      `;
-      tempDiv.prepend(styleTag);
-
-      // Apply proper styling to ensure visibility in PDF
-      tempDiv.style.backgroundColor = '#ffffff';
-      tempDiv.style.color = '#000000';
-
-      // Force all elements to have appropriate colors and remove borders from editable fields
-      const elements = tempDiv.querySelectorAll('*');
-      elements.forEach(el => {
-        if (el instanceof HTMLElement) {
-          el.style.backgroundColor = 'transparent';
-          el.style.color = '#000000';
-
-          // Remove borders from input fields, textareas, and contenteditable elements
-          if (
-            el.tagName === 'INPUT' ||
-            el.tagName === 'TEXTAREA' ||
-            el.getAttribute('contenteditable') === 'true'
-          ) {
-            el.style.border = 'none';
-            el.style.outline = 'none';
-            el.style.boxShadow = 'none';
-          }
-        }
-      });
-
-      container.appendChild(tempDiv);
-
-      // Wait for any images to load
-      const images = container.getElementsByTagName('img');
-      await Promise.all(Array.from(images).map(img => {
-        return new Promise((resolve, reject) => {
-          if (img.complete) {
-            resolve(null);
-          } else {
-            img.onload = () => resolve(null);
-            img.onerror = reject;
-          }
-        });
-      }));
-
-      // Handle signatures if they exist
-      if (clientSignature || providerSignature) {
-        // Find signature placeholders and replace them
-        if (clientSignature) {
-          const clientPlaceholder = container.querySelector('#client-signature-canvas');
-          if (clientPlaceholder) {
-            const imgEl = document.createElement('img');
-            imgEl.src = clientSignature;
-            imgEl.alt = "Client Signature";
-            imgEl.style.maxWidth = "100%";
-            imgEl.style.height = "auto";
-            clientPlaceholder.parentNode?.replaceChild(imgEl, clientPlaceholder);
-          }
-        }
-
-        if (providerSignature) {
-          const providerPlaceholder = container.querySelector('#provider-signature-canvas');
-          if (providerPlaceholder) {
-            const imgEl = document.createElement('img');
-            imgEl.src = providerSignature;
-            imgEl.alt = "Provider Signature";
-            imgEl.style.maxWidth = "100%";
-            imgEl.style.height = "auto";
-            providerPlaceholder.parentNode?.replaceChild(imgEl, providerPlaceholder);
-          }
-        }
+    // Process editable fields to show their content
+    const contentEditableElements = container.querySelectorAll('[contenteditable="true"]');
+    contentEditableElements.forEach(field => {
+      if (field instanceof HTMLElement) {
+        field.removeAttribute('contenteditable');
+        field.style.border = 'none';
+        field.style.backgroundColor = 'transparent';
       }
+    });
 
-      // Give the browser a moment to render
-      await new Promise(resolve => setTimeout(resolve, 300));
+    // Process input fields
+    const inputFields = container.querySelectorAll('input, textarea');
+    inputFields.forEach(input => {
+      if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement) {
+        const valueDiv = document.createElement('div');
+        valueDiv.textContent = input.value || input.placeholder;
+        input.parentNode?.replaceChild(valueDiv, input);
+      }
+    });
 
-      // Generate canvas using html2canvas-pro
+    // Handle signatures
+    if (clientSignature) {
+      const clientPlaceholder = container.querySelector('#client-signature-canvas');
+      if (clientPlaceholder instanceof HTMLElement) {
+        const imgEl = document.createElement('img');
+        imgEl.src = clientSignature;
+        imgEl.alt = "Client Signature";
+        imgEl.style.maxWidth = "100%";
+        clientPlaceholder.parentNode?.replaceChild(imgEl, clientPlaceholder);
+      }
+    }
+
+    if (providerSignature) {
+      const providerPlaceholder = container.querySelector('#provider-signature-canvas');
+      if (providerPlaceholder instanceof HTMLElement) {
+        const imgEl = document.createElement('img');
+        imgEl.src = providerSignature;
+        imgEl.alt = "Provider Signature";
+        imgEl.style.maxWidth = "100%";
+        providerPlaceholder.parentNode?.replaceChild(imgEl, providerPlaceholder);
+      }
+    }
+
+    // Short delay to ensure rendering
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Generate PDF
       const canvas = await html2canvas(container, {
         scale: 2,
         useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        allowTaint: true,
-        removeContainer: true,
-        windowWidth: 8.5 * 96,
-        windowHeight: 11 * 96,
-        onclone: (clonedDoc) => {
-          const clonedContainer = clonedDoc.querySelector('div');
-          if (clonedContainer) {
-            // Force white background on the container
-            clonedContainer.style.backgroundColor = '#ffffff';
-
-            // Process all elements in the clone
-            const clonedElements = clonedContainer.querySelectorAll('*');
-            clonedElements.forEach(el => {
-              if (el instanceof HTMLElement && el.style) {
-                // Ensure text is black and backgrounds are transparent or white
-                el.style.color = '#000000';
-                if (el.style.backgroundColor &&
-                  el.style.backgroundColor !== '#ffffff' &&
-                  el.style.backgroundColor !== 'white' &&
-                  el.style.backgroundColor !== 'transparent') {
-                  el.style.backgroundColor = 'transparent';
-                }
-
-                // Remove borders from any remaining editable elements
-                if (
-                  el.tagName === 'INPUT' ||
-                  el.tagName === 'TEXTAREA' ||
-                  el.getAttribute('contenteditable') === 'true'
-                ) {
-                  el.style.border = 'none';
-                  el.style.outline = 'none';
-                  el.style.boxShadow = 'none';
-                }
-              }
-            });
-          }
-        }
+      backgroundColor: '#ffffff'
       });
 
       // Create PDF using jsPDF
@@ -681,40 +596,36 @@ console.log("user", user)
         format: 'letter'
       });
 
-      // Calculate dimensions to fit the page
-      const pageWidth = 7.5;
-      const pageHeight = 10;
-      const imgWidth = pageWidth;
+    // Calculate dimensions
+    const imgWidth = 7.5;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-      // Split into multiple pages if needed
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      // Add first page
+    // Add image to PDF with proper margins
       pdf.addImage(
-        canvas.toDataURL('image/png', 1.0),
+      canvas.toDataURL('image/png'),
         'PNG',
-        0.5,
-        0.5,
+      0.5, // left margin
+      0.5, // top margin
         imgWidth,
         imgHeight
       );
 
-      // Add additional pages if content overflows
-      heightLeft -= pageHeight;
+    // Handle multi-page content if needed
+    let heightLeft = imgHeight - 10; // 10 inches per page (letter size minus margins)
+    let position = 0;
+    
       while (heightLeft > 0) {
-        position += pageHeight;
+      position += 10;
         pdf.addPage();
         pdf.addImage(
-          canvas.toDataURL('image/png', 1.0),
+        canvas.toDataURL('image/png'),
           'PNG',
           0.5,
-          0.5 - position,
+        0.5 - position, // Shift content up
           imgWidth,
           imgHeight
         );
-        heightLeft -= pageHeight;
+      heightLeft -= 10;
       }
 
       // Save the PDF
@@ -724,11 +635,10 @@ console.log("user", user)
       document.body.removeChild(container);
 
     } catch (error) {
-      console.error('Error in PDF generation:', error);
+    console.error('Error generating PDF:', error);
       alert('Error generating PDF. Please try again.');
     }
-  }
- // console.log("contractContent", contractContent)
+};
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
@@ -1077,10 +987,73 @@ console.log("user", user)
         return null
     }
   }
-  console.log("milestones-detials", milestones)
+
+
+  const handleEmailUpdate = async () => {
+    if (!userEmail || !userEmail.includes('@')) {
+      toast.error("Please enter a valid email address")
+      return
+    }
+
+    if (userEmail.length > 254) {
+      toast.error("Email address cannot be longer than 254 characters")
+      return
+    }
+
+    setIsUpdatingEmail(true)
+    try {
+      const response = await updateUserEmail(userEmail);
+      
+      if (response.status === 200) {
+        console.log("response", response)
+        toast.success(response?.data?.message)
+        setShowEmailModal(false)
+        setUser(response?.data?.user);
+      }
+    } catch (error) {
+      console.error("Error updating email:", error)
+      
+      handleApiError(error)
+    } finally {
+      setIsUpdatingEmail(false)
+    }
+  }
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className="w-full max-w-2xl mx-auto ">
+      <Dialog open={showEmailModal} onOpenChange={setShowEmailModal} >
+        <DialogContent className="sm:max-w-[425px] bg-zinc-900/80 border-zinc-800 backdrop-blur-md ">
+          <DialogHeader>
+            <DialogTitle className="text-zinc-100">Email Registration Required</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-zinc-400">
+              Please register your email address to continue creating an escrow.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-zinc-300">Email Address</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={userEmail}
+                onChange={(e) => setUserEmail(e.target.value)}
+                className="w-full bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
+              />
+            </div>
+            <div className="flex justify-end">
+              <Button
+                onClick={handleEmailUpdate}
+                disabled={isUpdatingEmail || !userEmail}
+                className="bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400"
+              >
+                {isUpdatingEmail ? "Updating..." : "Register Email"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Card className="border-zinc-200/80 bg-gradient-to-b from-white to-zinc-50 shadow-lg text-zinc-900 
         dark:border-zinc-800 dark:bg-zinc-900 dark:from-zinc-900 dark:to-zinc-900 dark:text-zinc-100 dark:shadow-none">
         <CardHeader className="pb-6 text-center">

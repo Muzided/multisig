@@ -480,7 +480,7 @@ export const useFactory = () => {
         let id: any;
         try {
             setLoading(true)
-
+           
             if (!multisigFactoryContract || !erc20TokenContract)
                 return {
                     success: true,
@@ -488,22 +488,22 @@ export const useFactory = () => {
                     transaction_hash: '',
                 }
             id = toast.loading(`Executing USDT approval...`);
+ 
+           
+          
             //fetch fee structure
             const feeThreshold = await fetchThreshold();
             const fixedFee = await fetchFixedFee();
             const feePercentage = await fetchPercentageFee();
 
-            console.log("feeThreshold", BigInt(feeThreshold))
-            console.log("fixedFee", BigInt(fixedFee))
-            console.log("feePercentage", BigInt(feePercentage))
-
+            
             //parse amount in wei
             const parsedAmounts = amount.map(amt => ethers.parseUnits(amt, 6));
-            console.log("parsedAmounts", parsedAmounts)
+            
 
             //sum of all the parsed amounts
             const totalparsedAmount = parsedAmounts.reduce((sum, amts) => sum + BigInt(amts?.toString()), BigInt(0));
-            console.log("totalparsedAmount", totalparsedAmount)
+        
 
             // Calculate fee based on threshold
             let feeAmount;
@@ -515,11 +515,11 @@ export const useFactory = () => {
                 // Multiply first to avoid precision loss, then divide
                 feeAmount = (totalparsedAmount * BigInt(feePercentage)) / BigInt(10000);
             }
-            console.log("feeAmount", feeAmount)
+           
 
             // Add fee to total amount
             const totalAmountWithFee = totalparsedAmount + feeAmount;
-            console.log("totalAmountWithFee", totalAmountWithFee)
+            
 
             // Check user balance before proceeding
             const userBalance = await checkUserBalance(erc20TokenContract, userAddress);
@@ -542,11 +542,7 @@ export const useFactory = () => {
             await approveUSDT(erc20TokenContract, MultiSig_Factory_Address, totalAmountWithFee.toString());
             toast.update(id, { render: "Creating Escrow", isLoading: true });
 
-            console.log("Receiver:", receiver);
-            console.log("Amounts:", parsedAmounts.map(a => a.toString()));
-            console.log("Due dates:", duration.map(d => d.toString()));
-            console.log("Observer:", observer);
-            console.log("MultiSig_Factory_Address", MultiSig_Factory_Address)
+          
 
             const tx = await multisigFactoryContract.createEscrow(
                 receiver,
@@ -557,7 +553,10 @@ export const useFactory = () => {
 
             const receipt = await tx.wait()
             const escrowContractAddress = await fetchCreatedEsrowAddress(receipt);
-            toast.update(id, { render: `Escrow Created hash: ${receipt.hash}`, type: "success", isLoading: false, autoClose: 3000 });
+
+            
+
+             toast.update(id, { render: `Escrow Created hash: ${receipt.hash}`, type: "success", isLoading: false, autoClose: 3000 });
 
             // // Find the escrow address from event logs
             // const event = receipt.events?.find(e => e.event === 'EscrowCreated')
@@ -581,6 +580,8 @@ export const useFactory = () => {
             throw err
         }
     }
+
+
     const fetchCreatedEsrowAddress = async (receipt: any): Promise<string | null> => {
         try {
 

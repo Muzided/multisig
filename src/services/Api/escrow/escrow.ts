@@ -1,7 +1,7 @@
 import { EscrowCreationResponse } from "@/types/contract"
 import { axiosService } from "../apiConfig"
 import { EscrowCreationData } from "@/types/user"
-import { getLegalDocumentsResponse, getUserEscrowsResponse } from "@/types/escrow"
+import { getEscrowDetailsResponse, getLegalDocumentsResponse, getUserEscrowsResponse } from "@/types/escrow"
 
 export const saveEscrow = async (escrowCreationData: EscrowCreationData) => {
     try {
@@ -44,6 +44,16 @@ export const signLegalDocument = async (escrowContractAddress: string, documentC
         return response
     } catch (error) {
         console.log("error while signing legal document", error)
+        throw error
+    }
+}
+
+export const fetchEscrowDetails = async (escrowAddress: string) => {
+    try {
+        const response = await axiosService.get<getEscrowDetailsResponse>(`api/escrow/getEscrowDetails/${escrowAddress}`)
+        return response
+    } catch (error) {
+        console.log("error while fetching escrow details", error)
         throw error
     }
 }

@@ -7,8 +7,12 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { EscrowMilestoneTracker } from "../Global/escrow-milestone-tracker"
 import { EscrowDisputeChat } from "./escrow-dispute-chat"
 import { EscrowGeneralInfo } from "./escrow-general-info"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { useFactory } from "@/Hooks/useFactory"
 import { ethers } from "ethers"
+import { getEscrowDetailsResponse } from "@/types/escrow"
+import { fetchEscrowDetails } from "@/services/Api/escrow/escrow"
+import { useEscrow } from "@/Hooks/useEscrow"
 
 interface EscrowData {
   escrow: {
@@ -105,55 +109,22 @@ const demoEscrowData: EscrowData = {
 };
 
 export function EscrowDetails({ escrowId }: { escrowId: string }) {
-  const [isLoading, setIsLoading] = useState(false)
+ // const [isLoading, setIsLoading] = useState(false)
   const [escrow, setEscrow] = useState<EscrowData | null>(demoEscrowData)
-  //const { getEscrowDetails } = useFactory()
-
-  // useEffect(() => {
-  //   const fetchEscrowDetails = async () => {
-  //     try {
-  //       setIsLoading(true)
-  //       const escrowData = await getEscrowDetails(escrowId)
-
-  //       // Transform the contract data into our UI format
-  //       const transformedData: EscrowData = {
-  //         id: escrowId,
-  //         status: escrowData.status,
-  //         amount: ethers.formatEther(escrowData.amount) + " ETH",
-  //         receiver: escrowData.receiver,
-  //         sender: escrowData.sender,
-  //         createdAt: new Date(escrowData.createdAt * 1000).toISOString(),
-  //         deadline: new Date(escrowData.deadline * 1000).toISOString(),
-  //         milestones: escrowData.milestones.map((milestone: any) => ({
-  //           id: milestone.id.toString(),
-  //           title: milestone.title,
-  //           amount: ethers.formatEther(milestone.amount) + " ETH",
-  //           status: milestone.status,
-  //           dueDate: new Date(milestone.dueDate * 1000).toISOString(),
-  //           completedAt: milestone.completedAt ? new Date(milestone.completedAt * 1000).toISOString() : null
-  //         })),
-  //         dispute: escrowData.dispute ? {
-  //           status: escrowData.dispute.status,
-  //           messages: escrowData.dispute.messages.map((msg: any) => ({
-  //             id: msg.id.toString(),
-  //             sender: msg.sender,
-  //             message: msg.message,
-  //             timestamp: new Date(msg.timestamp * 1000).toISOString(),
-  //             attachments: msg.attachments
-  //           }))
-  //         } : undefined
-  //       }
-
-  //       setEscrow(transformedData)
-  //     } catch (error) {
-  //       console.error("Error fetching escrow details:", error)
-  //     } finally {
-  //       setIsLoading(false)
-  //     }
-  //   }
-
-  //   fetchEscrowDetails()
-  // }, [escrowId, getEscrowDetails])
+  const {getMileStones} = useEscrow()
+ // const [escrowDetails, setEscrowDetails] = useState<getEscrowDetailsResponse | null>(null)
+ useEffect(()=>{
+  if(!escrowId) return
+  getMileStones(escrowId)
+ },[escrowId])
+  const { data: escrowDetails, isLoading, error } = useQuery<getEscrowDetailsResponse>({
+    queryKey: ['escrowDetails', escrowId],
+    queryFn: async () => {
+        const response = await fetchEscrowDetails(escrowId);
+        return response.data;
+    },
+    enabled: !!escrowId, // Only run query when address is available
+  });
 
   if (isLoading) {
     return (
@@ -180,6 +151,7 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
     )
   }
 
+
   return (
     <div className="container mx-auto p-1 md:p-4 space-y-6">
       <div className="flex flex-col gap-4 shadow-xl border   border-gray-500/10 rounded-lg  md:px-4 py-6">
@@ -197,7 +169,7 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
             </TabsList>
             <TabsContent value="general">
               <div className="flex flex-col gap-4">
-                <EscrowGeneralInfo escrow={escrow.escrow} />
+                {escrowDetails?.escrow && <EscrowGeneralInfo {...escrowDetails.escrow} />}
                 <EscrowMilestoneTracker escrow={escrow} />
               </div>
             </TabsContent>

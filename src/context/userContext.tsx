@@ -8,6 +8,7 @@ import { AuthenticatieUser, isUserRejectedSignatureError, RegisterUser } from '@
 
 interface UserContextType {
     user: User | null;
+    setUser: (user: User | null) => void;
     isAuthenticated: boolean;
     isLoading: boolean;
     error: string | null;
@@ -86,6 +87,7 @@ console.log("isAuthenticated",isAuthenticated)
     return (
         <UserContext.Provider value={{
             user,
+            setUser,
             isAuthenticated,
             isLoading,
             error

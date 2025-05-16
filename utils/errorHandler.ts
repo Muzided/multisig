@@ -34,10 +34,11 @@ export const handleError = (error: any) => {
         toast.error("Invalid value provided for the transaction.");
     }
     else {
-        // For any other errors, show the original error message
-        toast.error(` ${error.message || errorString || "An unknown error occurred"}`);
+        hadndleApiErrorToast(error)
     }
 };
+
+
 
 export function extractErrorMessage(error: AxiosError): string {
     const data = error.response?.data;
@@ -61,11 +62,20 @@ export function extractErrorMessage(error: AxiosError): string {
 
     return 'An unexpected error occurred';
 }
-
+export function hadndleApiErrorToast(error: any ): void {
+    const { message, status, code } = error;
+  
+    console.error('API Error:', { message, status, code });
+   toast.error(message || 'Something went wrong');
+  }
 export function showApiErrorToast(error: ApiError): void {
     const { message, status, code } = error;
   
     console.error('API Error:', { message, status, code });
   
     toast.error(message || 'Something went wrong');
+  }
+
+  export function handleApiError(error: any) {
+   toast.error(error.message || 'Something went wrong');
   }

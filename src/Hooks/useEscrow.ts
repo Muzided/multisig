@@ -1,4 +1,3 @@
-
 import { useState, useCallback, Dispatch, SetStateAction, useEffect } from "react";
 import { ethers, Contract } from "ethers";
 import { useWeb3 } from "../context/Web3Context"; // Import your Web3 context
@@ -7,7 +6,7 @@ import { toast } from "react-toastify";
 import EscrowAbi from "../Web3/Abis/EscrowAbi.json";
 
 import { convertUnixToDate } from "../../utils/helper";
-import { Imperial_Script } from "next/font/google";
+import { MileStone, ContractMilestone } from "@/types/contract";
 
 interface UseEscrowReturn {
 
@@ -23,15 +22,86 @@ export const useEscrow = () => {
             const escrowContract = new Contract(escrowAddress, EscrowAbi, signer);
             return escrowContract;
         } catch (error) {
-
         }
-
     }
 
-    // Function to convert Unix timestamp to date string
-    // const convertUnixToDate = (unixTimestamp: number): string => {
-    //     return new Date(unixTimestamp * 1000).toISOString(); // Works on iOS & Safari
-    // }
+    // fetch if escrow is disputed
+    const fetchEscrowStatus = async (escrowAddress: string): Promise<string> => {
+        try {
+            const escorwContract = await fetchEscrowContract(escrowAddress);
+            if (!escorwContract) return '';
+
+            const disputeContractAddress = await escorwContract.disputeContract();
+            if (disputeContractAddress === "0x0000000000000000000000000000000000000000") return '';
+
+            return disputeContractAddress
+        } catch (error) {
+            console.error("Error fetching total escrows", error);
+            return ''
+        }
+    }
+    const isEscrowFrozen = async (escrowAddress: string): Promise<boolean> => {
+        try {
+            const escorwContract = await fetchEscrowContract(escrowAddress);
+            if (!escorwContract) return false
+
+            const isFrozen = await escorwContract.frozen();
+
+
+            return isFrozen
+        } catch (error) {
+            console.error("Error fetching total escrows", error);
+            return false
+        }
+    }
+    const getMileStones = async (escrowAddress: string): Promise<ContractMilestone[]> => {
+        try {
+            const escorwContract = await fetchEscrowContract(escrowAddress);
+            if (!escorwContract) return [{
+                amount: '',
+                dueDate: '',
+                released: false,
+                disputed: false,
+                requested: false,
+                requestTime: ''
+            }];
+            const totalMileStones = await escorwContract.getMileStones();
+            console.log("totalMileStones",totalMileStones)
+            // Map the array data into milestone objects
+            return totalMileStones.map((milestone: any): ContractMilestone => ({
+                amount: milestone[0],
+                dueDate: milestone[1],
+                released: milestone[2],
+                disputed: milestone[3],
+                requested: milestone[4],
+                requestTime: milestone[5]
+            }));
+        } catch (error) {
+            console.error("Error fetching total escrows", error);
+            return [{
+                amount: '',
+                dueDate: '',
+                released: false,
+                disputed: false,
+                requested: false,
+                requestTime: ''
+            }];
+        }
+    }
+
+    const dummycall = async (escrowAddress: string): Promise<boolean> => {
+        try {
+            const escorwContract = await fetchEscrowContract(escrowAddress);
+            if (!escorwContract) return false;
+
+            return true
+        } catch (error) {
+            console.error("Error fetching total escrows", error);
+            return false
+        }
+    }
+
+
 
     // Function to fetch escrow details
     const fetchEscrowDetails = useCallback(async (
@@ -64,6 +134,7 @@ export const useEscrow = () => {
     }, [signer]);
 
     return {
-        fetchEscrowDetails
+        fetchEscrowDetails,
+        getMileStones
     }
 }

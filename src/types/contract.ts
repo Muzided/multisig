@@ -28,4 +28,37 @@ export interface PaymentRequest {
     escrow_id:string;
   }
 
+  export interface MileStone {
+    amount: string;
+    dueDate: string;
+    released: boolean;
+    disputed: boolean;
+    requested: boolean;
+    requestTime: string;
+  }
+  
+  export interface ContractMilestone {
+    amount: string;
+    dueDate: string;
+    released: boolean;
+    disputed: boolean;
+    requested: boolean;
+    requestTime: string;
+  }
+
+  export interface ApiMilestone {
+    _id: string;
+    amount: number;
+    due_date: number;
+    description: string;
+    status: 'pending' | 'released' | 'disputed' | 'requested';
+    createdAt: string;
+    updatedAt: string;
+    __v: number;
+  }
+
+  export interface EscrowMilestones {
+    contractMilestones: ContractMilestone[];
+    apiMilestones: ApiMilestone[];
+  }
   

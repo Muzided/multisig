@@ -19,3 +19,38 @@ export interface getUserEscrowsResponse {
 export interface getLegalDocumentsResponse {
     document: string;   
 }
+
+export interface EscrowDetails {
+    creator_walletaddress: string;
+    receiver_walletaddress: string;
+    receiver_email: string;
+    amount: number;
+    due_date: number;
+    payment_type: 'full' | 'milestone';
+    jurisdiction_tag: string;
+    kyc_required: boolean;
+    observer_wallet: string;
+    status: 'active' | 'completed' | 'disputed';
+    platform_fee_type: 'percentage' | 'fixed';
+    platform_fee_value: number;
+    creator_signature: boolean;
+    receiver_signature: boolean;
+    escrow_contract_address: string;
+    __v: number;
+}
+
+export interface Milestone {
+    _id: string;
+    amount: number;
+    due_date: number;
+    description: string;
+    status: 'pending' | 'released' | 'disputed' | 'requested';
+    createdAt: string;
+    updatedAt: string;
+    __v: number;
+}
+
+export interface getEscrowDetailsResponse {
+    escrow: EscrowDetails;
+    milestones: Milestone[];
+}

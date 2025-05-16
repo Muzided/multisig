@@ -1,4 +1,4 @@
-import { LoginResponse, RegistrationVerificationResponse } from "@/types/user";
+import { LoginResponse, RegistrationVerificationResponse, User } from "@/types/user";
 import { axiosService } from "../apiConfig";
 import { AxiosError } from "axios";
 
@@ -30,7 +30,18 @@ export const AuthenticatieUser = async (wallet_address: string, signature: strin
         return null
     }
 }
+export const updateUserEmail = async (email: string) => {
+    try {
+        const response = await axiosService.put<LoginResponse>('/api/user/updateEmail', {
+            email
+        })
 
+        return response
+    } catch (error) {
+        console.log("error while updating email", error)
+        throw error
+    }
+}
 export function isUserRejectedSignatureError(error: any) {
     // Check for ethers.js v6 style error (ACTION_REJECTED)
     if (error.code === 'ACTION_REJECTED') {
@@ -54,5 +65,7 @@ export function isUserRejectedSignatureError(error: any) {
 
     return rejectionPatterns.some(pattern => errorMsg.includes(pattern));
 }
+
+
 
 

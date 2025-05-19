@@ -33,7 +33,7 @@ export const AuthenticatieUser = async (wallet_address: string, signature: strin
 export const updateUserEmail = async (email: string) => {
     try {
         const response = await axiosService.put<LoginResponse>('/api/user/updateEmail', {
-            email
+            newEmail: email
         })
 
         return response

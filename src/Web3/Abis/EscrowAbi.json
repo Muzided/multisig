@@ -63,7 +63,7 @@
         "name": "disputeContract",
         "outputs": [
             {
-                "internalType": "address",
+                "internalType": "contract Dispute",
                 "name": "",
                 "type": "address"
             }
@@ -118,6 +118,11 @@
                 "components": [
                     {
                         "internalType": "uint256",
+                        "name": "id",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "uint256",
                         "name": "amount",
                         "type": "uint256"
                     },
@@ -133,7 +138,12 @@
                     },
                     {
                         "internalType": "bool",
-                        "name": "disputed",
+                        "name": "rejected",
+                        "type": "bool"
+                    },
+                    {
+                        "internalType": "bool",
+                        "name": "disputeRaised",
                         "type": "bool"
                     },
                     {
@@ -167,6 +177,11 @@
         "outputs": [
             {
                 "internalType": "uint256",
+                "name": "id",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
                 "name": "amount",
                 "type": "uint256"
             },
@@ -182,7 +197,12 @@
             },
             {
                 "internalType": "bool",
-                "name": "disputed",
+                "name": "rejected",
+                "type": "bool"
+            },
+            {
+                "internalType": "bool",
+                "name": "disputeRaised",
                 "type": "bool"
             },
             {
@@ -309,6 +329,29 @@
         "type": "function"
     },
     {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "idx",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bool",
+                "name": "approve",
+                "type": "bool"
+            },
+            {
+                "internalType": "bool",
+                "name": "continueNext",
+                "type": "bool"
+            }
+        ],
+        "name": "resolvePostDispute",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
         "inputs": [],
         "name": "usdt",
         "outputs": [
@@ -319,6 +362,19 @@
             }
         ],
         "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "idx",
+                "type": "uint256"
+            }
+        ],
+        "name": "withdrawExpired",
+        "outputs": [],
+        "stateMutability": "nonpayable",
         "type": "function"
     }
 ]

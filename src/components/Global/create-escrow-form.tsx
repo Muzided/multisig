@@ -674,9 +674,9 @@ console.log("user", user)
                 placeholder="Wallet address (0x...)"
                 value={receiver}
                 onChange={handleReceiverChange}
-                className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
-                  transition-all duration-200 hover:border-zinc-300 focus:shadow-md
-                  dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-zinc-600"
+                className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-[#BB7333] 
+                  transition-all duration-200 hover:border-[#BB7333]/50 focus:shadow-md
+                  dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-[#BB7333]/50"
                 required
               />
               {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -685,7 +685,9 @@ console.log("user", user)
                 placeholder="Receiver's email"
                 value={receiverEmail}
                 onChange={(e) => setReceiverEmail(e.target.value)}
-                className="mt-2"
+                className="mt-2 border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-[#BB7333] 
+                  transition-all duration-200 hover:border-[#BB7333]/50 focus:shadow-md
+                  dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-[#BB7333]/50"
                 required
               />
             </div>
@@ -710,9 +712,9 @@ console.log("user", user)
                     timeCaption="Time"
                     dateFormat="yyyy-MM-dd HH:mm"
                     minDate={now}
-                    className="border-zinc-200 p-1.5 text-center rounded-b-md cursor-pointer dark:hover:bg-zinc-600 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
-                  transition-all duration-200 hover:border-zinc-300 focus:shadow-md
-                  dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-zinc-600"
+                    className="border-zinc-200 p-1.5 text-center rounded-b-md cursor-pointer dark:hover:bg-zinc-600 bg-white shadow-sm text-zinc-900 focus-visible:ring-[#BB7333] 
+                  transition-all duration-200 hover:border-[#BB7333]/50 focus:shadow-md
+                  dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-[#BB7333]/50"
                     required
                   />
                   <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
@@ -729,18 +731,18 @@ console.log("user", user)
                     placeholder="e.g. 1.5"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
-                    transition-all duration-200 hover:border-zinc-300 focus:shadow-md
-                    dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-zinc-600"
+                    className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-[#BB7333] 
+                    transition-all duration-200 hover:border-[#BB7333]/50 focus:shadow-md
+                    dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-[#BB7333]/50"
                     required
                   />
                 </div>
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
-                  <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">Milestone Guidelines</h4>
-                  <ul className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+                <div className="bg-[#BB7333]/10 dark:bg-[#BB7333]/20 p-4 rounded-lg border border-[#BB7333]/20 dark:border-[#BB7333]/30">
+                  <h4 className="text-sm font-medium text-[#BB7333] dark:text-[#BB7333]/90 mb-2">Milestone Guidelines</h4>
+                  <ul className="text-sm text-[#965C29] dark:text-[#BB7333]/80 space-y-1">
                     <li>• Each milestone must be at least 24 hours apart</li>
                     <li>• Milestones must be in chronological order</li>
                     <li>• Total of all milestone amounts must equal the project amount</li>
@@ -758,9 +760,9 @@ console.log("user", user)
                     placeholder="e.g. 1.5"
                     value={totalMilestoneAmount}
                     onChange={(e) => handleTotalAmountChange(e.target.value)}
-                    className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
-                      transition-all duration-200 hover:border-zinc-300 focus:shadow-md
-                      dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-zinc-600"
+                    className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-[#BB7333] 
+                      transition-all duration-200 hover:border-[#BB7333]/50 focus:shadow-md
+                      dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-[#BB7333]/50"
                     required
                   />
                 </div>
@@ -772,7 +774,7 @@ console.log("user", user)
                     variant="outline"
                     size="sm"
                     onClick={addMilestone}
-                    className="h-8"
+                    className="h-8 border-[#BB7333] text-[#BB7333] hover:bg-[#BB7333] hover:text-white"
                   >
                     <Plus className="mr-2 h-3.5 w-3.5" />
                     Add Milestone
@@ -793,7 +795,7 @@ console.log("user", user)
                           variant="ghost"
                           size="icon"
                           onClick={() => removeMilestone(index)}
-                          className="h-8 w-8"
+                          className="h-8 w-8 text-[#BB7333] hover:bg-[#BB7333]/10"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -804,7 +806,9 @@ console.log("user", user)
                         placeholder="Amount (USDT)"
                         value={milestone.amount}
                         onChange={(e) => updateMilestone(index, "amount", e.target.value)}
-                        className="w-full"
+                        className="w-full border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-[#BB7333] 
+                          transition-all duration-200 hover:border-[#BB7333]/50 focus:shadow-md
+                          dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-[#BB7333]/50"
                         required
                       />
                       <div className="space-y-1">
@@ -845,9 +849,9 @@ console.log("user", user)
                 placeholder="Observer wallet address (0x...)"
                 value={observer}
                 onChange={(e) => setObserver(e.target.value)}
-                className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-blue-500 
-                  transition-all duration-200 hover:border-zinc-300 focus:shadow-md
-                  dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-zinc-600"
+                className="border-zinc-200 bg-white shadow-sm text-zinc-900 focus-visible:ring-[#BB7333] 
+                  transition-all duration-200 hover:border-[#BB7333]/50 focus:shadow-md
+                  dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-[#BB7333]/50"
               />
             </div>
             <div className="space-y-2">
@@ -904,7 +908,7 @@ console.log("user", user)
                         <div className="space-y-4">
                           <div
                             contentEditable
-                            className="prose max-w-none p-4 border rounded-lg min-h-[400px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="prose max-w-none p-4 border rounded-lg min-h-[400px] focus:outline-none focus:ring-2 focus:ring-[#BB7333]"
                             dangerouslySetInnerHTML={{ __html: editedContractContent || contractContent }}
                             onBlur={(e) => handleContractContentChange(e.currentTarget.innerHTML)}
                           />
@@ -1038,14 +1042,15 @@ console.log("user", user)
                 placeholder="Enter your email"
                 value={userEmail}
                 onChange={(e) => setUserEmail(e.target.value)}
-                className="w-full bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500"
+                className="w-full bg-zinc-800 border-zinc-700 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-[#BB7333] 
+                  transition-all duration-200 hover:border-[#BB7333]/50 focus:shadow-md"
               />
             </div>
             <div className="flex justify-end">
               <Button
                 onClick={handleEmailUpdate}
                 disabled={isUpdatingEmail || !userEmail}
-                className="bg-gradient-to-r from-blue-600 to-blue-500 text-white hover:from-blue-500 hover:to-blue-400"
+                className="bg-gradient-to-r from-[#BB7333] to-[#965C29] text-white hover:from-[#965C29] hover:to-[#7A4A21]"
               >
                 {isUpdatingEmail ? "Updating..." : "Register Email"}
               </Button>
@@ -1071,13 +1076,13 @@ console.log("user", user)
             {steps.map((step, index) => (
               <div key={step.id} className="flex items-center">
                 <div className={`flex items-center justify-center w-8 h-8 lg:w-10 lg:h-10 rounded-full 
-                  ${currentStep > index + 1 ? 'bg-blue-600 text-white' :
-                    currentStep === index + 1 ? 'bg-blue-600 text-white' :
+                  ${currentStep > index + 1 ? 'bg-[#BB7333] text-white' :
+                    currentStep === index + 1 ? 'bg-[#BB7333] text-white' :
                       'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-400'}`}>
                   {step.id}
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={` w-4 md:w-10 lg:w-14 h-1 mx-2 lg:mx-2 ${currentStep > index + 1 ? 'bg-blue-600' : 'bg-zinc-200 dark:bg-zinc-700'}`} />
+                  <div className={` w-4 md:w-10 lg:w-14 h-1 mx-2 lg:mx-2 ${currentStep > index + 1 ? 'bg-[#BB7333]' : 'bg-zinc-200 dark:bg-zinc-700'}`} />
                 )}
               </div>
             ))}
@@ -1102,10 +1107,10 @@ console.log("user", user)
             {currentStep === totalSteps ? (
               <Button
                 type="submit"
-                className="bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md hover:shadow-lg 
-                  hover:from-blue-500 hover:to-blue-400 transition-all duration-300 px-6
-                  dark:bg-blue-600 dark:from-blue-600 dark:to-blue-600 dark:text-white dark:hover:bg-blue-700 
-                  dark:hover:from-blue-700 dark:hover:to-blue-700 dark:shadow-none dark:hover:shadow-none"
+                className="bg-gradient-to-r from-[#BB7333] to-[#965C29] text-white shadow-md hover:shadow-lg 
+                  hover:from-[#965C29] hover:to-[#7A4A21] transition-all duration-300 px-6
+                  dark:bg-[#BB7333] dark:from-[#BB7333] dark:to-[#965C29] dark:text-white dark:hover:bg-[#965C29] 
+                  dark:hover:from-[#965C29] dark:hover:to-[#7A4A21] dark:shadow-none dark:hover:shadow-none"
                 disabled={isSubmitting || !legalAgreement}
               >
                 {isSubmitting ? "Creating..." : "Create Escrow"}
@@ -1117,10 +1122,10 @@ console.log("user", user)
                   e.preventDefault();
                   nextStep();
                 }}
-                className="bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md hover:shadow-lg 
-                  hover:from-blue-500 hover:to-blue-400 transition-all duration-300 px-6
-                  dark:bg-blue-600 dark:from-blue-600 dark:to-blue-600 dark:text-white dark:hover:bg-blue-700 
-                  dark:hover:from-blue-700 dark:hover:to-blue-700 dark:shadow-none dark:hover:shadow-none"
+                className="bg-gradient-to-r from-[#BB7333] to-[#965C29] text-white shadow-md hover:shadow-lg 
+                  hover:from-[#965C29] hover:to-[#7A4A21] transition-all duration-300 px-6
+                  dark:bg-[#BB7333] dark:from-[#BB7333] dark:to-[#965C29] dark:text-white dark:hover:bg-[#965C29] 
+                  dark:hover:from-[#965C29] dark:hover:to-[#7A4A21] dark:shadow-none dark:hover:shadow-none"
               >
                 Next
                 <ChevronRight className="ml-2 h-4 w-4" />

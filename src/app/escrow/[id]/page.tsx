@@ -36,11 +36,15 @@ export default function EscrowDetailsPage() {
       <div className=" w-full max-w-screen-xl mx-auto bg-zinc-100 dark:bg-zinc-950 rounded-lg p-1 md:p-6">
         <div className="flex items-center justify-start   gap-4 ">
         <Link href="/">
-          <Button variant="outline" size="icon">
+          <Button 
+            variant="outline" 
+            size="icon"
+            className="border-[#BB7333] text-[#BB7333] hover:bg-[#BB7333] hover:text-white"
+          >
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
-        <h1 className="text-2xl font-bold ">Escrow Details</h1>
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-[#BB7333] to-[#965C29] bg-clip-text text-transparent">Escrow Details</h1>
       </div>
      
       <EscrowDetails escrowId={escrowId} />

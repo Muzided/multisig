@@ -61,7 +61,7 @@ export function Sidebar({ activeTab, setActiveTab, isMobileNavOpen }: SidebarPro
               variant={activeTab === item.id ? "default" : "ghost"}
               className={
                 activeTab === item.id
-                  ? "flex w-full justify-start gap-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md transition-all duration-200 dark:bg-blue-600 dark:from-blue-600 dark:to-blue-600 dark:text-white dark:shadow-none"
+                  ? "flex w-full justify-start gap-2 bg-gradient-to-r from-[#BB7333] to-[#965C29] text-white shadow-md transition-all duration-200 dark:bg-[#BB7333] dark:from-[#BB7333] dark:to-[#965C29] dark:text-white dark:shadow-none"
                   : "flex w-full justify-start gap-2 text-zinc-600 transition-all duration-200 hover:bg-white hover:shadow-sm hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:shadow-none"
               }
               onClick={() => setActiveTab(item.id)}
@@ -87,7 +87,7 @@ export function Sidebar({ activeTab, setActiveTab, isMobileNavOpen }: SidebarPro
                 variant={activeTab === item.id ? "default" : "ghost"}
                 className={
                   activeTab === item.id
-                    ? "flex w-full justify-start gap-2 bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-md transition-all duration-200 dark:bg-blue-600 dark:from-blue-600 dark:to-blue-600 dark:text-white dark:shadow-none"
+                    ? "flex w-full justify-start gap-2 bg-gradient-to-r from-[#BB7333] to-[#965C29] text-white shadow-md transition-all duration-200 dark:bg-[#BB7333] dark:from-[#BB7333] dark:to-[#965C29] dark:text-white dark:shadow-none"
                     : "flex w-full justify-start gap-2 text-zinc-600 transition-all duration-200 hover:bg-white hover:shadow-sm hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-white dark:hover:shadow-none"
                 }
                 onClick={() => {

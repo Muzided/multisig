@@ -38,10 +38,12 @@ export interface PaymentRequest {
   }
   
   export interface ContractMilestone {
+    id: string;
     amount: string;
     dueDate: string;
     released: boolean;
-    disputed: boolean;
+    rejected: boolean;
+    disputedRaised: boolean;
     requested: boolean;
     requestTime: string;
   }
@@ -62,3 +64,8 @@ export interface PaymentRequest {
     apiMilestones: ApiMilestone[];
   }
   
+export interface RequestPaymentResponse {
+  transactionHash: string;
+  isSuccess: boolean;
+  message: string;
+}

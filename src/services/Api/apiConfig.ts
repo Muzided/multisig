@@ -74,8 +74,8 @@ class AxiosService {
         // Handle specific error cases
         if (error.response?.status === 403) {
           // Handle unauthorized access
-          localStorage.removeItem('token');
-          window.location.href = '/login';
+          //localStorage.removeItem('token');
+         // window.location.href = '/login';
         }
       
        

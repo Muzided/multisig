@@ -46,7 +46,7 @@ export function OverviewTab() {
       > click me </button> */}
 
       <div className="mt-8">
-        <h2 className="mb-4 text-xl font-semibold text-zinc-900 dark:text-white">Recent Escrows</h2>
+        <h2 className="mb-4 text-xl font-semibold bg-gradient-to-r from-[#BB7333] to-[#965C29] bg-clip-text text-transparent dark:from-[#BB7333] dark:to-[#965C29]">Recent Escrows</h2>
         <EscrowOverview limit={5} />
       </div>
     </>

@@ -55,8 +55,8 @@ export function Header({ toggleMobileNav }: HeaderProps) {
             <Lottie animationData={animationData} className="w-10 h-10" />
           </div> */}
           <div className="w-10 h-10 relative">
-            <div className="absolute inset-0 bg-blue-200/30 dark:bg-blue-600/20 rounded-full blur-md"></div>
-            <div className="relative z-10 w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-400 rounded-full flex items-center justify-center shadow-lg shadow-blue-200/50 dark:shadow-blue-600/20">
+            {/* <div className="absolute inset-0 bg-[#BB7333]/30 dark:bg-[#BB7333]/20 rounded-full blur-md"></div> */}
+            <div className="relative z-10 w-10 h-10 rounded-full flex items-center justify-center shadow-lg shadow-[#BB7333]/50 dark:shadow-[#BB7333]/20">
               <Image src={logo} alt="Logo" width={32} height={32} className="w-8 h-8" />
             </div>
           </div>
@@ -93,7 +93,7 @@ export function Header({ toggleMobileNav }: HeaderProps) {
                 transition-all duration-200 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white 
                 dark:hover:shadow-none"
             >
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 shadow-md"></div>
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#BB7333] to-[#965C29] shadow-md"></div>
               <span className="hidden sm:inline text-zinc-700 dark:text-zinc-300">{isConnected ? 
               `${address?.slice(0, 8)}...${address?.slice(-7)}` : 'Connect Wallet'}</span>
               <ChevronDown className="h-4 w-4" />

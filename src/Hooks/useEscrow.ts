@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 import EscrowAbi from "../Web3/Abis/EscrowAbi.json";
 
 import { convertUnixToDate } from "../../utils/helper";
-import { MileStone, ContractMilestone } from "@/types/contract";
+import { MileStone, ContractMilestone, RequestPaymentResponse } from "@/types/contract";
 
 interface UseEscrowReturn {
 
@@ -19,9 +19,12 @@ export const useEscrow = () => {
     //initialize escrow contract
     const fetchEscrowContract = async (escrowAddress: string) => {
         try {
+            if (!signer) return null
+            console.log("escrow-address", signer)
             const escrowContract = new Contract(escrowAddress, EscrowAbi, signer);
             return escrowContract;
         } catch (error) {
+            console.error("Error creating  escrow contract", error);
         }
     }
 
@@ -56,39 +59,197 @@ export const useEscrow = () => {
     }
     const getMileStones = async (escrowAddress: string): Promise<ContractMilestone[]> => {
         try {
+
+
+            console.log("escrowAddress-add", escrowAddress);
             const escorwContract = await fetchEscrowContract(escrowAddress);
+            console.log("escorwContract", escorwContract);
             if (!escorwContract) return [{
+                id: '',
                 amount: '',
                 dueDate: '',
                 released: false,
-                disputed: false,
+                rejected: false,
+                disputedRaised: false,
                 requested: false,
                 requestTime: ''
             }];
-            const totalMileStones = await escorwContract.getMileStones();
-            console.log("totalMileStones",totalMileStones)
+            const totalMileStones = await escorwContract.getMilestones();
+            //  console.log("totalMileStones",totalMileStones)
             // Map the array data into milestone objects
             return totalMileStones.map((milestone: any): ContractMilestone => ({
-                amount: milestone[0],
-                dueDate: milestone[1],
-                released: milestone[2],
-                disputed: milestone[3],
-                requested: milestone[4],
-                requestTime: milestone[5]
+                id: milestone[0]?.toString(),
+                amount: ethers.formatUnits(milestone[1]?.toString(), tokenDecimals),
+                dueDate: milestone[2],
+                released: milestone[3],
+                rejected: milestone[4],
+                disputedRaised: milestone[5],
+                requested: milestone[6],
+                requestTime: milestone[7]?.toString()
             }));
         } catch (error) {
             console.error("Error fetching total escrows", error);
             return [{
+                id: '',
                 amount: '',
                 dueDate: '',
                 released: false,
-                disputed: false,
+                rejected: false,
+                disputedRaised: false,
                 requested: false,
                 requestTime: ''
             }];
         }
     }
 
+    const requestPayment = async (escrowAddress: string, escrowIndex: string): Promise<RequestPaymentResponse> => {
+        let id: any;
+        try {
+            id = toast.loading(`Requesting payment...`);
+            const escorwContract = await fetchEscrowContract(escrowAddress);
+            if (!escorwContract) {
+                toast.update(id, {
+                    render: "Error while initializing escrow contract",
+                    type: "error",
+                    isLoading: false,
+                    autoClose: 3000
+                });
+                return {
+                    transactionHash: "",
+                    isSuccess: false,
+                    message: "Error while initializing escrow contract"
+                };
+            }
+
+            //request payment from blockchain
+            const requestPayment = await escorwContract.requestMilestone(escrowIndex);
+            const tx = await requestPayment.wait();
+
+            toast.update(id, { render: `Requested payment hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
+            return {
+                transactionHash: tx.hash,
+                isSuccess: true,
+                message: "Successfully requested payment"
+            };
+
+        } catch (error: any) {
+
+            const errorString = error.toString().toLowerCase();
+            console.error("Error requesting payment", errorString);
+            if (errorString.includes("past due date")) {
+                toast.update(id, { render: "Can't request payment for past due date.", type: "error", isLoading: false, autoClose: 3000 });
+            } else if (errorString.includes("milestone not started")) {
+                toast.update(id, { render: "Cannot proceed with payment request — milestone not yet started.", type: "error", isLoading: false, autoClose: 3000 });
+            } else {
+                toast.update(id, { render: "Error while requesting payment", type: "error", isLoading: false, autoClose: 3000 });
+            }
+            return {
+                transactionHash: "",
+                isSuccess: false,
+                message: errorString
+            };
+        }
+    }
+
+
+    const releasePayment = async (escrowAddress: string, escrowIndex: string): Promise<RequestPaymentResponse> => {
+        let id: any;
+        try {
+            id = toast.loading(`Releasing payment...`);
+            const escorwContract = await fetchEscrowContract(escrowAddress);
+            if (!escorwContract) {
+                toast.update(id, {
+                    render: "Error while initializing escrow contract",
+                    type: "error",
+                    isLoading: false,
+                    autoClose: 3000
+                });
+                return {
+                    transactionHash: "",
+                    isSuccess: false,
+                    message: "Error while initializing escrow contract"
+                };
+            }
+
+            //request payment from blockchain
+            const requestPayment = await escorwContract.approveRequest(escrowIndex);
+            const tx = await requestPayment.wait();
+
+            toast.update(id, { render: `Released payment hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
+            return {
+                transactionHash: tx.hash,
+                isSuccess: true,
+                message: "Successfully released payment"
+            };
+
+        } catch (error: any) {
+
+            const errorString = error.toString().toLowerCase();
+            console.error("Error requesting payment", errorString);
+            if (errorString.includes("past due date")) {
+                toast.update(id, { render: "Can't request payment for past due date.", type: "error", isLoading: false, autoClose: 3000 });
+            } else if (errorString.includes("milestone not started")) {
+                toast.update(id, { render: "Cannot proceed with payment request — milestone not yet started.", type: "error", isLoading: false, autoClose: 3000 });
+            } else {
+                toast.update(id, { render: "Error while requesting payment", type: "error", isLoading: false, autoClose: 3000 });
+            }
+            return {
+                transactionHash: "",
+                isSuccess: false,
+                message: errorString
+            };
+        }
+    }
+
+    const claimUnRequestedAmounts = async (escrowAddress: string, escrowIndex: string): Promise<RequestPaymentResponse> => {
+        let id: any;
+        try {
+            id = toast.loading(`claiming amount...`);
+            const escorwContract = await fetchEscrowContract(escrowAddress);
+            if (!escorwContract) {
+                toast.update(id, {
+                    render: "Error while initializing escrow contract",
+                    type: "error",
+                    isLoading: false,
+                    autoClose: 3000
+                });
+                return {
+                    transactionHash: "",
+                    isSuccess: false,
+                    message: "Error while initializing escrow contract"
+                };
+            }
+
+            //request payment from blockchain
+            const requestPayment = await escorwContract.reclaimUnrequested(escrowIndex);
+            const tx = await requestPayment.wait();
+
+            toast.update(id, { render: `claimed amount hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
+            return {
+                transactionHash: tx.hash,
+                isSuccess: true,
+                message: "Successfully claimed amount"
+            };
+
+        } catch (error: any) {
+
+            const errorString = error.toString().toLowerCase();
+            console.error("Error requesting payment", errorString);
+            if (errorString.includes("past due date")) {
+                toast.update(id, { render: "Can't request payment for past due date.", type: "error", isLoading: false, autoClose: 3000 });
+            } else if (errorString.includes("milestone not started")) {
+                toast.update(id, { render: "Cannot proceed with payment request — milestone not yet started.", type: "error", isLoading: false, autoClose: 3000 });
+            } else {
+                toast.update(id, { render: "Error while requesting payment", type: "error", isLoading: false, autoClose: 3000 });
+            }
+            return {
+                transactionHash: "",
+                isSuccess: false,
+                message: errorString
+            };
+        }
+    }
+    
     const dummycall = async (escrowAddress: string): Promise<boolean> => {
         try {
             const escorwContract = await fetchEscrowContract(escrowAddress);
@@ -133,8 +294,62 @@ export const useEscrow = () => {
         }
     }, [signer]);
 
+   
+    const raiseDispute = async (escrowAddress: string, escrowIndex: string,  reason: string): Promise<RequestPaymentResponse> => {
+        let id: any;
+        try {
+            id = toast.loading(`initiating dispute...`);
+            const escorwContract = await fetchEscrowContract(escrowAddress);
+            if (!escorwContract) {
+                toast.update(id, {
+                    render: "Error while initializing escrow contract",
+                    type: "error",
+                    isLoading: false,
+                    autoClose: 3000
+                });
+                return {
+                    transactionHash: "",
+                    isSuccess: false,
+                    message: "Error while initializing escrow contract"
+                };
+            }
+
+            //request payment from blockchain
+            const requestPayment = await escorwContract.raiseDispute(escrowIndex,reason);
+            const tx = await requestPayment.wait();
+
+            toast.update(id, { render: `initiated dispute hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
+            return {
+                transactionHash: tx.hash,
+                isSuccess: true,
+                message: "Successfully initiated dispute"
+            };
+
+        } catch (error: any) {
+
+            const errorString = error.toString().toLowerCase();
+            console.error("Error initiating dispute", errorString);
+            if (errorString.includes("cannot dispute")) {
+                toast.update(id, { render: "cannot raise dispute.", type: "error", isLoading: false, autoClose: 3000 });
+            } else if (errorString.includes("milestone not started")) {
+                toast.update(id, { render: "Cannot proceed with payment request — milestone not yet started.", type: "error", isLoading: false, autoClose: 3000 });
+            } else {
+                toast.update(id, { render: "Error while requesting payment", type: "error", isLoading: false, autoClose: 3000 });
+            }
+            return {
+                transactionHash: "",
+                isSuccess: false,
+                message: errorString
+            };
+        }
+    }
+
     return {
         fetchEscrowDetails,
-        getMileStones
+        getMileStones,
+        requestPayment,
+        releasePayment,
+        claimUnRequestedAmounts,
+        raiseDispute
     }
 }

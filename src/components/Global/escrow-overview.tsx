@@ -231,7 +231,7 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
                           <div className="flex items-center gap-2">
                             {formatAddress(escrow.creator_walletaddress)}
                             {address?.toLowerCase() === escrow.creator_walletaddress.toLowerCase() && (
-                              <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                              <Badge variant="secondary" className="bg-[#BB7333] text-white dark:bg-[#BB7333] dark:text-white">
                                 You (Creator)
                               </Badge>
                             )}
@@ -241,7 +241,7 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
                           <div className="flex items-center gap-2">
                             {formatAddress(escrow.receiver_walletaddress)}
                             {address?.toLowerCase() === escrow.receiver_walletaddress.toLowerCase() && (
-                              <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                              <Badge variant="secondary" className="bg-[#BB7333] text-white dark:bg-[#BB7333] dark:text-white">
                                 You (Receiver)
                               </Badge>
                             )}
@@ -263,23 +263,23 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
                         </TableCell>
                         <TableCell>
                           {needsSignature ? (
-                            <div className="flex flex-col items-center gap-2">
-                              <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                                Signature Required
-                              </p>
+                            // <div className="flex flex-col items-center gap-2">
+                              // <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                              //   Signature Required
+                              // </p> 
                               <Button
                                 size="sm"
-                                className="bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
+                                className="bg-[#BB7333] text-white hover:bg-[#965C29] my-2 w dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
                                 onClick={() => handleSignContract(escrow.escrow_contract_address)}
                               >
                                 Sign Contract
                               </Button>
-                            </div>
+                            // </div>
                           ) : (
                             <Button
                               size="sm"
                               disabled={loadingEscrows[escrow.escrow_contract_address] || false}
-                              className="bg-blue-600 text-white hover:bg-blue-700 my-2 w dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
+                              className="bg-[#BB7333] text-white hover:bg-[#965C29] my-2 w dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
                               onClick={() => navgateToDetailPage(escrow.escrow_contract_address)}
                             >
                               View Details

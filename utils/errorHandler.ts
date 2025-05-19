@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 export const handleError = (error: any) => {
     // Convert error to string if it's not already
     const errorString = error.toString().toLowerCase();
-
+    console.log("errorString",errorString)
     // Check for common error patterns in the string
     if (errorString.includes("user rejected") || errorString.includes("user denied")) {
         toast.error("User rejected the request.");
@@ -21,8 +21,10 @@ export const handleError = (error: any) => {
     }
     else if (errorString.includes("execution reverted")) {
         // Extract the revert reason if available
-        const revertReason = errorString.split("execution reverted:")[1]?.trim();
-        toast.error(revertReason || "Transaction reverted by the contract.");
+        const reasonMatch = errorString.match(/reason="([^"]+)"/);
+        const revertReason = reasonMatch ? reasonMatch[1] : "Transaction reverted by the contract.";
+        console.log("revertReason", revertReason);
+        toast.error(revertReason);
     }
     else if (errorString.includes("network error") || errorString.includes("network changed")) {
         toast.error("Network error. Please check your connection.");
@@ -32,6 +34,9 @@ export const handleError = (error: any) => {
     }
     else if (errorString.includes("invalid value")) {
         toast.error("Invalid value provided for the transaction.");
+    }
+    else if (errorString.includes("Past due date")) {
+        toast.error("Can't request payment for past due date.");
     }
     else {
         hadndleApiErrorToast(error)

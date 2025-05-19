@@ -343,7 +343,7 @@ export function DisputeResolution() {
                       <Button
                         size="sm"
                         // disabled={loadingEscrows[escrow.escrowAddress] || false}
-                        className="bg-blue-600 text-white hover:bg-blue-700 my-2 w dark:bg-blue-600 dark:text-white dark:hover:bg-blue-700"
+                        className="bg-[#BB7333] text-white hover:bg-[#965C29] my-2 w dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
                         onClick={() => navgateToDetailPage("3f4#fsd4")}
                       >
                         View Details

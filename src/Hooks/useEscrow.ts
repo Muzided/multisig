@@ -7,6 +7,7 @@ import EscrowAbi from "../Web3/Abis/EscrowAbi.json";
 
 import { convertUnixToDate } from "../../utils/helper";
 import { MileStone, ContractMilestone, RequestPaymentResponse } from "@/types/contract";
+import { saveHistory } from "@/services/Api/escrow/escrow";
 
 interface UseEscrowReturn {
 
@@ -102,7 +103,7 @@ export const useEscrow = () => {
         }
     }
 
-    const requestPayment = async (escrowAddress: string, escrowIndex: string): Promise<RequestPaymentResponse> => {
+    const requestPayment = async (escrowAddress: string, escrowIndex: string ,amount:string): Promise<RequestPaymentResponse> => {
         let id: any;
         try {
             id = toast.loading(`Requesting payment...`);
@@ -124,14 +125,22 @@ export const useEscrow = () => {
             //request payment from blockchain
             const requestPayment = await escorwContract.requestMilestone(escrowIndex);
             const tx = await requestPayment.wait();
-
-            toast.update(id, { render: `Requested payment hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
-            return {
-                transactionHash: tx.hash,
-                isSuccess: true,
-                message: "Successfully requested payment"
-            };
-
+            //save payment history in database
+            const res = await saveHistory("payment_request", tx.hash, amount)
+            if (res.status === 201) {
+                toast.update(id, { render: `Requested payment hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
+                return {
+                    transactionHash: tx.hash,
+                    isSuccess: true,
+                    message: "Successfully requested payment"
+                };
+            } else {
+                return {
+                    transactionHash: tx.hash,
+                    isSuccess: true,
+                    message: "Successfully requested payment"
+                };
+            }
         } catch (error: any) {
 
             const errorString = error.toString().toLowerCase();
@@ -152,11 +161,12 @@ export const useEscrow = () => {
     }
 
 
-    const releasePayment = async (escrowAddress: string, escrowIndex: string): Promise<RequestPaymentResponse> => {
+    const releasePayment = async (escrowAddress: string, escrowIndex: string,amount:string): Promise<RequestPaymentResponse> => {
         let id: any;
         try {
             id = toast.loading(`Releasing payment...`);
             const escorwContract = await fetchEscrowContract(escrowAddress);
+
             if (!escorwContract) {
                 toast.update(id, {
                     render: "Error while initializing escrow contract",
@@ -174,13 +184,22 @@ export const useEscrow = () => {
             //request payment from blockchain
             const requestPayment = await escorwContract.approveRequest(escrowIndex);
             const tx = await requestPayment.wait();
+            const res = await saveHistory("payment_released", tx.hash,amount)
+            if (res.status === 201) {
+                toast.update(id, { render: `Released payment hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
+                return {
+                    transactionHash: tx.hash,
+                    isSuccess: true,
+                    message: "Successfully released payment"
+                };
+            } else {
 
-            toast.update(id, { render: `Released payment hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
-            return {
-                transactionHash: tx.hash,
-                isSuccess: true,
-                message: "Successfully released payment"
-            };
+                return {
+                    transactionHash: tx.hash,
+                    isSuccess: true,
+                    message: "Successfully released payment"
+                };
+            }
 
         } catch (error: any) {
 
@@ -249,7 +268,7 @@ export const useEscrow = () => {
             };
         }
     }
-    
+
     const dummycall = async (escrowAddress: string): Promise<boolean> => {
         try {
             const escorwContract = await fetchEscrowContract(escrowAddress);
@@ -294,8 +313,8 @@ export const useEscrow = () => {
         }
     }, [signer]);
 
-   
-    const raiseDispute = async (escrowAddress: string, escrowIndex: string,  reason: string): Promise<RequestPaymentResponse> => {
+
+    const raiseDispute = async (escrowAddress: string, escrowIndex: string, reason: string): Promise<RequestPaymentResponse> => {
         let id: any;
         try {
             id = toast.loading(`initiating dispute...`);
@@ -315,16 +334,23 @@ export const useEscrow = () => {
             }
 
             //request payment from blockchain
-            const requestPayment = await escorwContract.raiseDispute(escrowIndex,reason);
+            const requestPayment = await escorwContract.raiseDispute(escrowIndex, reason);
             const tx = await requestPayment.wait();
-
-            toast.update(id, { render: `initiated dispute hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
-            return {
-                transactionHash: tx.hash,
-                isSuccess: true,
-                message: "Successfully initiated dispute"
-            };
-
+            const res = await saveHistory("dispute_initiated", tx.hash, "")
+            if (res.status === 201) {
+                toast.update(id, { render: `initiated dispute hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
+                return {
+                    transactionHash: tx.hash,
+                    isSuccess: true,
+                    message: "Successfully initiated dispute"
+                };
+            } else {
+                return {
+                    transactionHash: tx.hash,
+                    isSuccess: true,
+                    message: "Successfully initiated dispute"
+                };
+            }
         } catch (error: any) {
 
             const errorString = error.toString().toLowerCase();

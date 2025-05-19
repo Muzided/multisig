@@ -60,16 +60,16 @@ const CountdownTimer = ({ dueDate }: { dueDate: string | number }) => {
       const currentDate = Math.floor(Date.now() / 1000);
       const disputeEndTime = Number(dueDate) + (48 * 60 * 60);
       const remainingSeconds = disputeEndTime - currentDate;
-      
+
       if (remainingSeconds <= 0) {
         setTimeLeft("Dispute period ended");
         return;
       }
-      
+
       const hours = Math.floor(remainingSeconds / 3600);
       const minutes = Math.floor((remainingSeconds % 3600) / 60);
       const seconds = Math.floor(remainingSeconds % 60);
-      
+
       setTimeLeft(`${hours}h ${minutes}m ${seconds}s remaining`);
     };
 
@@ -129,7 +129,7 @@ export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDet
   const handleClaimAmount = useCallback(async (escrowAddress: string, milestoneId: string) => {
     try {
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: true }))
-      const res = await claimUnRequestedAmounts(escrowAddress, milestoneId)
+      await claimUnRequestedAmounts(escrowAddress, milestoneId)
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: false }))
     } catch (error) {
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: false }))
@@ -138,10 +138,10 @@ export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDet
     }
   }, [claimUnRequestedAmounts]);
 
-  const handlePayout = useCallback(async (escrowAddress: string, milestoneId: string) => {
+  const handlePayout = useCallback(async (escrowAddress: string, milestoneId: string, amount: string) => {
     try {
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: true }))
-      const res = await requestPayment(escrowAddress, milestoneId)
+      const res = await requestPayment(escrowAddress, milestoneId, amount)
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: false }))
     } catch (error) {
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: false }))
@@ -150,10 +150,10 @@ export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDet
     }
   }, [requestPayment]);
 
-  const handlePaymentRelease = useCallback(async (escrowAddress: string, milestoneId: string) => {
+  const handlePaymentRelease = useCallback(async (escrowAddress: string, milestoneId: string, amount: string) => {
     try {
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: true }))
-      const res = await releasePayment(escrowAddress, milestoneId)
+      const res = await releasePayment(escrowAddress, milestoneId, amount)
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: false }))
     } catch (error) {
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: false }))
@@ -168,13 +168,13 @@ export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDet
         toast.error("Please provide a reason for the dispute");
         return;
       }
-      
+
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: true }));
       await raiseDispute(escrowAddress, milestoneId, disputeReason);
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: false }));
       setDisputeModalOpen(false);
       setDisputeReason("");
-      
+
     } catch (error) {
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: false }));
       console.error("Error raising dispute:", error);
@@ -280,7 +280,7 @@ export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDet
       if (isDueDatePassed(previousMilestone.dueDate)) {
         return <Circle className="h-6 w-6 text-primary animate-pulse" />
       }
-      
+
       return <Clock className="h-6 w-6 text-gray-400" />
     }
 
@@ -325,7 +325,7 @@ export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDet
       if (isDueDatePassed(previousMilestone.dueDate)) {
         return <Badge className="bg-primary dark:text-green-800 text-white">Active</Badge>;
       }
-      
+
       // If previous milestone's due date hasn't passed, it's upcoming
       return <Badge variant="secondary">Upcoming</Badge>;
     }
@@ -423,15 +423,15 @@ export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDet
                                     handleClaimAmount(escrowDetails.escrow.escrow_contract_address, escrowOnChainDetails[0].id)
                                   }
                                 } else {
-                                  handlePayout(escrowDetails.escrow.escrow_contract_address, escrowOnChainDetails[0].id)
+                                  handlePayout(escrowDetails.escrow.escrow_contract_address, escrowOnChainDetails[0].id, escrowOnChainDetails[0].amount)
                                 }
                               }}
                               disabled={userType === "creator" && (!isDueDatePassed(escrowOnChainDetails[0].dueDate) || !isDisputePeriodOver(escrowOnChainDetails[0].dueDate)) || loadingPayout[escrowOnChainDetails[0].id]}
                             >
-                              {loadingPayout[escrowOnChainDetails[0].id] ? "Processing..." : 
-                               userType === "creator" ? 
-                                 getClaimButtonState(escrowOnChainDetails[0]).text
-                                 : "Request Payout"}
+                              {loadingPayout[escrowOnChainDetails[0].id] ? "Processing..." :
+                                userType === "creator" ?
+                                  getClaimButtonState(escrowOnChainDetails[0]).text
+                                  : "Request Payout"}
                             </Button>
                             {userType === "creator" && !escrowOnChainDetails[0].requested && (
                               <p className="text-sm text-gray-500 text-center">
@@ -446,7 +446,7 @@ export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDet
                             className="w-full bg-[#BB7333] hover:bg-[#965C29] text-white"
                             onClick={(e) => {
                               e.stopPropagation()
-                              handlePaymentRelease(escrowDetails.escrow.escrow_contract_address, escrowOnChainDetails[0].id)
+                              handlePaymentRelease(escrowDetails.escrow.escrow_contract_address, escrowOnChainDetails[0].id, escrowOnChainDetails[0].amount)
                             }}
                             disabled={loadingPayout[escrowOnChainDetails[0].id]}
                           >
@@ -457,9 +457,9 @@ export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDet
                             size="sm"
                             className="w-full bg-gray-400 cursor-not-allowed"
                           >
-                            {escrowOnChainDetails[0].released ? "Payment Released" : 
-                             escrowOnChainDetails[0].rejected ? "Payment Rejected" : 
-                             escrowOnChainDetails[0].requested ? "Payment Requested" : "Payment Released"}
+                            {escrowOnChainDetails[0].released ? "Payment Released" :
+                              escrowOnChainDetails[0].rejected ? "Payment Rejected" :
+                                escrowOnChainDetails[0].requested ? "Payment Requested" : "Payment Released"}
                           </Button>
                         )}
                       </div>
@@ -485,8 +485,8 @@ export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDet
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <CardTitle className="text-lg">
-                              {escrowDetails?.milestones[index].description ? 
-                                escrowDetails?.milestones[index].description : 
+                              {escrowDetails?.milestones[index].description ?
+                                escrowDetails?.milestones[index].description :
                                 `Milestone ${index + 1}`}
                             </CardTitle>
                             {getStatusBadge(escrowDetails?.milestones[index].status, milestone, index)}
@@ -534,15 +534,15 @@ export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDet
                                       handleClaimAmount(escrowDetails.escrow.escrow_contract_address, milestone.id)
                                     }
                                   } else {
-                                    handlePayout(escrowDetails.escrow.escrow_contract_address, milestone.id)
+                                    handlePayout(escrowDetails.escrow.escrow_contract_address, milestone.id, milestone.amount)
                                   }
                                 }}
                                 disabled={userType === "creator" && (!isDueDatePassed(milestone.dueDate) || !isDisputePeriodOver(milestone.dueDate)) || loadingPayout[milestone.id]}
                               >
-                                {loadingPayout[milestone.id] ? "Processing..." : 
-                                 userType === "creator" ? 
-                                   getClaimButtonState(milestone).text
-                                   : "Request Payout"}
+                                {loadingPayout[milestone.id] ? "Processing..." :
+                                  userType === "creator" ?
+                                    getClaimButtonState(milestone).text
+                                    : "Request Payout"}
                               </Button>
                               {userType === "creator" && !milestone.requested && (
                                 <p className="text-sm text-gray-500 text-center">
@@ -557,7 +557,7 @@ export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDet
                               className="w-full bg-[#BB7333] hover:bg-[#965C29] text-white"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                handlePaymentRelease(escrowDetails.escrow.escrow_contract_address, milestone.id)
+                                handlePaymentRelease(escrowDetails.escrow.escrow_contract_address, milestone.id, milestone.amount)
                               }}
                               disabled={loadingPayout[milestone.id]}
                             >
@@ -568,9 +568,9 @@ export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDet
                               size="sm"
                               className="w-full bg-gray-400 cursor-not-allowed"
                             >
-                              {milestone.released ? "Payment Released" : 
-                               milestone.rejected ? "Payment Rejected" : 
-                               milestone.requested ? "Payment Requested" : "Payment Released"}
+                              {milestone.released ? "Payment Released" :
+                                milestone.rejected ? "Payment Rejected" :
+                                  milestone.requested ? "Payment Requested" : "Payment Released"}
                             </Button>
                           )}
                         </div>

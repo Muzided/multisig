@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { Check, Clock, ExternalLink, Filter, MoreHorizontal, X } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -29,163 +29,48 @@ import { userTransactionHistory } from "../../../public/Data/Ecsrows"
 import { getStatusStyles } from "../../../utils/helper"
 import { useRouter } from "next/navigation"
 import PageHeading from "../ui/pageheading"
+import { fetchTransactionHistory } from "@/services/Api/user/user"
+import { useQuery } from "@tanstack/react-query"
+import { Transaction, TransactionHistory } from "@/types/escrow"
 
 
 
-type FormattedEscrow = {
-  id: string;
-  amount: string;
-  escrowAddress: string;
-  disputed: boolean;
-  requested: boolean;
-  status: string;
-  receiver: string;
-  reversal: string;
-  createdAt: string;
-};
 
 
 export function TransactionsTab() {
-  const [statusFilter, setStatusFilter] = useState<string>("creator-escrows")
-  const [loadingEscrows, setLoadingEscrows] = useState<{ [key: string]: boolean }>({});
-  const [escrows, setEscrows] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
-  const [escrowDetails, setEscrowDetails] = useState<any>()
-  const [refresh, setRefresh] = useState(false)
-  const [openDialog, setOpenDialog] = useState(false);
-  const [openEscrowDetails, setOpenEscrowDetails] = useState(false);
-  const [openResolveDialog, setOpenResolveDialog] = useState(false);
-  const [disputeReason, setDisputeReason] = useState("");
-  const [selectedEscrow, setSelectedEscrow] = useState(null);
-  const [createdEscrows, setCreatedEscrows] = useState<any[]>([])
-  const [disputeDetails, setDisputeDetails] = useState<any>()
-
-  //next-router
-  const router = useRouter()
-
-
-
-const navgateToDetailPage=(id:string)=>{
-  router.push(`/escrow/${id}`)
-}
-
-  const { fetchCreatorEscrows, fetchReceiverEscrows, fetchPaymentRequest, requestPayment, releaseFunds, approvePayment, initaiteDispute, resolveDispute } = useFactory();
-  const { fetchEscrowDetails } = useEscrow();
-  const { fetchDisputeDetails } = useDispute()
+  const [statusFilter, setStatusFilter] = useState<string>("all")
   const { address } = useAppKitAccount();
 
-  useEffect(() => {
-    if (!address) return;
-    fetchCreatedEscrows(address)
-    fetchClaimAbleEscrows(address)
+  const { data: transactionHistory, isLoading } = useQuery<TransactionHistory>({
+    queryKey: ['transactionHistory', address],
+    queryFn: async () => {
+      const response = await fetchTransactionHistory("all");
+      return response.data;
+    },
+    enabled: !!address,
+  });
 
-  }, [address, refresh])
-
-  //user created escrows
-  const fetchCreatedEscrows = async (userAddress: string) => {
-    try {
-      const blockchainEscrows = await fetchCreatorEscrows(userAddress)
-      console.log("ecrow-created-by-user", blockchainEscrows)
-      if (!blockchainEscrows || blockchainEscrows.length === 0) {
-        setCreatedEscrows([]);
-        return;
-      }
-
-      const currentDate = new Date().toISOString().split("T")[0];
-
-      // Fetch and format data in one step
-      const formattedEscrows: FormattedEscrow[] = await Promise.all(
-        blockchainEscrows.map(async (escrow: any, index: number) => {
-          const escrowRequest = await fetchPaymentRequest(escrow);
-
-          return {
-            id: `ESC-${(index + 1).toString().padStart(3, "0")}`,
-            amount: `${escrowRequest?.amountRequested} USDT`,
-            escrowAddress: escrow,
-            disputed: escrowRequest?.isDisputed,
-            requested: escrowRequest?.isPayoutRequested,
-            status: escrowRequest?.completed
-              ? "completed"
-              : escrowRequest?.isDisputed
-                ? "disputed"
-                : "active",
-            receiver: userAddress,
-            reversal: `0x${Math.random().toString(16).substr(2, 40)}`,
-            createdAt: currentDate,
-          };
-        })
-      );
-      console.log("formattedEscrows", formattedEscrows)
-
-      setCreatedEscrows(formattedEscrows);
-    } catch (error) {
-      console.error("Error fetching escrow payment requests", error);
-      setCreatedEscrows([]); // Ensure state consistency in case of an error
+  const filteredTransactions = useMemo(() => {
+    if (!transactionHistory?.transactions) return [];
+    
+    switch (statusFilter) {
+      case 'payment_released':
+        return transactionHistory.transactions.filter(tx => tx.transaction_type === 'payment_released');
+      case 'escrow_creation':
+        return transactionHistory.transactions.filter(tx => tx.transaction_type === 'escrow_creation');
+      case 'payment_requested':
+        return transactionHistory.transactions.filter(tx => tx.transaction_type === 'payment_requested');
+      case 'dispute_raised':
+        return transactionHistory.transactions.filter(tx => tx.transaction_type === 'dispute_raised');
+      default:
+        return transactionHistory.transactions;
     }
-  };
-  //user claimable escrows
-  const fetchClaimAbleEscrows = async (userAddress: string) => {
-    try {
-      const blockchainEscrows = await fetchReceiverEscrows(userAddress);
-
-
-      if (!blockchainEscrows || blockchainEscrows.length === 0) {
-        setEscrows([]);
-        return;
-      }
-      console.log("ecrow-received-by-user", blockchainEscrows)
-
-      const currentDate = new Date().toISOString().split("T")[0];
-
-      // Fetch and format data in one step
-      const formattedEscrows: FormattedEscrow[] = await Promise.all(
-        blockchainEscrows.map(async (escrow: any, index: number) => {
-          const escrowRequest = await fetchPaymentRequest(escrow);
-
-
-          return {
-            id: `ESC-${(index + 1).toString().padStart(3, "0")}`,
-            amount: `${escrowRequest?.amountRequested} USDT`,
-            disputed: escrowRequest?.isDisputed,
-            escrowAddress: escrow,
-            requested: escrowRequest?.isPayoutRequested,
-            status: escrowRequest?.completed
-              ? "completed"
-              : escrowRequest?.isDisputed
-                ? "disputed"
-                : "active",
-            receiver: userAddress,
-            reversal: `0x${Math.random().toString(16).substr(2, 40)}`,
-            createdAt: currentDate,
-          };
-        })
-      );
-
-      setEscrows(formattedEscrows);
-    } catch (error) {
-      console.error("Error fetching escrow payment requests", error);
-      setEscrows([]); // Ensure state consistency in case of an error
-    }
-  };
-
-  // Filter escrows based on status
-  const filteredEscrows =
-    statusFilter === "creator-escrows" ? userTransactionHistory : escrows;
-
-
-
-
-  
-
-
-  console.log("filteredEscrows", filteredEscrows)
-
-
-  
+  }, [transactionHistory, statusFilter]);
+  console.log("transactionHistory", transactionHistory)
   return (
     <div className="space-y-4">
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-    <Button
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <Button
           variant="outline"
           className="flex items-center gap-2 border-zinc-200 bg-white shadow-sm text-zinc-700 
             hover:bg-zinc-50 hover:border-zinc-300 hover:shadow-md transition-all duration-200
@@ -200,22 +85,22 @@ const navgateToDetailPage=(id:string)=>{
             className="w-full sm:w-[180px] border-zinc-200 bg-white text-zinc-900 
             dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
           >
-            <SelectValue placeholder="Filter by status" />
+            <SelectValue placeholder="Filter by type" />
           </SelectTrigger>
           <SelectContent
             className="border-zinc-200 bg-white text-zinc-900 
             dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
           >
-            <SelectItem value="creator-escrows">All Escrows</SelectItem>
-            <SelectItem value="claimable-escrows">Active Escrows</SelectItem>
-            <SelectItem value="claimable-escrows">Disputed Escrows</SelectItem>
+            <SelectItem value="all">All Transactions</SelectItem>
+            <SelectItem value="payment_released">Payment Released</SelectItem>
+            <SelectItem value="escrow_creation">Escrow Creation</SelectItem>
+            <SelectItem value="payment_requested">Payment Requested</SelectItem>
+            <SelectItem value="dispute_raised">Dispute Raised</SelectItem>
           </SelectContent>
         </Select>
-        </div>
+      </div>
 
-      <Tabs defaultValue="table" className="w-full ">
-      
-
+      <Tabs defaultValue="table" className="w-full">
         <TabsContent value="table" className="mt-0">
           <div className="rounded-md border border-zinc-200 dark:border-zinc-800">
             <Table>
@@ -224,59 +109,60 @@ const navgateToDetailPage=(id:string)=>{
                   className="border-zinc-200 hover:bg-zinc-100/50 
                   dark:border-zinc-800 dark:hover:bg-zinc-800/50"
                 >
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">ID</TableHead>
-
-                  {/* <TableHead className="text-zinc-500 dark:text-zinc-400">Signees</TableHead> */}
-                  {/* <TableHead className="text-zinc-500 dark:text-zinc-400">Dispute</TableHead> */}
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">tx hash</TableHead>
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">type</TableHead>
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">date</TableHead>
+                  <TableHead className="text-zinc-500 dark:text-zinc-400">Amount</TableHead>
+                  <TableHead className="text-zinc-500 dark:text-zinc-400">Transaction Hash</TableHead>
+                  <TableHead className="text-zinc-500 dark:text-zinc-400">Type</TableHead>
+                  <TableHead className="text-zinc-500 dark:text-zinc-400">Date</TableHead>
                   <TableHead className="text-zinc-500 dark:text-zinc-400">View on Scan</TableHead>
-
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredEscrows.length === 0 ? (
-                  <TableRow
-                    className="border-zinc-200 hover:bg-zinc-100/50 
-                    dark:border-zinc-800 dark:hover:bg-zinc-800/50"
-                  >
-                    <TableCell colSpan={6} className="h-24 text-center text-zinc-500 dark:text-zinc-500">
-                      No history found.
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center">
+                      <div className="flex justify-center">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : filteredTransactions.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center text-zinc-500 dark:text-zinc-500">
+                      No transactions found.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredEscrows.map((escrow) => (
+                  filteredTransactions.map((transaction) => (
                     <TableRow
-                      key={escrow.escrowId}
+                      key={transaction.transaction_hash}
                       className="border-zinc-200 hover:bg-zinc-100/50 
                       dark:border-zinc-800 dark:hover:bg-zinc-800/50"
                     >
                       <TableCell className="font-medium text-zinc-900 dark:text-white">
-                        {escrow.id}
+                        {transaction.amount ? `${transaction.amount} USDT` : '-'}
                       </TableCell>
-
+                      <TableCell className="font-mono text-sm">
+                        {transaction.transaction_hash}
+                      </TableCell>
                       <TableCell>
-                      {escrow.tx_hash}
+                        <Badge variant="outline" className="capitalize">
+                          {transaction.transaction_type.replace('_', ' ')}
+                        </Badge>
                       </TableCell>
-
                       <TableCell>
-                      {escrow.type}
+                        {new Date(transaction.transaction_date).toLocaleDateString()}
                       </TableCell>
-
                       <TableCell>
-                          {escrow.date}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-[#BB7333] text-[#BB7333] hover:bg-[#BB7333] hover:text-white"
+                          onClick={() => window.open(`https://sepolia.etherscan.io/tx/${transaction.transaction_hash}`, '_blank')}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-2" />
+                          View
+                        </Button>
                       </TableCell>
-
-                      {/* viewEscrow details */}
-                          <Button
-                            size="sm"
-                            disabled={loadingEscrows[escrow.escrowAddress] || false}
-                            className="bg-[#BB7333] text-white hover:bg-[#965C29] my-2 w dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
-                            onClick={() => navgateToDetailPage("3f4#fsd4")}
-                          >
-                            View Details
-                          </Button>
                     </TableRow>
                   ))
                 )}
@@ -284,10 +170,6 @@ const navgateToDetailPage=(id:string)=>{
             </Table>
           </div>
         </TabsContent>
-
-    
-
-      
       </Tabs>
     </div>
   )

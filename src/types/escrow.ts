@@ -54,3 +54,20 @@ export interface getEscrowDetailsResponse {
     escrow: EscrowDetails;
     milestones: Milestone[];
 }
+
+
+export interface getHistoryResponse {
+    escrow: EscrowDetails;
+    milestones: Milestone[];
+}
+
+export interface Transaction {
+    amount?: number;
+    transaction_hash: string;
+    transaction_type: 'payment_released' | 'escrow_creation' | 'payment_requested' | 'dispute_raised';
+    transaction_date: string;
+}
+
+export interface TransactionHistory {
+    transactions: Transaction[];
+}

@@ -57,3 +57,19 @@ export const fetchEscrowDetails = async (escrowAddress: string) => {
         throw error
     }
 }
+
+export const saveHistory = async (txType: string, txHash: string, amount: string) => {
+    try {
+        const response = await axiosService.post<any>(`api/transaction/addTransaction`, {
+            transaction_hash: txHash,
+            amount: amount,
+            transaction_type: txType,
+            transaction_date: new Date().toISOString()
+        })
+        console.log("response", response)
+        return response
+    } catch (error) {
+        console.log("error while fetching payment history", error)
+        throw error
+    }
+}

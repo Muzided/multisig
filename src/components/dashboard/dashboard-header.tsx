@@ -39,7 +39,7 @@ export function DashboardHeader({ activeTab }: DashboardHeaderProps) {
 
       
 
-      {activeTab !== "create" && (
+      {/* {activeTab !== "create" && (
         <Button
           className="bg-gradient-to-r from-[#BB7333] to-[#965C29] text-white shadow-md 
           hover:shadow-lg hover:from-[#965C29] hover:to-[#7A4A21] transition-all duration-300
@@ -49,7 +49,7 @@ export function DashboardHeader({ activeTab }: DashboardHeaderProps) {
           <Plus className="mr-2 h-4 w-4" />
           New Escrow
         </Button>
-      )}
+      )} */}
     </div>
   )
 }

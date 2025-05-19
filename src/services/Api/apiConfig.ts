@@ -29,7 +29,7 @@ class AxiosService {
 
   private constructor() {
     this.axiosInstance = axios.create({
-      baseURL: 'http://localhost:5000/',
+      baseURL: 'http://178.128.249.45:5000/',
       timeout: 50000,
       headers: {
         'Content-Type': 'application/json',

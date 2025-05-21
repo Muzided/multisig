@@ -8,6 +8,7 @@ import { AppKit } from '@/context/appkit';
 import { Web3Provider } from '@/context/Web3Context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { UserProvider } from '@/context/userContext';
+import { EscrowProvider } from "@/context/EscrowContext";
 
 const queryClient = new QueryClient()
 
@@ -58,7 +59,9 @@ export default function RootLayout({
             <AppKit>
               <Web3Provider>
                 <UserProvider>
-                  {children}
+                  <EscrowProvider>
+                    {children}
+                  </EscrowProvider>
                 </UserProvider>
               </Web3Provider>
             </AppKit>

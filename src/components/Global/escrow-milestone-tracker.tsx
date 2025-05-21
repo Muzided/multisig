@@ -43,9 +43,7 @@ interface Milestone {
 }
 
 interface EscrowMilestoneTrackerProps {
-  escrow: {
-    milestones: Milestone[]
-  }
+ 
   escrowDetails: getEscrowDetailsResponse
   escrowOnChainDetails: ContractMilestone[]
   userType: string
@@ -82,7 +80,7 @@ const CountdownTimer = ({ dueDate }: { dueDate: string | number }) => {
   return <span>{timeLeft}</span>;
 };
 
-export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDetails, userType }: EscrowMilestoneTrackerProps) {
+export function EscrowMilestoneTracker({   escrowDetails, escrowOnChainDetails, userType }: EscrowMilestoneTrackerProps) {
   const [openMilestones, setOpenMilestones] = useState<Record<string, boolean>>({})
   const [loadingPayout, setLoadingPayout] = useState<Record<string, boolean>>({})
   const [refresh, setRefresh] = useState(false)
@@ -295,8 +293,8 @@ export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDet
       return <Badge variant="destructive">Disputed</Badge>;
     }
 
-    // Check if milestone is completed (receiver requested and creator released)
-    if (milestone.requested && milestone.released) {
+    // Check if milestone is completed (receiver requested and creator released) or claimed by creator
+    if ((milestone.requested && milestone.released) || (!milestone.requested && milestone.released)) {
       return <Badge variant="default">Completed</Badge>;
     }
 
@@ -342,7 +340,8 @@ export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDet
     }
 
     // For full escrow, check if the single milestone is completed
-    if (escrowOnChainDetails[0]?.requested && escrowOnChainDetails[0]?.released) {
+    if ((escrowOnChainDetails[0]?.requested && escrowOnChainDetails[0]?.released) || 
+        (!escrowOnChainDetails[0]?.requested && escrowOnChainDetails[0]?.released)) {
       return <Badge variant="default">Completed</Badge>;
     }
 
@@ -355,7 +354,7 @@ export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDet
     return <Badge variant="secondary">Pending</Badge>;
   }
 
-  console.log("escrowDetails-gotem-details", escrowDetails, escrowOnChainDetails, escrow)
+  console.log("escrowDetails-gotem-details", escrowOnChainDetails,escrowDetails)
 
   return (
     <>
@@ -411,7 +410,7 @@ export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDet
                               </div>
                             )} */}
                         </div>
-                        {!escrowOnChainDetails[0].requested ? (
+                        {!escrowOnChainDetails[0].requested && !escrowOnChainDetails[0].released ? (
                           <div className="space-y-2">
                             <Button
                               size="sm"
@@ -459,7 +458,8 @@ export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDet
                           >
                             {escrowOnChainDetails[0].released ? "Payment Released" :
                               escrowOnChainDetails[0].rejected ? "Payment Rejected" :
-                                escrowOnChainDetails[0].requested ? "Payment Requested" : "Payment Released"}
+                                !escrowOnChainDetails[0].requested && escrowOnChainDetails[0].released ? "Amount Claimed" :
+                                  escrowOnChainDetails[0].requested ? "Payment Requested" : "Payment Released"}
                           </Button>
                         )}
                       </div>
@@ -522,7 +522,7 @@ export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDet
                               </div>
                             )}
                           </div>
-                          {!milestone.requested ? (
+                          {!milestone.requested && !milestone.released ? (
                             <div className="space-y-2">
                               <Button
                                 size="sm"
@@ -570,7 +570,8 @@ export function EscrowMilestoneTracker({ escrow, escrowDetails, escrowOnChainDet
                             >
                               {milestone.released ? "Payment Released" :
                                 milestone.rejected ? "Payment Rejected" :
-                                  milestone.requested ? "Payment Requested" : "Payment Released"}
+                                  !milestone.requested && milestone.released ? "Amount Claimed" :
+                                    milestone.requested ? "Payment Requested" : "Payment Released"}
                             </Button>
                           )}
                         </div>

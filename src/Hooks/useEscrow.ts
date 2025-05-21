@@ -4,6 +4,7 @@ import { useWeb3 } from "../context/Web3Context"; // Import your Web3 context
 import { MultiSig_Factory_Address, tokenDecimals, Usdt_Contract_Address } from "@/Web3/web3-config";
 import { toast } from "react-toastify";
 import EscrowAbi from "../Web3/Abis/EscrowAbi.json";
+import { useEscrowRefresh } from "../context/EscrowContext";
 
 import { convertUnixToDate } from "../../utils/helper";
 import { MileStone, ContractMilestone, RequestPaymentResponse } from "@/types/contract";
@@ -16,6 +17,7 @@ interface UseEscrowReturn {
 
 export const useEscrow = () => {
     const { signer } = useWeb3();
+    const { triggerRefresh } = useEscrowRefresh();
 
     //initialize escrow contract
     const fetchEscrowContract = async (escrowAddress: string) => {
@@ -103,7 +105,7 @@ export const useEscrow = () => {
         }
     }
 
-    const requestPayment = async (escrowAddress: string, escrowIndex: string ,amount:string): Promise<RequestPaymentResponse> => {
+    const requestPayment = async (escrowAddress: string, escrowIndex: string, amount: string): Promise<RequestPaymentResponse> => {
         let id: any;
         try {
             id = toast.loading(`Requesting payment...`);
@@ -122,19 +124,19 @@ export const useEscrow = () => {
                 };
             }
 
-            //request payment from blockchain
             const requestPayment = await escorwContract.requestMilestone(escrowIndex);
             const tx = await requestPayment.wait();
-            //save payment history in database
             const res = await saveHistory("payment_request", tx.hash, amount)
             if (res.status === 201) {
                 toast.update(id, { render: `Requested payment hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
+                triggerRefresh();
                 return {
                     transactionHash: tx.hash,
                     isSuccess: true,
                     message: "Successfully requested payment"
                 };
             } else {
+                triggerRefresh();
                 return {
                     transactionHash: tx.hash,
                     isSuccess: true,
@@ -161,7 +163,7 @@ export const useEscrow = () => {
     }
 
 
-    const releasePayment = async (escrowAddress: string, escrowIndex: string,amount:string): Promise<RequestPaymentResponse> => {
+    const releasePayment = async (escrowAddress: string, escrowIndex: string, amount: string): Promise<RequestPaymentResponse> => {
         let id: any;
         try {
             id = toast.loading(`Releasing payment...`);
@@ -184,9 +186,10 @@ export const useEscrow = () => {
             //request payment from blockchain
             const requestPayment = await escorwContract.approveRequest(escrowIndex);
             const tx = await requestPayment.wait();
-            const res = await saveHistory("payment_released", tx.hash,amount)
+            const res = await saveHistory("payment_released", tx.hash, amount)
             if (res.status === 201) {
                 toast.update(id, { render: `Released payment hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
+                triggerRefresh();
                 return {
                     transactionHash: tx.hash,
                     isSuccess: true,
@@ -194,6 +197,7 @@ export const useEscrow = () => {
                 };
             } else {
 
+                triggerRefresh();
                 return {
                     transactionHash: tx.hash,
                     isSuccess: true,
@@ -244,6 +248,7 @@ export const useEscrow = () => {
             const tx = await requestPayment.wait();
 
             toast.update(id, { render: `claimed amount hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
+            triggerRefresh();
             return {
                 transactionHash: tx.hash,
                 isSuccess: true,
@@ -339,12 +344,14 @@ export const useEscrow = () => {
             const res = await saveHistory("dispute_initiated", tx.hash, "")
             if (res.status === 201) {
                 toast.update(id, { render: `initiated dispute hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
+                triggerRefresh();
                 return {
                     transactionHash: tx.hash,
                     isSuccess: true,
                     message: "Successfully initiated dispute"
                 };
             } else {
+                triggerRefresh();
                 return {
                     transactionHash: tx.hash,
                     isSuccess: true,

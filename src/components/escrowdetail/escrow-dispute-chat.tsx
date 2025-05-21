@@ -28,7 +28,7 @@ interface EscrowDisputeChatProps {
 export function EscrowDisputeChat({ dispute }: EscrowDisputeChatProps) {
   const [newMessage, setNewMessage] = useState("")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const { account } = useWeb3()
+
   const add = "0x84F1C7E182B3C9bF0Df4Eb1C5a6fC112FCB7A23a"
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

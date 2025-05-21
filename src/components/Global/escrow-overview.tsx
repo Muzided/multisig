@@ -50,9 +50,7 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
   const router = useRouter()
 
   //use-hooks
-  const { fetchCreatorEscrows, fetchReceiverEscrows, fetchPaymentRequest, requestPayment, releaseFunds, approvePayment, initaiteDispute, resolveDispute } = useFactory();
-  const { fetchEscrowDetails } = useEscrow();
-  const { fetchDisputeDetails } = useDispute()
+
   const { address } = useAppKitAccount();
   const queryClient = useQueryClient();
   // TanStack Query for fetching escrows

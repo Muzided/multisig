@@ -21,13 +21,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
+import { dateToUnix } from "../../../utils/helper"
 
 const formatDate = (timestamp: string | number | undefined) => {
   if (!timestamp) return "N/A"
   try {
     const date = new Date(Number(timestamp) * 1000)
     if (isNaN(date.getTime())) return "Invalid Date"
-    return format(date, "MMM d, yyyy")
+    return format(date, "MMM d, yyyy hh:mm a")
   } catch (error) {
     return "Invalid Date"
   }
@@ -43,7 +44,7 @@ interface Milestone {
 }
 
 interface EscrowMilestoneTrackerProps {
- 
+
   escrowDetails: getEscrowDetailsResponse
   escrowOnChainDetails: ContractMilestone[]
   userType: string
@@ -80,13 +81,16 @@ const CountdownTimer = ({ dueDate }: { dueDate: string | number }) => {
   return <span>{timeLeft}</span>;
 };
 
-export function EscrowMilestoneTracker({   escrowDetails, escrowOnChainDetails, userType }: EscrowMilestoneTrackerProps) {
+export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, userType }: EscrowMilestoneTrackerProps) {
   const [openMilestones, setOpenMilestones] = useState<Record<string, boolean>>({})
   const [loadingPayout, setLoadingPayout] = useState<Record<string, boolean>>({})
-  const [refresh, setRefresh] = useState(false)
+
   const [disputeModalOpen, setDisputeModalOpen] = useState(false)
+  const [releasePaymentModalOpen, setReleasePaymentModalOpen] = useState(false)
   const [selectedMilestone, setSelectedMilestone] = useState<ContractMilestone | null>(null)
   const [disputeReason, setDisputeReason] = useState("")
+  const [nextMilestoneDueDate, setNextMilestoneDueDate] = useState<Date | null>(null)
+  //use hooks
   const { requestPayment, releasePayment, claimUnRequestedAmounts, raiseDispute } = useEscrow()
 
   const isDueDatePassed = useCallback((dueDate: string | number) => {
@@ -150,15 +154,25 @@ export function EscrowMilestoneTracker({   escrowDetails, escrowOnChainDetails, 
 
   const handlePaymentRelease = useCallback(async (escrowAddress: string, milestoneId: string, amount: string) => {
     try {
+      if (!nextMilestoneDueDate) {
+        toast.error("Please select a due date for the next milestone");
+        return;
+      }
+
+      // Convert the date to Unix timestamp (seconds)
+      const unixTimestamp = Math.floor(nextMilestoneDueDate.getTime() / 1000).toString();
+      console.log("unixTimestamp", unixTimestamp)
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: true }))
-      const res = await releasePayment(escrowAddress, milestoneId, amount)
+      const res = await releasePayment(escrowAddress, milestoneId, amount, unixTimestamp)
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: false }))
+      setReleasePaymentModalOpen(false)
+      setNextMilestoneDueDate(null)
     } catch (error) {
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: false }))
       console.error("Error requesting payment:", error)
       handleError(error);
     }
-  }, [releasePayment]);
+  }, [releasePayment, nextMilestoneDueDate]);
 
   const handleRaiseDispute = useCallback(async (escrowAddress: string, milestoneId: string) => {
     try {
@@ -168,7 +182,7 @@ export function EscrowMilestoneTracker({   escrowDetails, escrowOnChainDetails, 
       }
 
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: true }));
-      await raiseDispute(escrowAddress, milestoneId, disputeReason);
+      await raiseDispute(escrowAddress, milestoneId, disputeReason, escrowDetails.escrow.payment_type);
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: false }));
       setDisputeModalOpen(false);
       setDisputeReason("");
@@ -185,54 +199,17 @@ export function EscrowMilestoneTracker({   escrowDetails, escrowOnChainDetails, 
     setDisputeModalOpen(true);
   };
 
-  const renderDisputeButton = (milestone: ContractMilestone) => {
-    // Don't show dispute button if dispute is already raised
-    if (milestone.disputedRaised) {
-      return null;
-    }
-
-    // Show dispute button during dispute period (only for receiver)
-    if (isDueDatePassed(milestone.dueDate) && !isDisputePeriodOver(milestone.dueDate)) {
-      // Only show dispute button to receiver during dispute period
-      if (userType === "receiver") {
-        return (
-          <Button
-            size="sm"
-            variant="destructive"
-            className="w-full mt-2 bg-[#BB7333] hover:bg-[#965C29] text-white"
-            onClick={(e) => {
-              e.stopPropagation();
-              openDisputeModal(milestone);
-            }}
-            disabled={loadingPayout[milestone.id]}
-          >
-            Raise Dispute
-          </Button>
-        );
-      }
-      return null;
-    }
-
-    // Show dispute button for active milestones (both creator and receiver)
-    if (!isDueDatePassed(milestone.dueDate)) {
-      return (
-        <Button
-          size="sm"
-          variant="outline"
-          className="w-full mt-2 border-[#BB7333] text-[#BB7333] hover:bg-[#BB7333] hover:text-white"
-          onClick={(e) => {
-            e.stopPropagation();
-            openDisputeModal(milestone);
-          }}
-          disabled={loadingPayout[milestone.id]}
-        >
-          Raise Dispute
-        </Button>
-      );
-    }
-
-    return null;
+  const openReleasePaymentModal = (milestone: ContractMilestone) => {
+    setSelectedMilestone(milestone);
+    // Set default date to 24 hours from now
+    const defaultDate = new Date();
+    //defaultDate.setHours(defaultDate.getHours() + 24);
+    defaultDate.setHours(defaultDate.getHours());
+    setNextMilestoneDueDate(defaultDate);
+    setReleasePaymentModalOpen(true);
   };
+
+
 
   const toggleMilestone = useCallback((milestoneId: string) => {
     setOpenMilestones(prev => ({
@@ -258,7 +235,7 @@ export function EscrowMilestoneTracker({   escrowDetails, escrowOnChainDetails, 
       return <AlertCircle className="h-6 w-6 text-red-500 animate-pulse" />
     }
 
-    // Check if milestone is pending
+    // Check if milestone is pending (previous milestone is not completed)
     if (index > 0) {
       const previousMilestone = escrowOnChainDetails[index - 1];
       if (!previousMilestone.requested || !previousMilestone.released) {
@@ -266,17 +243,17 @@ export function EscrowMilestoneTracker({   escrowDetails, escrowOnChainDetails, 
       }
     }
 
-    // Check if milestone is active or upcoming
+    // Check if milestone is active or upcoming based on due dates and previous milestone status
     if (!isDueDatePassed(milestone.dueDate)) {
       // For first milestone
       if (index === 0) {
-        return <Circle className="h-6 w-6 text-primary animate-pulse" />
+        return <Circle className="h-6 w-6 text-green-700 animate-pulse" />
       }
 
-      // For other milestones, check previous milestone's due date
+      // For other milestones, check if previous milestone is released
       const previousMilestone = escrowOnChainDetails[index - 1];
-      if (isDueDatePassed(previousMilestone.dueDate)) {
-        return <Circle className="h-6 w-6 text-primary animate-pulse" />
+      if (previousMilestone.released) {
+        return <Circle className="h-6 w-6 text-green-700 animate-pulse" />
       }
 
       return <Clock className="h-6 w-6 text-gray-400" />
@@ -315,16 +292,16 @@ export function EscrowMilestoneTracker({   escrowDetails, escrowOnChainDetails, 
     if (!isDueDatePassed(milestone.dueDate)) {
       // For first milestone, check if it's active
       if (index === 0) {
-        return <Badge className="bg-primary text-white">Active</Badge>;
+        return <Badge>Active</Badge>;
       }
 
-      // For other milestones, check if previous milestone's due date has passed
+      // For other milestones, check if previous milestone is released
       const previousMilestone = escrowOnChainDetails[index - 1];
-      if (isDueDatePassed(previousMilestone.dueDate)) {
+      if (previousMilestone.released) {
         return <Badge className="bg-primary dark:text-green-800 text-white">Active</Badge>;
       }
 
-      // If previous milestone's due date hasn't passed, it's upcoming
+      // If previous milestone is not released, it's upcoming
       return <Badge variant="secondary">Upcoming</Badge>;
     }
 
@@ -340,21 +317,199 @@ export function EscrowMilestoneTracker({   escrowDetails, escrowOnChainDetails, 
     }
 
     // For full escrow, check if the single milestone is completed
-    if ((escrowOnChainDetails[0]?.requested && escrowOnChainDetails[0]?.released) || 
-        (!escrowOnChainDetails[0]?.requested && escrowOnChainDetails[0]?.released)) {
+    if ((escrowOnChainDetails[0]?.requested && escrowOnChainDetails[0]?.released) ||
+      (!escrowOnChainDetails[0]?.requested && escrowOnChainDetails[0]?.released)) {
       return <Badge variant="default">Completed</Badge>;
     }
 
     // If due date hasn't passed, it's active
     if (!isDueDatePassed(escrowOnChainDetails[0]?.dueDate)) {
-      return <Badge className="bg-primary text-white">Active</Badge>;
+      return <Badge className="">Active</Badge>;
     }
 
     // Default case
     return <Badge variant="secondary">Pending</Badge>;
   }
+  const renderDisputeButton = (milestone: ContractMilestone) => {
+    // Don't show dispute button if dispute is already raised
+    if (milestone.disputedRaised) {
+      return null;
+    }
+    if (milestone.released) {
+      return null
+    }
 
-  console.log("escrowDetails-gotem-details", escrowOnChainDetails,escrowDetails)
+    // Show dispute button if due date has passed and dispute period hasn't ended
+    if (isDueDatePassed(milestone.dueDate) && !isDisputePeriodOver(milestone.dueDate)) {
+      return (
+        <Button
+          size="sm"
+          variant="destructive"
+          className="w-full mt-2 bg-[#BB7333] hover:bg-[#965C29] text-white"
+          onClick={(e) => {
+            e.stopPropagation();
+            openDisputeModal(milestone);
+          }}
+          disabled={loadingPayout[milestone.id]}
+        >
+          Raise Dispute
+        </Button>
+      );
+    }
+
+    return null;
+  };
+  const renderActionButtons = (milestone: ContractMilestone) => {
+    // Check if any milestone is disputed
+    const isAnyMilestoneDisputed = escrowOnChainDetails.some(m => m.disputedRaised);
+    if (isAnyMilestoneDisputed) {
+      return (
+        <Button
+          size="sm"
+          className="w-full bg-gray-400 cursor-not-allowed"
+        >
+          Escrow in Dispute
+        </Button>
+      );
+    }
+
+    // If milestone is not active yet (dueDate is 0), don't show any action buttons
+    if (Number(milestone.dueDate) === 0) {
+      return (
+        <Button
+          size="sm"
+          className="w-full bg-gray-400 cursor-not-allowed"
+        >
+          Not Active Yet
+        </Button>
+      );
+    }
+   // user forgot to request payment and due date has passed
+    if (userType === "receiver" && isDueDatePassed(milestone.dueDate) && !milestone.requested ) {
+      return (
+        <div className="space-y-2">
+          {renderDisputeButton(milestone)}
+          {!milestone.requested && isDueDatePassed(milestone.dueDate) && (
+            <p className="text-sm text-gray-500 text-center">
+              {getClaimButtonState(milestone).message}
+            </p>
+          )}
+        </div>
+      )
+    }
+    // user requested the payment but the creator has not released the payment
+    else if (userType === "receiver" && isDueDatePassed(milestone.dueDate) && milestone.requested && !milestone.released) {
+      return (
+        <div className="space-y-2">
+          {renderDisputeButton(milestone)}
+          {!milestone.released && isDueDatePassed(milestone.dueDate) && (
+            <p className="text-sm text-gray-500 text-center">
+              {getClaimButtonState(milestone).message}
+            </p>
+          )}
+        </div>
+      )
+    }
+    else if (userType === "creator" && isDueDatePassed(milestone.dueDate) && milestone.requested && !milestone.released) {
+      return (
+        <div className="space-y-2">
+          <Button
+            size="sm"
+            className="w-full bg-[#BB7333] hover:bg-[#965C29] text-white"
+            onClick={(e) => {
+              e.stopPropagation()
+              if (userType === "creator") {
+                if (isDueDatePassed(milestone.dueDate) && isDisputePeriodOver(milestone.dueDate)) {
+                  handleClaimAmount(escrowDetails.escrow.escrow_contract_address, milestone.id)
+                }
+              } else {
+                handlePayout(escrowDetails.escrow.escrow_contract_address, milestone.id, milestone.amount)
+              }
+            }}
+            disabled={userType === "creator" && (!isDueDatePassed(milestone.dueDate) || !isDisputePeriodOver(milestone.dueDate)) || loadingPayout[milestone.id]}
+          >
+            {loadingPayout[milestone.id] ? "Processing..." :
+              userType === "creator" ?
+                getClaimButtonState(milestone).text
+                : "Request Payout"}
+          </Button>
+          {milestone.requested && isDueDatePassed(milestone.dueDate) && (
+            <p className="text-sm text-gray-500 text-center">
+              {getClaimButtonState(milestone).message}
+            </p>
+          )}
+
+        </div>
+      );
+    }
+    else if (!milestone.requested && !milestone.released) {
+      return (
+        <div className="space-y-2">
+          <Button
+            size="sm"
+            className="w-full bg-[#BB7333] hover:bg-[#965C29] text-white"
+            onClick={(e) => {
+              e.stopPropagation()
+              if (userType === "creator") {
+                if (isDueDatePassed(milestone.dueDate) && isDisputePeriodOver(milestone.dueDate)) {
+                  handleClaimAmount(escrowDetails.escrow.escrow_contract_address, milestone.id)
+                }
+              } else {
+                handlePayout(escrowDetails.escrow.escrow_contract_address, milestone.id, milestone.amount)
+              }
+            }}
+            disabled={userType === "creator" && (!isDueDatePassed(milestone.dueDate) || !isDisputePeriodOver(milestone.dueDate)) || loadingPayout[milestone.id]}
+          >
+            {loadingPayout[milestone.id] ? "Processing..." :
+              userType === "creator" ?
+                getClaimButtonState(milestone).text
+                : "Request Payout"}
+          </Button>
+          {!milestone.requested && isDueDatePassed(milestone.dueDate) && (
+            <p className="text-sm text-gray-500 text-center">
+              {getClaimButtonState(milestone).message}
+            </p>
+          )}
+
+        </div>
+      );
+    } else if (milestone.requested && !milestone.released && !isDueDatePassed(milestone.dueDate) && !milestone.rejected && userType === "creator") {
+      return (
+        <div className="space-y-2">
+          <Button
+            size="sm"
+            className="w-full bg-[#BB7333] hover:bg-[#965C29] text-white"
+            onClick={(e) => {
+              e.stopPropagation()
+              openReleasePaymentModal(milestone)
+            }}
+            disabled={loadingPayout[milestone.id]}
+          >
+            {loadingPayout[milestone.id] ? "Processing..." : "Release Payment"}
+          </Button>
+          {/* {renderDisputeButton(milestone)} */}
+        </div>
+      );
+    } else {
+      return (
+        <div className="space-y-2">
+          <Button
+            size="sm"
+            className="w-full bg-gray-400 cursor-not-allowed"
+          >
+            {milestone.released ? "Payment Released" :
+              milestone.rejected ? "Payment Rejected" :
+                !milestone.requested && milestone.released ? "Amount Claimed" :
+                  milestone.requested ? "Payment Requested" :
+                    isDueDatePassed(milestone.dueDate) ? "In Dispute Period" : "Payment Released"}
+          </Button>
+          {renderDisputeButton(milestone)}
+        </div>
+      );
+    }
+  };
+
+  console.log("escrowDetails-gotem-details", escrowOnChainDetails, escrowDetails)
 
   return (
     <>
@@ -410,58 +565,7 @@ export function EscrowMilestoneTracker({   escrowDetails, escrowOnChainDetails, 
                               </div>
                             )} */}
                         </div>
-                        {!escrowOnChainDetails[0].requested && !escrowOnChainDetails[0].released ? (
-                          <div className="space-y-2">
-                            <Button
-                              size="sm"
-                              className="w-full bg-[#BB7333] hover:bg-[#965C29] text-white"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                if (userType === "creator") {
-                                  if (isDueDatePassed(escrowOnChainDetails[0].dueDate) && isDisputePeriodOver(escrowOnChainDetails[0].dueDate)) {
-                                    handleClaimAmount(escrowDetails.escrow.escrow_contract_address, escrowOnChainDetails[0].id)
-                                  }
-                                } else {
-                                  handlePayout(escrowDetails.escrow.escrow_contract_address, escrowOnChainDetails[0].id, escrowOnChainDetails[0].amount)
-                                }
-                              }}
-                              disabled={userType === "creator" && (!isDueDatePassed(escrowOnChainDetails[0].dueDate) || !isDisputePeriodOver(escrowOnChainDetails[0].dueDate)) || loadingPayout[escrowOnChainDetails[0].id]}
-                            >
-                              {loadingPayout[escrowOnChainDetails[0].id] ? "Processing..." :
-                                userType === "creator" ?
-                                  getClaimButtonState(escrowOnChainDetails[0]).text
-                                  : "Request Payout"}
-                            </Button>
-                            {userType === "creator" && !escrowOnChainDetails[0].requested && (
-                              <p className="text-sm text-gray-500 text-center">
-                                {getClaimButtonState(escrowOnChainDetails[0]).message}
-                              </p>
-                            )}
-                            {renderDisputeButton(escrowOnChainDetails[0])}
-                          </div>
-                        ) : escrowOnChainDetails[0].requested && !escrowOnChainDetails[0].released && !escrowOnChainDetails[0].rejected && userType === "creator" ? (
-                          <Button
-                            size="sm"
-                            className="w-full bg-[#BB7333] hover:bg-[#965C29] text-white"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handlePaymentRelease(escrowDetails.escrow.escrow_contract_address, escrowOnChainDetails[0].id, escrowOnChainDetails[0].amount)
-                            }}
-                            disabled={loadingPayout[escrowOnChainDetails[0].id]}
-                          >
-                            {loadingPayout[escrowOnChainDetails[0].id] ? "Processing..." : "Release Payment"}
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            className="w-full bg-gray-400 cursor-not-allowed"
-                          >
-                            {escrowOnChainDetails[0].released ? "Payment Released" :
-                              escrowOnChainDetails[0].rejected ? "Payment Rejected" :
-                                !escrowOnChainDetails[0].requested && escrowOnChainDetails[0].released ? "Amount Claimed" :
-                                  escrowOnChainDetails[0].requested ? "Payment Requested" : "Payment Released"}
-                          </Button>
-                        )}
+                        {renderActionButtons(escrowOnChainDetails[0])}
                       </div>
                     </CardContent>
                   </CollapsibleContent>
@@ -513,67 +617,9 @@ export function EscrowMilestoneTracker({   escrowDetails, escrowOnChainDetails, 
                                 {formatDate(milestone.dueDate)}
                               </span>
                             </div>
-                            {escrowDetails?.milestones[index].createdAt && (
-                              <div className="flex justify-between text-sm">
-                                <span className="text-gray-500">Completed:</span>
-                                <span className="font-medium">
-                                  {escrowDetails?.milestones[index].createdAt}
-                                </span>
-                              </div>
-                            )}
+
                           </div>
-                          {!milestone.requested && !milestone.released ? (
-                            <div className="space-y-2">
-                              <Button
-                                size="sm"
-                                className="w-full bg-[#BB7333] hover:bg-[#965C29] text-white"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  if (userType === "creator") {
-                                    if (isDueDatePassed(milestone.dueDate) && isDisputePeriodOver(milestone.dueDate)) {
-                                      handleClaimAmount(escrowDetails.escrow.escrow_contract_address, milestone.id)
-                                    }
-                                  } else {
-                                    handlePayout(escrowDetails.escrow.escrow_contract_address, milestone.id, milestone.amount)
-                                  }
-                                }}
-                                disabled={userType === "creator" && (!isDueDatePassed(milestone.dueDate) || !isDisputePeriodOver(milestone.dueDate)) || loadingPayout[milestone.id]}
-                              >
-                                {loadingPayout[milestone.id] ? "Processing..." :
-                                  userType === "creator" ?
-                                    getClaimButtonState(milestone).text
-                                    : "Request Payout"}
-                              </Button>
-                              {userType === "creator" && !milestone.requested && (
-                                <p className="text-sm text-gray-500 text-center">
-                                  {getClaimButtonState(milestone).message}
-                                </p>
-                              )}
-                              {renderDisputeButton(milestone)}
-                            </div>
-                          ) : milestone.requested && !milestone.released && !milestone.rejected && userType === "creator" ? (
-                            <Button
-                              size="sm"
-                              className="w-full bg-[#BB7333] hover:bg-[#965C29] text-white"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handlePaymentRelease(escrowDetails.escrow.escrow_contract_address, milestone.id, milestone.amount)
-                              }}
-                              disabled={loadingPayout[milestone.id]}
-                            >
-                              {loadingPayout[milestone.id] ? "Processing..." : "Release Payment"}
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              className="w-full bg-gray-400 cursor-not-allowed"
-                            >
-                              {milestone.released ? "Payment Released" :
-                                milestone.rejected ? "Payment Rejected" :
-                                  !milestone.requested && milestone.released ? "Amount Claimed" :
-                                    milestone.requested ? "Payment Requested" : "Payment Released"}
-                            </Button>
-                          )}
+                          {renderActionButtons(milestone)}
                         </div>
                       </CardContent>
                     </CollapsibleContent>
@@ -620,6 +666,64 @@ export function EscrowMilestoneTracker({   escrowDetails, escrowOnChainDetails, 
               className="bg-[#BB7333] hover:bg-[#965C29] text-white"
             >
               {loadingPayout[selectedMilestone?.id || ''] ? "Processing..." : "Submit Dispute"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={releasePaymentModalOpen} onOpenChange={setReleasePaymentModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set Next Milestone Due Date</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Due Date (minimum 24 hours from now)</label>
+              <input
+                type="datetime-local"
+                value={nextMilestoneDueDate ? format(nextMilestoneDueDate, "yyyy-MM-dd'T'HH:mm") : ''}
+                onChange={(e) => {
+                  const selectedDate = new Date(e.target.value);
+                  const now = new Date();
+                  const minDate = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
+
+                  // if (selectedDate < minDate) {
+                  //   toast.error("Due date must be at least 24 hours from now");
+                  //   return;
+                  // }
+                  setNextMilestoneDueDate(selectedDate);
+                }}
+                min={format(new Date(new Date().getTime() + 24 * 60 * 60 * 1000), "yyyy-MM-dd'T'HH:mm")}
+                className="w-full p-2 border rounded-md border-[#BB7333]/50 focus:ring-[#BB7333] focus:border-[#BB7333]"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setReleasePaymentModalOpen(false);
+                setNextMilestoneDueDate(null);
+              }}
+              className="border-[#BB7333] text-[#BB7333] hover:bg-[#BB7333] hover:text-white"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (selectedMilestone) {
+                  handlePaymentRelease(
+                    escrowDetails.escrow.escrow_contract_address,
+                    selectedMilestone.id,
+                    selectedMilestone.amount
+                  );
+                }
+              }}
+              disabled={!nextMilestoneDueDate || loadingPayout[selectedMilestone?.id || '']}
+              className="bg-[#BB7333] hover:bg-[#965C29] text-white"
+            >
+              {loadingPayout[selectedMilestone?.id || ''] ? "Processing..." : "Release Payment"}
             </Button>
           </DialogFooter>
         </DialogContent>

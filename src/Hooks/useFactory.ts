@@ -474,7 +474,7 @@ export const useFactory = () => {
         receiver: string,
         observer: string,
         amount: string[],
-        duration: number[],
+        duration: number,
         setLoading: Dispatch<SetStateAction<boolean>>
     ): Promise<createEscrowResponse> => {
         let id: any;
@@ -542,19 +542,15 @@ export const useFactory = () => {
             await approveUSDT(erc20TokenContract, MultiSig_Factory_Address, totalAmountWithFee.toString());
             toast.update(id, { render: "Creating Escrow", isLoading: true });
 
-          
-
             const tx = await multisigFactoryContract.createEscrow(
                 receiver,
                 observer,
-                parsedAmounts.map(a => a.toString()),  // Pass array of individual amounts
-                duration.map(d => d.toString())
+                parsedAmounts.map(a => a.toString()), 
+                duration.toString()
             )
 
             const receipt = await tx.wait()
             const escrowContractAddress = await fetchCreatedEsrowAddress(receipt);
-
-            
 
              toast.update(id, { render: `Escrow Created hash: ${receipt.hash}`, type: "success", isLoading: false, autoClose: 3000 });
 

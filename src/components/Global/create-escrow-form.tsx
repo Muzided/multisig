@@ -76,7 +76,6 @@ export function CreateEscrowForm() {
   const { fetchTotalEscrows, createEscrow  } = useFactory()
   const [currentStep, setCurrentStep] = useState(1)
   const totalSteps = 6
-console.log("user", user)
   const steps = [
     {
       id: 1,
@@ -160,7 +159,7 @@ console.log("user", user)
   };
 
   const addMilestone = () => {
-    setMilestones([...milestones, { amount: "", date: now, description: "" }])
+    setMilestones([...milestones, { amount: "", date: new Date(), description: "" }])
   }
 
   const removeMilestone = (index: number) => {
@@ -184,29 +183,18 @@ console.log("user", user)
       }
     }
 
-    // Validate milestone dates
-    if (field === "date" && value instanceof Date) {
-      const currentMilestoneDate = new Date(value);
+    // Validate first milestone date
+    // if (field === "date" && value instanceof Date && index === 0) {
+    //   const currentMilestoneDate = new Date(value);
+    //   const now = new Date();
+    //   const hoursDifference = (currentMilestoneDate.getTime() - now.getTime()) / (1000 * 60 * 60);
       
-      // Check if date is at least 24 hours from now for first milestone
-      if (index === 0) {
-        const now = new Date();
-        const hoursDifference = (currentMilestoneDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-        if (hoursDifference < 24) {
-          setMilestoneError("First milestone must be at least 24 hours from now");
-          return;
-        }
-      } else {
-        // For subsequent milestones, check if they're at least 24 hours after previous milestone
-        const prevMilestoneDate = new Date(newMilestones[index - 1].date);
-        const hoursDifference = (currentMilestoneDate.getTime() - prevMilestoneDate.getTime()) / (1000 * 60 * 60);
-        if (hoursDifference < 24) {
-          setMilestoneError(`Milestone ${index + 1} must be at least 24 hours after Milestone ${index}`);
-          return;
-        }
-      }
-      setMilestoneError("");
-    }
+    //   if (hoursDifference < 24) {
+    //     setMilestoneError("First milestone must be at least 24 hours from now");
+    //     return;
+    //   }
+    //   setMilestoneError("");
+    // }
   }
 
   const handleTotalAmountChange = (value: string) => {
@@ -254,12 +242,12 @@ console.log("user", user)
       const userAddress = account
 
       const milestoneAmounts = milestones.map(milestone => milestone.amount)
-      const milestoneTimestamps = milestones.map(milestone => dateToUnix(milestone.date))
+      const milestoneTimestamps = dateToUnix(milestones[0].date)// Only get first milestone timestamp
       
       let escrowCreationResponse: createEscrowResponse;
       if (paymentType === "full") {
         const amounts = [amount];
-        const timestamps = [unixTimestamp];
+        const timestamps = unixTimestamp;
         escrowCreationResponse = await createEscrow(
           userAddress,
           receiver,
@@ -407,28 +395,21 @@ console.log("user", user)
           return;
         }
 
-        // Check milestone dates
-        const now = new Date();
-        for (let i = 0; i < milestones.length; i++) {
-          const milestoneDate = new Date(milestones[i].date);
-          
-          if (i === 0) {
-            // First milestone must be at least 24 hours from now
-            const hoursDifference = (milestoneDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-            if (hoursDifference < 24) {
-              toast.error("First milestone must be at least 24 hours from now");
-              return;
-            }
-          } else {
-            // Subsequent milestones must be at least 24 hours after previous milestone
-            const prevMilestoneDate = new Date(milestones[i - 1].date);
-            const hoursDifference = (milestoneDate.getTime() - prevMilestoneDate.getTime()) / (1000 * 60 * 60);
-            if (hoursDifference < 24) {
-              toast.error(`Milestone ${i + 1} must be at least 24 hours after Milestone ${i}`);
-              return;
-            }
-          }
+        // Check first milestone date
+        const firstMilestone = milestones[0];
+        if (!firstMilestone.date) {
+          toast.error("First milestone completion date is required");
+          return;
         }
+
+        const now = new Date();
+        const firstMilestoneDate = new Date(firstMilestone.date);
+        const hoursDifference = (firstMilestoneDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+        
+        // if (hoursDifference < 24) {
+        //   toast.error("First milestone must be at least 24 hours from now");
+        //   return;
+        // }
       }
     }
 
@@ -743,8 +724,8 @@ console.log("user", user)
                 <div className="bg-[#BB7333]/10 dark:bg-[#BB7333]/20 p-4 rounded-lg border border-[#BB7333]/20 dark:border-[#BB7333]/30">
                   <h4 className="text-sm font-medium text-[#BB7333] dark:text-[#BB7333]/90 mb-2">Milestone Guidelines</h4>
                   <ul className="text-sm text-[#965C29] dark:text-[#BB7333]/80 space-y-1">
-                    <li>• Each milestone must be at least 24 hours apart</li>
-                    <li>• Milestones must be in chronological order</li>
+                    <li>• First milestone completion date is required</li>
+                    <li>• Subsequent milestone dates will be set after previous milestone completion</li>
                     <li>• Total of all milestone amounts must equal the project amount</li>
                     <li>• Each milestone must have a valid amount greater than 0</li>
                   </ul>
@@ -811,25 +792,27 @@ console.log("user", user)
                           dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-[#BB7333]/50"
                         required
                       />
-                      <div className="space-y-1">
-                        <Label className="text-sm text-zinc-500 mb-1 block">
-                          Select Milestone Completion Date
-                        </Label>
-                        <DatePicker
-                          selected={milestone.date}
-                          onChange={(date) => date && updateMilestone(index, "date", date)}
-                          showTimeSelect
-                          timeFormat="HH:mm"
-                          timeIntervals={15}
-                          dateFormat="yyyy-MM-dd HH:mm"
-                          minDate={now}
-                          className="w-full cursor-pointer border p-1.5 rounded-md text-center"
-                          required
-                        />
-                        <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                          ⓘ Must be at least 24 hours from now and after previous milestone
-                        </p>
-                      </div>
+                      {index === 0 && (
+                        <div className="space-y-1">
+                          <Label className="text-sm text-zinc-500 mb-1 block">
+                            Select First Milestone Completion Date
+                          </Label>
+                          <DatePicker
+                            selected={milestone.date}
+                            onChange={(date) => date && updateMilestone(index, "date", date)}
+                            showTimeSelect
+                            timeFormat="HH:mm"
+                            timeIntervals={15}
+                            dateFormat="yyyy-MM-dd HH:mm"
+                            minDate={now}
+                            className="w-full cursor-pointer border p-1.5 rounded-md text-center"
+                            required
+                          />
+                          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                            ⓘ Must be at least 24 hours from now
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -968,7 +951,14 @@ console.log("user", user)
                 <p><strong>Payment Type:</strong> {paymentType === "full" ? "Full Amount" : "Milestone-based"}</p>
                 <p><strong>Amount:</strong> {paymentType === "full" ? amount : totalMilestoneAmount} USDT</p>
                 <p><strong>Receiver:</strong> {receiver}</p>
-                <p><strong>Project Duration:</strong>{paymentType === "full" ? selectedDate.toLocaleString() : totalProjectDate.toLocaleString()} </p>
+                <p><strong>Project Duration:</strong> {paymentType === "full" ? selectedDate.toLocaleString() : (
+                    <>
+                        <span>Total: {totalProjectDate.toLocaleString()}</span>
+                        {milestones.length > 0 && (
+                            <span className="ml-4">First Milestone: {new Date(milestones[0].date).toLocaleString()}</span>
+                        )}
+                    </>
+                )} </p>
                 {observer && <p><strong>Observer:</strong> {observer}</p>}
                 {jurisdiction && <p><strong>Jurisdiction:</strong> {jurisdiction}</p>}
                 {showContractTerms && <p><strong>Custom Contract Terms:</strong> Added</p>}

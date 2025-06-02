@@ -14,13 +14,11 @@ import {
 import { EscrowMilestoneTracker } from "../Global/escrow-milestone-tracker"
 import { EscrowDisputeChat } from "./escrow-dispute-chat"
 import { EscrowGeneralInfo } from "./escrow-general-info"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { useFactory } from "@/Hooks/useFactory"
-import { ethers } from "ethers"
+import { useQuery } from "@tanstack/react-query"
+
 import { getEscrowDetailsResponse } from "@/types/escrow"
 import { fetchEscrowDetails, getLegalDocuments } from "@/services/Api/escrow/escrow"
 import { useEscrow } from "@/Hooks/useEscrow"
-import { useWeb3 } from "@/context/Web3Context"
 import { ContractMilestone } from "@/types/contract"
 import { useAppKitAccount } from "@reown/appkit/react"
 import DOMPurify from 'dompurify'
@@ -38,7 +36,7 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
   const [showContractTerms, setShowContractTerms] = useState(false);
   const [contractContent, setContractContent] = useState("");
   const [originalContractContent, setOriginalContractContent] = useState("");
-  const { signer } = useWeb3();
+
   const { address } = useAppKitAccount();
 
   const fetchEscrowDetailsFromBlockchain = useCallback(async (escrowId: string) => {
@@ -106,6 +104,8 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
           <Tabs defaultValue="general" className="w-full">
             <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 mb-6">
               <TabsTrigger className="data-[state=active]:bg-[#BB7333] data-[state=active]:text-white" value="general">Milestones & Payments</TabsTrigger>
+              <TabsTrigger className="data-[state=active]:bg-[#BB7333] data-[state=active]:text-white" value="chat">Chat</TabsTrigger>
+
               <TabsTrigger className="data-[state=active]:bg-[#BB7333] data-[state=active]:text-white" value="dispute">Terms & Docs</TabsTrigger>
             </TabsList>
             <TabsContent value="general">
@@ -119,6 +119,9 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
                 userType={escrowDetails.escrow.creator_walletaddress.toLowerCase() === String(address).toLowerCase() ? "creator" : "receiver"}
                  />}
               </div>
+            </TabsContent>
+            <TabsContent value="chat">
+              <EscrowDisputeChat/>
             </TabsContent>
             <TabsContent value="dispute">
               <div className="space-y-6">

@@ -9,6 +9,8 @@ import { useEscrowRefresh } from "../context/EscrowContext";
 import { convertUnixToDate } from "../../utils/helper";
 import { MileStone, ContractMilestone, RequestPaymentResponse } from "@/types/contract";
 import { saveHistory } from "@/services/Api/escrow/escrow";
+import { openDispute } from "@/services/Api/dispute/dispute";
+import { createDisputeData } from "@/types/dispute";
 
 interface UseEscrowReturn {
 
@@ -163,7 +165,7 @@ export const useEscrow = () => {
     }
 
 
-    const releasePayment = async (escrowAddress: string, escrowIndex: string, amount: string): Promise<RequestPaymentResponse> => {
+    const releasePayment = async (escrowAddress: string, escrowIndex: string, amount: string, nextMilestoneDueDate: string): Promise<RequestPaymentResponse> => {
         let id: any;
         try {
             id = toast.loading(`Releasing payment...`);
@@ -184,7 +186,7 @@ export const useEscrow = () => {
             }
 
             //request payment from blockchain
-            const requestPayment = await escorwContract.approveRequest(escrowIndex);
+            const requestPayment = await escorwContract.approveRequest(escrowIndex, nextMilestoneDueDate);
             const tx = await requestPayment.wait();
             const res = await saveHistory("payment_released", tx.hash, amount)
             if (res.status === 201) {
@@ -287,7 +289,6 @@ export const useEscrow = () => {
     }
 
 
-
     // Function to fetch escrow details
     const fetchEscrowDetails = useCallback(async (
         escrowAddress: string,
@@ -319,7 +320,7 @@ export const useEscrow = () => {
     }, [signer]);
 
 
-    const raiseDispute = async (escrowAddress: string, escrowIndex: string, reason: string): Promise<RequestPaymentResponse> => {
+    const raiseDispute = async (escrowAddress: string, escrowIndex: string, reason: string, type: string): Promise<RequestPaymentResponse> => {
         let id: any;
         try {
             id = toast.loading(`initiating dispute...`);
@@ -339,9 +340,19 @@ export const useEscrow = () => {
             }
 
             //request payment from blockchain
-            const requestPayment = await escorwContract.raiseDispute(escrowIndex, reason);
-            const tx = await requestPayment.wait();
-            const res = await saveHistory("dispute_initiated", tx.hash, "")
+            const disputeRes = await escorwContract.raiseDispute(escrowIndex, reason);
+            const tx = await disputeRes.wait();
+            console.log("tx", tx ,tx.logs,tx.logs[0] ,tx.logs[0].address);
+
+            const disputeContractAddress  =  tx.logs[0].address
+            console.log("disputeContractAddress", disputeContractAddress)
+            const disputeData: createDisputeData = {
+                escrowContractAddress: escrowAddress,
+                type: type,
+                disputeContractAddress: disputeContractAddress,
+                milestoneIndex: Number(escrowIndex)
+            }
+            const res = await openDispute(disputeData)
             if (res.status === 201) {
                 toast.update(id, { render: `initiated dispute hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
                 triggerRefresh();
@@ -351,23 +362,22 @@ export const useEscrow = () => {
                     message: "Successfully initiated dispute"
                 };
             } else {
-                triggerRefresh();
                 return {
-                    transactionHash: tx.hash,
-                    isSuccess: true,
-                    message: "Successfully initiated dispute"
+                    transactionHash: "",
+                    isSuccess: false,
+                    message: "Error while disputing the contract"
                 };
             }
         } catch (error: any) {
 
             const errorString = error.toString().toLowerCase();
             console.error("Error initiating dispute", errorString);
-            if (errorString.includes("cannot dispute")) {
-                toast.update(id, { render: "cannot raise dispute.", type: "error", isLoading: false, autoClose: 3000 });
+            if (errorString.includes("too early to dispute")) {
+                toast.update(id, { render: "too early to dispute.", type: "error", isLoading: false, autoClose: 3000 });
             } else if (errorString.includes("milestone not started")) {
                 toast.update(id, { render: "Cannot proceed with payment request — milestone not yet started.", type: "error", isLoading: false, autoClose: 3000 });
             } else {
-                toast.update(id, { render: "Error while requesting payment", type: "error", isLoading: false, autoClose: 3000 });
+                toast.update(id, { render: "Error while raising dispute", type: "error", isLoading: false, autoClose: 3000 });
             }
             return {
                 transactionHash: "",

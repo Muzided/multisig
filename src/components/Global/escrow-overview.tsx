@@ -54,7 +54,7 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
   const { address } = useAppKitAccount();
   const queryClient = useQueryClient();
   // TanStack Query for fetching escrows
-  const { data: escrows, isLoading, error } = useQuery<getUserEscrowsResponse[]>({
+  const { data: userEscrows, isLoading, error } = useQuery<getUserEscrowsResponse>({
     queryKey: ['escrows', address],
     queryFn: async () => {
       const response = await getUserEscrows();
@@ -63,9 +63,9 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
 
     enabled: !!address, // Only run query when address is available
   });
-
+  console.log("userEscrows", userEscrows)
   // Filter escrows based on status
-  const filteredEscrows = escrows || [];
+  const filteredEscrows = userEscrows?.escrows || [];
 
   const navgateToDetailPage = (id: string) => {
     router.push(`/escrow/${id}`)

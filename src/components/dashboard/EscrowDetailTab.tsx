@@ -1,7 +1,6 @@
 
 "use client"
 import React from 'react'
-import { useParams } from "next/navigation"
 import { EscrowDetails } from "@/components/escrowdetail/escrow-details"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"

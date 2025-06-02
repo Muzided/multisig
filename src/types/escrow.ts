@@ -5,6 +5,10 @@ export interface createEscrowResponse {
 }
 
 export interface getUserEscrowsResponse {
+    escrows: UserEscrowDetails[];
+    pagination: Pagination;
+}
+interface UserEscrowDetails {
     escrow_contract_address: string;
     creator_walletaddress: string;
     receiver_walletaddress: string;
@@ -15,9 +19,8 @@ export interface getUserEscrowsResponse {
     creator_signature: boolean;
     receiver_signature: boolean;
 }
-
 export interface getLegalDocumentsResponse {
-    document: string;   
+    document: string;
 }
 
 export interface EscrowDetails {
@@ -49,7 +52,12 @@ export interface Milestone {
     updatedAt: string;
     __v: number;
 }
-
+export interface Pagination {
+    total: number;
+    page: number,
+    limit: number,
+    totalPages: number
+}
 export interface getEscrowDetailsResponse {
     escrow: EscrowDetails;
     milestones: Milestone[];

@@ -16,11 +16,11 @@ export const saveEscrow = async (escrowCreationData: EscrowCreationData) => {
 
 export const getUserEscrows = async () => {
     try {
-        const response = await axiosService.get<getUserEscrowsResponse[]>('api/escrow/getAllEscrows')
-
+        const response = await axiosService.get<getUserEscrowsResponse>('api/escrow/getAllEscrows')
+        console.log("response", response)
         return response
     } catch (error) {
-        console.log("error while logging in", error)
+        console.log("error while fetching user escrows ", error)
         throw error;
     }
 }

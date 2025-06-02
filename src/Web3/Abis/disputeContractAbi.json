@@ -20,6 +20,11 @@
                 "internalType": "string",
                 "name": "_reason",
                 "type": "string"
+            },
+            {
+                "internalType": "uint256",
+                "name": "idx",
+                "type": "uint256"
             }
         ],
         "stateMutability": "nonpayable",
@@ -30,19 +35,113 @@
         "inputs": [
             {
                 "indexed": true,
+                "internalType": "uint256",
+                "name": "milestoneIdx",
+                "type": "uint256"
+            },
+            {
+                "indexed": true,
                 "internalType": "address",
-                "name": "escrow",
+                "name": "initiator",
                 "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "string",
+                "name": "reason",
+                "type": "string"
+            }
+        ],
+        "name": "DisputeRaised",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "uint256",
+                "name": "milestoneIdx",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "enum Dispute.ObserverRes",
+                "name": "observerResolution",
+                "type": "uint8"
             },
             {
                 "indexed": false,
                 "internalType": "bool",
                 "name": "approved",
                 "type": "bool"
+            },
+            {
+                "indexed": false,
+                "internalType": "bool",
+                "name": "continueNext",
+                "type": "bool"
             }
         ],
         "name": "DisputeResolved",
         "type": "event"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "idx",
+                "type": "uint256"
+            }
+        ],
+        "name": "becomeResolver",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "name": "disputes",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "initiator",
+                "type": "address"
+            },
+            {
+                "internalType": "string",
+                "name": "reason",
+                "type": "string"
+            },
+            {
+                "internalType": "enum Dispute.ObserverRes",
+                "name": "observerResolution",
+                "type": "uint8"
+            },
+            {
+                "internalType": "bool",
+                "name": "resolved",
+                "type": "bool"
+            },
+            {
+                "internalType": "bool",
+                "name": "winner",
+                "type": "bool"
+            },
+            {
+                "internalType": "bool",
+                "name": "exists",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
     },
     {
         "inputs": [],
@@ -71,36 +170,38 @@
         "type": "function"
     },
     {
-        "inputs": [],
-        "name": "initiator",
-        "outputs": [
+        "inputs": [
             {
-                "internalType": "address",
-                "name": "",
-                "type": "address"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "reason",
-        "outputs": [
+                "internalType": "uint256",
+                "name": "idx",
+                "type": "uint256"
+            },
             {
                 "internalType": "string",
-                "name": "",
+                "name": "reason",
                 "type": "string"
             }
         ],
-        "stateMutability": "view",
+        "name": "raiseDispute",
+        "outputs": [],
+        "stateMutability": "nonpayable",
         "type": "function"
     },
     {
         "inputs": [
             {
+                "internalType": "uint256",
+                "name": "idx",
+                "type": "uint256"
+            },
+            {
                 "internalType": "bool",
                 "name": "approve",
+                "type": "bool"
+            },
+            {
+                "internalType": "bool",
+                "name": "continueNext",
                 "type": "bool"
             }
         ],
@@ -110,13 +211,55 @@
         "type": "function"
     },
     {
-        "inputs": [],
-        "name": "resolved",
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "name": "resolverInfo",
         "outputs": [
             {
-                "internalType": "bool",
+                "internalType": "address",
+                "name": "resolver",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "time",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "idx",
+                "type": "uint256"
+            },
+            {
+                "internalType": "enum Dispute.ObserverRes",
+                "name": "_res",
+                "type": "uint8"
+            }
+        ],
+        "name": "setObserverResolution",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "total",
+        "outputs": [
+            {
+                "internalType": "uint256",
                 "name": "",
-                "type": "bool"
+                "type": "uint256"
             }
         ],
         "stateMutability": "view",

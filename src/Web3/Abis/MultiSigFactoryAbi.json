@@ -203,6 +203,44 @@
         "type": "event"
     },
     {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "oldWindow",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "newWindow",
+                "type": "uint256"
+            }
+        ],
+        "name": "ResolverWindowUpdated",
+        "type": "event"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "name": "activeDisputes",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
         "inputs": [
             {
                 "internalType": "address",
@@ -220,9 +258,9 @@
                 "type": "uint256[]"
             },
             {
-                "internalType": "uint256[]",
-                "name": "_dueDates",
-                "type": "uint256[]"
+                "internalType": "uint256",
+                "name": "firstDueDate",
+                "type": "uint256"
             }
         ],
         "name": "createEscrow",
@@ -366,6 +404,24 @@
         "type": "function"
     },
     {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "resolver",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "_escrow",
+                "type": "address"
+            }
+        ],
+        "name": "manageResolverWindow",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
         "inputs": [],
         "name": "maxResolvesPerWindow",
         "outputs": [
@@ -397,9 +453,19 @@
                 "internalType": "address",
                 "name": "resolver",
                 "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "_escrow",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "previousResolver",
+                "type": "address"
             }
         ],
-        "name": "recordResolution",
+        "name": "recordResolver",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
@@ -420,6 +486,19 @@
     {
         "inputs": [],
         "name": "resolutionWindow",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "resolverWindow",
         "outputs": [
             {
                 "internalType": "uint256",
@@ -584,6 +663,19 @@
     {
         "inputs": [
             {
+                "internalType": "address",
+                "name": "_newOwner",
+                "type": "address"
+            }
+        ],
+        "name": "updateOwner",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
                 "internalType": "uint256",
                 "name": "_window",
                 "type": "uint256"
@@ -603,6 +695,19 @@
             }
         ],
         "name": "updateResolutionWindow",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "_window",
+                "type": "uint256"
+            }
+        ],
+        "name": "updateResolverWindow",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"

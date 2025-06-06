@@ -78,4 +78,5 @@ export interface Transaction {
 
 export interface TransactionHistory {
     transactions: Transaction[];
+    pagination: Pagination;
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Filter } from "lucide-react"
+import { Filter, ChevronLeft, ChevronRight } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   Dialog,
@@ -27,6 +27,7 @@ import { getUserEscrows, getLegalDocuments, signLegalDocument } from "@/services
 import { getUserEscrowsResponse } from "@/types/escrow"
 import { toast } from "react-toastify"
 import DOMPurify from 'dompurify'
+import { Skeleton } from "@/components/ui/skeleton"
 
 // Helper function to format wallet address
 const formatAddress = (address: string) => {
@@ -39,6 +40,8 @@ type EscrowOverviewProps = {
 
 export function EscrowOverview({ limit }: EscrowOverviewProps) {
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const [loadingEscrows, setLoadingEscrows] = useState<{ [key: string]: boolean }>({});
   const [showContractTerms, setShowContractTerms] = useState(false);
   const [contractContent, setContractContent] = useState("");
@@ -55,13 +58,12 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
   const queryClient = useQueryClient();
   // TanStack Query for fetching escrows
   const { data: userEscrows, isLoading, error } = useQuery<getUserEscrowsResponse>({
-    queryKey: ['escrows', address],
+    queryKey: ['escrows', address, currentPage, pageSize],
     queryFn: async () => {
-      const response = await getUserEscrows();
+      const response = await getUserEscrows(currentPage, pageSize);
       return response.data;
     },
-
-    enabled: !!address, // Only run query when address is available
+    enabled: !!address,
   });
   console.log("userEscrows", userEscrows)
   // Filter escrows based on status
@@ -142,8 +144,110 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
     }
   };
 
+  // Add pagination controls at the bottom of the table
+  const renderPagination = () => {
+    if (!userEscrows?.pagination) return null;
+    const { total, page, totalPages } = userEscrows.pagination;
+
+    return (
+      <div className="flex items-center justify-between px-2 py-4">
+        <div className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+          <span>Showing</span>
+          <span className="font-medium text-zinc-900 dark:text-white">
+            {(page - 1) * pageSize + 1}
+          </span>
+          <span>to</span>
+          <span className="font-medium text-zinc-900 dark:text-white">
+            {Math.min(page * pageSize, total)}
+          </span>
+          <span>of</span>
+          <span className="font-medium text-zinc-900 dark:text-white">{total}</span>
+          <span>results</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(page - 1)}
+            disabled={page === 1}
+            className="border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 
+              dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Button>
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+              <Button
+                key={pageNum}
+                variant={pageNum === page ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCurrentPage(pageNum)}
+                className={pageNum === page 
+                  ? "bg-[#BB7333] text-white hover:bg-[#965C29] dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
+                  : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
+                }
+              >
+                {pageNum}
+              </Button>
+            ))}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(page + 1)}
+            disabled={page === totalPages}
+            className="border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 
+              dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  // Show skeleton loading while fetching data
   if (isLoading) {
-    return <div className="flex items-center justify-center h-64">Loading escrows...</div>
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <Skeleton className="h-10 w-[100px]" />
+          <Skeleton className="h-10 w-[180px]" />
+        </div>
+        <div className="rounded-md border border-zinc-200 dark:border-zinc-800">
+          <Table>
+            <TableHeader className="bg-zinc-50 dark:bg-zinc-900">
+              <TableRow>
+                <TableHead><Skeleton className="h-4 w-[120px]" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-[120px]" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-[120px]" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-[80px]" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-[100px]" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-[100px]" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-[80px]" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-[100px]" /></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, index) => (
+                <TableRow key={index}>
+                  <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-[80px]" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-[80px]" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-[100px]" /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -206,7 +310,7 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
                     className="border-zinc-200 hover:bg-zinc-100/50 
                     dark:border-zinc-800 dark:hover:bg-zinc-800/50"
                   >
-                    <TableCell colSpan={7} className="h-24 text-center text-zinc-500 dark:text-zinc-500">
+                    <TableCell colSpan={8} className="h-24 text-center text-zinc-500 dark:text-zinc-500">
                       No escrows found.
                     </TableCell>
                   </TableRow>
@@ -290,6 +394,7 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
                 )}
               </TableBody>
             </Table>
+            {renderPagination()}
           </div>
         </TabsContent>
       </Tabs>

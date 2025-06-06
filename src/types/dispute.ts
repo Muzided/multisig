@@ -1,3 +1,5 @@
+import { Pagination } from "./escrow";
+
 export interface createDisputeData {
     escrowContractAddress: string
     type: string
@@ -34,6 +36,7 @@ interface Dispute {
 interface UserDisputeResponse {
     success: boolean;
     disputes: Dispute[];
+    pagination: Pagination;
 }
 
 export type { UserDisputeResponse, Dispute, EscrowDetails, MilestoneDetails };

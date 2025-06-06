@@ -13,12 +13,12 @@ export const openDispute = async (disputeData: createDisputeData) => {
     }
 }
 
-export const getUserDisputes = async () => {
+export const getUserDisputes = async (page: number = 1, limit: number = 10, status: string = "all") => {
     try {
-        const response = await axiosService.get<UserDisputeResponse>('api/dispute/user-disputes')
+        const response = await axiosService.get<UserDisputeResponse>(`api/dispute/user-disputes?status=${status}&page=${page}&limit=${limit}`)
         return response
     } catch (error) {
-        console.log("error getting disputes", error)
-        throw error;
+        console.log("error while fetching user disputes", error)
+        throw error
     }
 }

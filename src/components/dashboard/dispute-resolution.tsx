@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Check, Clock, ExternalLink, Filter, MoreHorizontal, X } from "lucide-react"
+import { Check, Clock, ExternalLink, Filter, MoreHorizontal, X, ChevronLeft, ChevronRight } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -47,12 +47,14 @@ const formatAddress = (address: string) => {
 
 export function DisputeResolution() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const { address } = useAppKitAccount();
   const queryClient = useQueryClient();
   const { data: disputesData, isLoading, error } = useQuery<UserDisputeResponse>({
-    queryKey: ['escrows', address],
+    queryKey: ['userdisputes', address, currentPage, pageSize, statusFilter],
     queryFn: async () => {
-      const response = await getUserDisputes();
+      const response = await getUserDisputes(currentPage, pageSize, statusFilter);
       return response.data;
     },
     enabled: !!address,
@@ -64,13 +66,107 @@ export function DisputeResolution() {
   }
 
   // Filter disputes based on status
-  const filteredDisputes = disputesData?.disputes?.filter((dispute: Dispute) => {
-    if (statusFilter === "all") return true;
-    if (statusFilter === "active") return dispute.status === "active";
-    if (statusFilter === "pending") return dispute.status === "pending";
-    if (statusFilter === "resolved") return dispute.status === "resolved";
-    return true;
-  });
+  const filteredDisputes = disputesData?.disputes;
+
+  // Add pagination controls
+  const renderPagination = () => {
+    if (!disputesData?.pagination) return null;
+    const { total, page, totalPages } = disputesData.pagination;
+
+    return (
+      <div className="flex items-center justify-between px-2 py-4">
+        <div className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+          <span>Showing</span>
+          <span className="font-medium text-zinc-900 dark:text-white">
+            {(page - 1) * pageSize + 1}
+          </span>
+          <span>to</span>
+          <span className="font-medium text-zinc-900 dark:text-white">
+            {Math.min(page * pageSize, total)}
+          </span>
+          <span>of</span>
+          <span className="font-medium text-zinc-900 dark:text-white">{total}</span>
+          <span>results</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(page - 1)}
+            disabled={page === 1}
+            className="border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 
+              dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Button>
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+              <Button
+                key={pageNum}
+                variant={pageNum === page ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCurrentPage(pageNum)}
+                className={pageNum === page 
+                  ? "bg-[#BB7333] text-white hover:bg-[#965C29] dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
+                  : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
+                }
+              >
+                {pageNum}
+              </Button>
+            ))}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(page + 1)}
+            disabled={page === totalPages}
+            className="border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 
+              dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  // Show skeleton loading while fetching data
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <Skeleton className="h-10 w-[100px]" />
+          <Skeleton className="h-10 w-[180px]" />
+        </div>
+        <div className="rounded-md border border-zinc-200 dark:border-zinc-800">
+          <Table>
+            <TableHeader className="bg-zinc-50 dark:bg-zinc-900">
+              <TableRow>
+                <TableHead><Skeleton className="h-4 w-[120px]" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-[120px]" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-[120px]" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-[80px]" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-[100px]" /></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, index) => (
+                <TableRow key={index}>
+                  <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-[80px]" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-[100px]" /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -85,7 +181,10 @@ export function DisputeResolution() {
           <Filter className="h-4 w-4" />
           Filter
         </Button>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={(value) => {
+          setStatusFilter(value);
+          setCurrentPage(1); // Reset to first page when filter changes
+        }}>
           <SelectTrigger
             className="w-full sm:w-[180px] border-zinc-200 bg-white text-zinc-900 
             dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
@@ -104,93 +203,70 @@ export function DisputeResolution() {
         </Select>
       </div>
 
-      <Tabs defaultValue="table" className="w-full">
-        <TabsContent value="table" className="mt-0">
-          <div className="rounded-md border border-zinc-200 dark:border-zinc-800">
-            <Table>
-              <TableHeader className="bg-zinc-50 dark:bg-zinc-900">
+      <div className="rounded-md border border-zinc-200 dark:border-zinc-800">
+        <Table>
+          <TableHeader className="bg-zinc-50 dark:bg-zinc-900">
+            <TableRow
+              className="border-zinc-200 hover:bg-zinc-100/50 
+              dark:border-zinc-800 dark:hover:bg-zinc-800/50"
+            >
+              <TableHead className="text-zinc-500 dark:text-zinc-400">Dispute Address</TableHead>
+              <TableHead className="text-zinc-500 dark:text-zinc-400">Escrow Address</TableHead>
+              <TableHead className="text-zinc-500 dark:text-zinc-400">Disputer Address</TableHead>
+              <TableHead className="text-zinc-500 dark:text-zinc-400">Status</TableHead>
+              <TableHead className="text-zinc-500 dark:text-zinc-400">View Details</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {error ? (
+              <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center text-red-500">
+                  Error loading disputes. Please try again.
+                </TableCell>
+              </TableRow>
+            ) : !filteredDisputes?.length ? (
+              <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center text-zinc-500 dark:text-zinc-500">
+                  No disputes found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredDisputes.map((dispute) => (
                 <TableRow
+                  key={dispute.disputeContractAddress}
                   className="border-zinc-200 hover:bg-zinc-100/50 
                   dark:border-zinc-800 dark:hover:bg-zinc-800/50"
                 >
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">Dispute Address</TableHead>
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">Escrow Address</TableHead>
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">Disputer Address</TableHead>
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">Status</TableHead>
-                  {/* <TableHead className="text-zinc-500 dark:text-zinc-400">Unread Messages</TableHead> */}
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">View Details</TableHead>
+                  <TableCell className="font-medium text-zinc-900 dark:text-white">
+                    {formatAddress(dispute.disputeContractAddress)}
+                  </TableCell>
+                  <TableCell>
+                    {formatAddress(dispute.escrowDetails.contractAddress)}
+                  </TableCell>
+                  <TableCell>
+                    {dispute.createdByWallet ? formatAddress(dispute.createdByWallet) : "Not Adopted"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={getStatusStyles(dispute.status)}>
+                      {dispute.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      size="sm"
+                      className="bg-[#BB7333] text-white hover:bg-[#965C29] my-2 w dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
+                      onClick={() => navgateToDetailPage(dispute.escrowDetails.creatorWallet)}
+                    >
+                      View Details
+                    </Button>
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  // Skeleton loading rows
-                  Array.from({ length: 5 }).map((_, index) => (
-                    <TableRow
-                      key={index}
-                      className="border-zinc-200 hover:bg-zinc-100/50 
-                      dark:border-zinc-800 dark:hover:bg-zinc-800/50"
-                    >
-                      <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-[80px]" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-[40px]" /></TableCell>
-                      <TableCell><Skeleton className="h-8 w-[100px]" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : error ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center text-red-500">
-                      Error loading disputes. Please try again.
-                    </TableCell>
-                  </TableRow>
-                ) : !filteredDisputes?.length ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center text-zinc-500 dark:text-zinc-500">
-                      No disputes found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredDisputes.map((dispute) => (
-                    <TableRow
-                      key={dispute.disputeContractAddress}
-                      className="border-zinc-200 hover:bg-zinc-100/50 
-                      dark:border-zinc-800 dark:hover:bg-zinc-800/50"
-                    >
-                      <TableCell className="font-medium text-zinc-900 dark:text-white">
-                        {formatAddress(dispute.disputeContractAddress)}
-                      </TableCell>
-                      <TableCell>
-                        {formatAddress(dispute.escrowDetails.contractAddress)}
-                      </TableCell>
-                      <TableCell>
-                        {dispute.createdByWallet ? formatAddress(dispute.createdByWallet) : "Not Adopted"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={getStatusStyles(dispute.status)}>
-                          {dispute.status}
-                        </Badge>
-                      </TableCell>
-                      {/* <TableCell>
-                        {dispute.unreadMessages || 0}
-                      </TableCell> */}
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          className="bg-[#BB7333] text-white hover:bg-[#965C29] my-2 w dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
-                          onClick={() => navgateToDetailPage(dispute.escrowDetails.creatorWallet)}
-                        >
-                          View Details
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
-      </Tabs>
+              ))
+            )}
+          </TableBody>
+        </Table>
+        {renderPagination()}
+      </div>
     </div>
   )
 }

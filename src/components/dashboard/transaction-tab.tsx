@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useMemo } from "react"
-import { Check, Clock, ExternalLink, Filter, MoreHorizontal, X } from "lucide-react"
+import { Check, Clock, ExternalLink, Filter, MoreHorizontal, X, ChevronLeft, ChevronRight } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -39,34 +39,124 @@ import { Transaction, TransactionHistory } from "@/types/escrow"
 
 export function TransactionsTab() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
   const { address } = useAppKitAccount();
 
   const { data: transactionHistory, isLoading } = useQuery<TransactionHistory>({
-    queryKey: ['transactionHistory', address],
+    queryKey: ['transactionHistory', address, currentPage, pageSize, statusFilter],
     queryFn: async () => {
-      const response = await fetchTransactionHistory("all");
+      const response = await fetchTransactionHistory(statusFilter, currentPage, pageSize);
       return response.data;
     },
     enabled: !!address,
   });
-
+console.log("transactionHistory", transactionHistory?.transactions)
   const filteredTransactions = useMemo(() => {
     if (!transactionHistory?.transactions) return [];
-    
-    switch (statusFilter) {
-      case 'payment_released':
-        return transactionHistory.transactions.filter(tx => tx.transaction_type === 'payment_released');
-      case 'escrow_creation':
-        return transactionHistory.transactions.filter(tx => tx.transaction_type === 'escrow_creation');
-      case 'payment_requested':
-        return transactionHistory.transactions.filter(tx => tx.transaction_type === 'payment_requested');
-      case 'dispute_raised':
-        return transactionHistory.transactions.filter(tx => tx.transaction_type === 'dispute_raised');
-      default:
-        return transactionHistory.transactions;
-    }
-  }, [transactionHistory, statusFilter]);
-  console.log("transactionHistory", transactionHistory)
+    return transactionHistory.transactions;
+  }, [transactionHistory]);
+
+  // Add pagination controls
+  const renderPagination = () => {
+    if (!transactionHistory?.pagination) return null;
+    const { total, page, totalPages } = transactionHistory.pagination;
+
+    return (
+      <div className="flex items-center justify-between px-2 py-4">
+        <div className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+          <span>Showing</span>
+          <span className="font-medium text-zinc-900 dark:text-white">
+            {(page - 1) * pageSize + 1}
+          </span>
+          <span>to</span>
+          <span className="font-medium text-zinc-900 dark:text-white">
+            {Math.min(page * pageSize, total)}
+          </span>
+          <span>of</span>
+          <span className="font-medium text-zinc-900 dark:text-white">{total}</span>
+          <span>results</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(page - 1)}
+            disabled={page === 1}
+            className="border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 
+              dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Button>
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+              <Button
+                key={pageNum}
+                variant={pageNum === page ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCurrentPage(pageNum)}
+                className={pageNum === page 
+                  ? "bg-[#BB7333] text-white hover:bg-[#965C29] dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
+                  : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
+                }
+              >
+                {pageNum}
+              </Button>
+            ))}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(page + 1)}
+            disabled={page === totalPages}
+            className="border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 
+              dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  // Show skeleton loading while fetching data
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <Skeleton className="h-10 w-[100px]" />
+          <Skeleton className="h-10 w-[180px]" />
+        </div>
+        <div className="rounded-md border border-zinc-200 dark:border-zinc-800">
+          <Table>
+            <TableHeader className="bg-zinc-50 dark:bg-zinc-900">
+              <TableRow>
+                <TableHead><Skeleton className="h-4 w-[80px]" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-[120px]" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-[100px]" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-[80px]" /></TableHead>
+                <TableHead><Skeleton className="h-4 w-[100px]" /></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, index) => (
+                <TableRow key={index}>
+                  <TableCell><Skeleton className="h-4 w-[80px]" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-[80px]" /></TableCell>
+                  <TableCell><Skeleton className="h-8 w-[100px]" /></TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -80,7 +170,10 @@ export function TransactionsTab() {
           <Filter className="h-4 w-4" />
           Filter
         </Button>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={(value) => {
+          setStatusFilter(value);
+          setCurrentPage(1); // Reset to first page when filter changes
+        }}>
           <SelectTrigger
             className="w-full sm:w-[180px] border-zinc-200 bg-white text-zinc-900 
             dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
@@ -95,82 +188,71 @@ export function TransactionsTab() {
             <SelectItem value="payment_released">Payment Released</SelectItem>
             <SelectItem value="escrow_creation">Escrow Creation</SelectItem>
             <SelectItem value="payment_requested">Payment Requested</SelectItem>
-            <SelectItem value="dispute_raised">Dispute Raised</SelectItem>
+            <SelectItem value="dispute_initiated">Dispute Raised</SelectItem>
           </SelectContent>
         </Select>
       </div>
 
-      <Tabs defaultValue="table" className="w-full">
-        <TabsContent value="table" className="mt-0">
-          <div className="rounded-md border border-zinc-200 dark:border-zinc-800">
-            <Table>
-              <TableHeader className="bg-zinc-50 dark:bg-zinc-900">
+      <div className="rounded-md border border-zinc-200 dark:border-zinc-800">
+        <Table>
+          <TableHeader className="bg-zinc-50 dark:bg-zinc-900">
+            <TableRow
+              className="border-zinc-200 hover:bg-zinc-100/50 
+              dark:border-zinc-800 dark:hover:bg-zinc-800/50"
+            >
+              <TableHead className="text-zinc-500 dark:text-zinc-400">Amount</TableHead>
+              <TableHead className="text-zinc-500 dark:text-zinc-400">Transaction Hash</TableHead>
+              <TableHead className="text-zinc-500 dark:text-zinc-400">Type</TableHead>
+              <TableHead className="text-zinc-500 dark:text-zinc-400">Date</TableHead>
+              <TableHead className="text-zinc-500 dark:text-zinc-400">View on Scan</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredTransactions.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center text-zinc-500 dark:text-zinc-500">
+                  No transactions found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredTransactions.map((transaction) => (
                 <TableRow
+                  key={transaction.transaction_hash}
                   className="border-zinc-200 hover:bg-zinc-100/50 
                   dark:border-zinc-800 dark:hover:bg-zinc-800/50"
                 >
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">Amount</TableHead>
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">Transaction Hash</TableHead>
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">Type</TableHead>
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">Date</TableHead>
-                  <TableHead className="text-zinc-500 dark:text-zinc-400">View on Scan</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
-                      <div className="flex justify-center">
-                        <Skeleton className="h-8 w-8 rounded-full" />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : filteredTransactions.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center text-zinc-500 dark:text-zinc-500">
-                      No transactions found.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredTransactions.map((transaction) => (
-                    <TableRow
-                      key={transaction.transaction_hash}
-                      className="border-zinc-200 hover:bg-zinc-100/50 
-                      dark:border-zinc-800 dark:hover:bg-zinc-800/50"
+                  <TableCell className="font-medium text-zinc-900 dark:text-white">
+                    {transaction.amount ? `${transaction.amount} USDT` : '-'}
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">
+                    {transaction.transaction_hash}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize">
+                      {transaction.transaction_type.replace('_', ' ')}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {new Date(transaction.transaction_date).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-[#BB7333] text-[#BB7333] hover:bg-[#BB7333] hover:text-white"
+                      onClick={() => window.open(`https://sepolia.etherscan.io/tx/${transaction.transaction_hash}`, '_blank')}
                     >
-                      <TableCell className="font-medium text-zinc-900 dark:text-white">
-                        {transaction.amount ? `${transaction.amount} USDT` : '-'}
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {transaction.transaction_hash}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="capitalize">
-                          {transaction.transaction_type.replace('_', ' ')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(transaction.transaction_date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-[#BB7333] text-[#BB7333] hover:bg-[#BB7333] hover:text-white"
-                          onClick={() => window.open(`https://sepolia.etherscan.io/tx/${transaction.transaction_hash}`, '_blank')}
-                        >
-                          <ExternalLink className="h-4 w-4 mr-2" />
-                          View
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </TabsContent>
-      </Tabs>
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      View
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+        {renderPagination()}
+      </div>
     </div>
   )
 }

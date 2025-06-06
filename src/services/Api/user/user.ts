@@ -5,9 +5,9 @@ import { getEscrowDetailsResponse, getLegalDocumentsResponse, getUserEscrowsResp
 
 
 
-export const fetchTransactionHistory = async (type: string) => {
+export const fetchTransactionHistory = async (type: string, page: number = 1, limit: number = 10) => {
     try {
-        const response = await axiosService.get<TransactionHistory>(`api/user/transactionHistory?type=/${type}`)
+        const response = await axiosService.get<TransactionHistory>(`api/user/transactionHistory?type=${type}&page=${page}&limit=${limit}`)
         return response
     } catch (error) {
         console.log("error while fetching escrow details", error)

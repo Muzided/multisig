@@ -14,9 +14,9 @@ export const saveEscrow = async (escrowCreationData: EscrowCreationData) => {
     }
 }
 
-export const getUserEscrows = async () => {
+export const getUserEscrows = async (page: number = 1, limit: number = 10) => {
     try {
-        const response = await axiosService.get<getUserEscrowsResponse>('api/escrow/getAllEscrows')
+        const response = await axiosService.get<getUserEscrowsResponse>(`api/escrow/getAllEscrows?page=${page}&limit=${limit}`)
         console.log("response", response)
         return response
     } catch (error) {

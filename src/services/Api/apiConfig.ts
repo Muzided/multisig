@@ -29,7 +29,7 @@ class AxiosService {
 
   private constructor() {
     this.axiosInstance = axios.create({
-      baseURL: 'http://localhost:5000/',
+      baseURL: 'https://escrowresolverdapp.vercel.app/',
       timeout: 50000,
       headers: {
         'Content-Type': 'application/json',

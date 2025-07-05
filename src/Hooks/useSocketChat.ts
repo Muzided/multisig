@@ -1,26 +1,9 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'react-toastify';
+import { ChatMessage, Media, Message, UseSocketChatProps, UseSocketChatReturn } from '@/types/chat';
 
-interface Message {
-  conversationId: string;
-  message: string;
-  senderId: string;
-  timestamp?: string;
-}
 
-interface UseSocketChatProps {
-  conversationId: string;
-  senderId: string;
-  onMessageReceived?: (message: Message) => void;
-}
-
-interface UseSocketChatReturn {
-  sendMessage: (message: string) => void;
-  isConnected: boolean;
-  messages: Message[];
-  error: string | null;
-}
 
 export const useSocketChat = ({
   conversationId,
@@ -28,7 +11,7 @@ export const useSocketChat = ({
   onMessageReceived,
 }: UseSocketChatProps): UseSocketChatReturn => {
   const [isConnected, setIsConnected] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
 
@@ -36,7 +19,7 @@ export const useSocketChat = ({
   useEffect(() => {
     try {
       // Initialize socket connection
-      socketRef.current = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000', {
+      socketRef.current = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'https://escrow.ipcre8.com', {
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,
@@ -49,7 +32,7 @@ export const useSocketChat = ({
         setIsConnected(true);
         setError(null);
         console.log('Socket connected:', socket.id);
-        
+
         // Join conversation room
         socket.emit('joinConversation', conversationId);
         console.log(`Joined conversation ${conversationId}`);
@@ -61,8 +44,11 @@ export const useSocketChat = ({
       });
 
       // Message event handlers
-      socket.on('receiveMessage', (data: Message) => {
-        setMessages(prev => [...prev, data]);
+      socket.on('receiveMessage', (data: ChatMessage) => {
+        console.log("message about to be received", data);
+        // Convert Message to ChatMessage format
+
+        // Pass the original Message to the callback
         onMessageReceived?.(data);
       });
 
@@ -90,7 +76,8 @@ export const useSocketChat = ({
   }, [conversationId, onMessageReceived]);
 
   // Send message function
-  const sendMessage = useCallback((message: string) => {
+  const sendMessage = useCallback((message: string | null, media: Media | null) => {
+    console.log("message about to be sent", message);
     if (!socketRef.current || !isConnected) {
       toast.error('Not connected to chat server');
       return;
@@ -101,13 +88,10 @@ export const useSocketChat = ({
         conversationId,
         message,
         senderId,
-        timestamp: new Date().toISOString(),
+        media: media
       };
-
+      console.log("media-message-sending", messageData)
       socketRef.current.emit('sendMessage', messageData);
-      
-      // Optimistically add message to local state
-      setMessages(prev => [...prev, messageData]);
     } catch (err) {
       setError('Failed to send message');
       toast.error('Failed to send message');

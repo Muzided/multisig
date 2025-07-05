@@ -1,7 +1,7 @@
 import { EscrowCreationResponse } from "@/types/contract"
 import { axiosService } from "../apiConfig"
 import { EscrowCreationData } from "@/types/user"
-import { getEscrowDetailsResponse, getLegalDocumentsResponse, getUserEscrowsResponse } from "@/types/escrow"
+import { getEscrowDetailsResponse, getLegalDocumentsResponse, getUserEscrowsResponse, TransactionDetailsResponse } from "@/types/escrow"
 
 export const saveEscrow = async (escrowCreationData: EscrowCreationData) => {
     try {
@@ -58,18 +58,31 @@ export const fetchEscrowDetails = async (escrowAddress: string) => {
     }
 }
 
-export const saveHistory = async (txType: string, txHash: string, amount: string) => {
+export const saveHistory = async (txType: string, txHash: string, amount: string, escorwContract: string, index: string, receiver_walletaddress: string, type: string) => {
     try {
         const response = await axiosService.post<any>(`api/transaction/addTransaction`, {
             transaction_hash: txHash,
             amount: amount,
             transaction_type: txType,
-            transaction_date: new Date().toISOString()
+            transaction_date: new Date().toISOString(),
+            escrow_contract_address: escorwContract,
+            type: type,
+            index: index,
+            receiver_wallet_address: receiver_walletaddress,
         })
         console.log("response", response)
         return response
     } catch (error) {
         console.log("error while fetching payment history", error)
+        throw error
+    }
+}
+
+export const fetchTransactionDetails = async (escrowContractAddress: string, index: number, transactionType: string = "payment_released") => {
+    try {
+        const response = await axiosService.get<TransactionDetailsResponse>(`api/transaction/escrow-transactions?escrowContractAddress=${escrowContractAddress}&index=${index}&transaction_type=${transactionType}`)
+        return response
+    } catch (error) {
         throw error
     }
 }

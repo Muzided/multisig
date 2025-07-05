@@ -1,6 +1,6 @@
 "use client"
 
-import { CreditCard, LayoutDashboard, Plus,MessageSquareDot , ReceiptText ,BadgeAlert} from "lucide-react"
+import { CreditCard, LayoutDashboard, Plus, MessageSquareDot, ReceiptText, BadgeAlert } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useWeb3 } from "@/context/Web3Context"
 
@@ -12,9 +12,9 @@ interface SidebarProps {
 
 
 export function Sidebar({ activeTab, setActiveTab, isMobileNavOpen }: SidebarProps) {
-  const {isDisputeMember} = useWeb3()
+  const { isDisputeMember } = useWeb3()
 
-  console.log("isDisputeMember",isDisputeMember)
+  console.log("isDisputeMember", isDisputeMember)
   const navItems = [
     {
       id: "overview",
@@ -41,11 +41,21 @@ export function Sidebar({ activeTab, setActiveTab, isMobileNavOpen }: SidebarPro
       label: "History",
       icon: ReceiptText,
     },
+    {
+      id: "observe-escrow",
+      label: "Observe Escrows",
+      icon: CreditCard,
+    },
+    {
+      id: "observe-dispute",
+      label: "Observe Dispute",
+      icon: BadgeAlert,
+    },
   ]
 
-  const filteredNavItems = isDisputeMember 
-  ? navItems.filter((item) => item.id !== "dispute") 
-  : navItems;
+  const filteredNavItems = isDisputeMember
+    ? navItems.filter((item) => item.id !== "dispute")
+    : navItems;
   return (
     <>
       {/* Desktop Sidebar */}

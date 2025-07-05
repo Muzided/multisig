@@ -33,6 +33,7 @@ export interface EscrowCreationData {
     receiver_signature: boolean;
     escrow_contract_address: string;
     transaction_hash: string;
+    ProfitAmount:number;
     milestones?: {
         amount: number;
         due_date: number;

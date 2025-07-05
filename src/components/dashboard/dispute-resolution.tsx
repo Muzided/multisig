@@ -255,7 +255,7 @@ export function DisputeResolution() {
                     <Button
                       size="sm"
                       className="bg-[#BB7333] text-white hover:bg-[#965C29] my-2 w dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
-                      onClick={() => navgateToDetailPage(dispute.escrowDetails.creatorWallet)}
+                      onClick={() => navgateToDetailPage(dispute.escrowDetails.contractAddress)}
                     >
                       View Details
                     </Button>

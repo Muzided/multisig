@@ -5,6 +5,7 @@ export interface createDisputeData {
     type: string
     disputeContractAddress: string
     milestoneIndex: number
+    transaction_hash: string
 }
 
 interface EscrowDetails {
@@ -26,7 +27,7 @@ interface Dispute {
     type: string;
     status: string;
     createdAt: string;
-    disputeContractAddress:string;
+    disputeContractAddress: string;
     escrowDetails: EscrowDetails;
     milestone: MilestoneDetails;
     createdByWallet: string;

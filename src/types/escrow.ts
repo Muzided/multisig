@@ -2,8 +2,12 @@ export interface createEscrowResponse {
     success: boolean;
     escrow_contract_address: string;
     transaction_hash: string;
+    admin_profit: number;
 }
-
+export interface creationFee {
+    success:boolean,
+    feeAmount: number
+}
 export interface getUserEscrowsResponse {
     escrows: UserEscrowDetails[];
     pagination: Pagination;
@@ -41,6 +45,11 @@ export interface EscrowDetails {
     escrow_contract_address: string;
     __v: number;
 }
+export interface Resolver {
+    wallet_address: string,
+    dispute_contract_address: string,
+    _id: string
+}
 
 export interface Milestone {
     _id: string;
@@ -61,6 +70,7 @@ export interface Pagination {
 export interface getEscrowDetailsResponse {
     escrow: EscrowDetails;
     milestones: Milestone[];
+    resolver: Resolver;
 }
 
 
@@ -79,4 +89,34 @@ export interface Transaction {
 export interface TransactionHistory {
     transactions: Transaction[];
     pagination: Pagination;
+}
+
+export interface TransactionDetails {
+    _id: string;
+    user_id: {
+        _id: string;
+        wallet_address: string;
+    };
+    escrow_contract_address: string;
+    milestone_index: number;
+    amount: number;
+    transaction_hash: string;
+    transaction_type: string;
+    transaction_date: string;
+    __v: number;
+}
+
+export interface TransactionDetailsResponse {
+    success: boolean;
+    transactions: TransactionDetails[];
+    pagination: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+    };
+    filter: {
+        transaction_type: string;
+        validTypes: string[];
+    };
 }

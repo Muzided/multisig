@@ -3,7 +3,7 @@ import { ethers, Contract } from "ethers";
 import { useWeb3 } from "../context/Web3Context"; // Import your Web3 context
 import { MultiSig_Factory_Address, tokenDecimals, Usdt_Contract_Address } from "@/Web3/web3-config";
 import { toast } from "react-toastify";
-import { createEscrowResponse } from "@/types/escrow";
+import { createEscrowResponse, creationFee } from "@/types/escrow";
 
 // Define the Factory Contract Interface
 interface UseEscrowFactoryReturn {
@@ -20,7 +20,7 @@ interface UseEscrowFactoryReturn {
 }
 
 export const useFactory = () => {
-    const { multisigFactoryContract, erc20TokenContract ,provider} = useWeb3(); // Get signer & provider from context
+    const { multisigFactoryContract, erc20TokenContract, provider } = useWeb3(); // Get signer & provider from context
 
 
     // useEffect(() => {
@@ -480,30 +480,31 @@ export const useFactory = () => {
         let id: any;
         try {
             setLoading(true)
-           
+
             if (!multisigFactoryContract || !erc20TokenContract)
                 return {
                     success: true,
                     escrow_contract_address: '',
                     transaction_hash: '',
+                    admin_profit: 0
                 }
             id = toast.loading(`Executing USDT approval...`);
- 
-           
-          
+
+
+
             //fetch fee structure
             const feeThreshold = await fetchThreshold();
             const fixedFee = await fetchFixedFee();
             const feePercentage = await fetchPercentageFee();
 
-            
+
             //parse amount in wei
             const parsedAmounts = amount.map(amt => ethers.parseUnits(amt, 6));
-            
+
 
             //sum of all the parsed amounts
             const totalparsedAmount = parsedAmounts.reduce((sum, amts) => sum + BigInt(amts?.toString()), BigInt(0));
-        
+
 
             // Calculate fee based on threshold
             let feeAmount;
@@ -515,12 +516,12 @@ export const useFactory = () => {
                 // Multiply first to avoid precision loss, then divide
                 feeAmount = (totalparsedAmount * BigInt(feePercentage)) / BigInt(10000);
             }
-           
+
 
             // Add fee to total amount
             const totalAmountWithFee = totalparsedAmount + feeAmount;
-            
 
+            console.log("admin_profit", feeAmount)
             // Check user balance before proceeding
             const userBalance = await checkUserBalance(erc20TokenContract, userAddress);
             const totalAmount = amount.reduce((sum, amt) => sum + parseFloat(amt), 0);
@@ -537,6 +538,7 @@ export const useFactory = () => {
                     success: false,
                     escrow_contract_address: '',
                     transaction_hash: '',
+                    admin_profit: 0
                 }
             }
             await approveUSDT(erc20TokenContract, MultiSig_Factory_Address, totalAmountWithFee.toString());
@@ -545,14 +547,14 @@ export const useFactory = () => {
             const tx = await multisigFactoryContract.createEscrow(
                 receiver,
                 observer,
-                parsedAmounts.map(a => a.toString()), 
+                parsedAmounts.map(a => a.toString()),
                 duration.toString()
             )
 
             const receipt = await tx.wait()
             const escrowContractAddress = await fetchCreatedEsrowAddress(receipt);
 
-             toast.update(id, { render: `Escrow Created hash: ${receipt.hash}`, type: "success", isLoading: false, autoClose: 3000 });
+            toast.update(id, { render: `Escrow Created hash: ${receipt.hash}`, type: "success", isLoading: false, autoClose: 3000 });
 
             // // Find the escrow address from event logs
             // const event = receipt.events?.find(e => e.event === 'EscrowCreated')
@@ -563,6 +565,7 @@ export const useFactory = () => {
                 success: true,
                 escrow_contract_address: escrowContractAddress || '',
                 transaction_hash: receipt.hash,
+                admin_profit: Number(feeAmount)
             }
         } catch (err: any) {
             setLoading(false)
@@ -576,12 +579,57 @@ export const useFactory = () => {
             throw err
         }
     }
+    const creationFee = async (
+        amount: string[],
+    ): Promise<creationFee> => {
+        try {
 
+
+            if (!multisigFactoryContract || !erc20TokenContract)
+                return { 
+            success:false,
+            feeAmount: 0 }
+            //fetch fee structure
+            console.log("amount",amount)
+            const feeThreshold = await fetchThreshold();
+            const fixedFee = await fetchFixedFee();
+            const feePercentage = await fetchPercentageFee();
+            //parse amount in wei
+            const parsedAmounts = amount.map(amt => ethers.parseUnits(amt, tokenDecimals));
+            console.log("parsed-amounts",parsedAmounts)
+            //sum of all the parsed amounts
+            const totalparsedAmount = parsedAmounts.reduce((sum, amts) => sum + BigInt(amts?.toString()), BigInt(0));
+            // Calculate fee based on threshold
+
+            console.log("fixed-fee",fixedFee);
+            console.log("feePercentage",feePercentage),
+            
+            console.log("totalamount",totalparsedAmount,BigInt(feeThreshold))
+            let feeAmount;
+            if (totalparsedAmount <= BigInt(feeThreshold)) {
+                // If amount is less than or equal to threshold, use fixed fee
+                feeAmount = BigInt(fixedFee);
+            } else {
+                // If amount exceeds threshold, calculate percentage-based fee
+                // Multiply first to avoid precision loss, then divide
+                feeAmount = (totalparsedAmount * BigInt(feePercentage)) / BigInt(10000);
+            }
+            
+            
+            console.log("admin_profit", )
+            return {
+                success:true, 
+                feeAmount: Number(ethers.formatUnits(feeAmount,tokenDecimals)) }
+
+        } catch (err: any) {
+            throw err
+        }
+    }
 
     const fetchCreatedEsrowAddress = async (receipt: any): Promise<string | null> => {
         try {
 
-           
+
             const factoryAbi = [
                 "event EscrowCreated(address indexed escrow, address indexed payer, address indexed receiver, uint256 totalAmount, uint256 fee)"
             ];
@@ -601,7 +649,7 @@ export const useFactory = () => {
                     continue;
                 }
             }
-            
+
             if (!escrowAddress) {
                 console.warn("⚠️ EscrowCreated event not found in transaction logs.");
             }
@@ -673,6 +721,7 @@ export const useFactory = () => {
         initaiteDispute,
         resolveDispute,
         fetchDisputeTeamMembers,
-        updateDisputeTeamMembers
+        updateDisputeTeamMembers,
+        creationFee
     };
 };

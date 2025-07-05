@@ -97,6 +97,7 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
     }
   };
 
+  console.log("shaka", escrowDetails,escrowOnChainDetails);
   return (
     <div className="container mx-auto p-1 md:p-4 space-y-6">
       <div className="flex flex-col gap-4 shadow-xl border border-gray-500/10 rounded-lg md:px-4 py-6">
@@ -104,25 +105,27 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
           <Tabs defaultValue="general" className="w-full">
             <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 mb-6">
               <TabsTrigger className="data-[state=active]:bg-[#BB7333] data-[state=active]:text-white" value="general">Milestones & Payments</TabsTrigger>
-              <TabsTrigger className="data-[state=active]:bg-[#BB7333] data-[state=active]:text-white" value="chat">Chat</TabsTrigger>
+              {escrowDetails.resolver && <TabsTrigger className="data-[state=active]:bg-[#BB7333] data-[state=active]:text-white" value="chat">Chat</TabsTrigger>}
 
               <TabsTrigger className="data-[state=active]:bg-[#BB7333] data-[state=active]:text-white" value="dispute">Terms & Docs</TabsTrigger>
             </TabsList>
             <TabsContent value="general">
               <div className="flex flex-col gap-4">
                 {escrowDetails?.escrow && <EscrowGeneralInfo {...escrowDetails.escrow} />}
-                {escrowDetails?.escrow && escrowOnChainDetails && escrowOnChainDetails.length > 0 && escrowOnChainDetails[0].id !== '' && 
-                <EscrowMilestoneTracker 
-              //  escrow={escrowDetails} 
-                escrowOnChainDetails={escrowOnChainDetails} 
-                escrowDetails={escrowDetails}
-                userType={escrowDetails.escrow.creator_walletaddress.toLowerCase() === String(address).toLowerCase() ? "creator" : "receiver"}
-                 />}
+                {escrowDetails?.escrow && escrowOnChainDetails && escrowOnChainDetails.length > 0 && escrowOnChainDetails[0].id !== '' &&
+                  <EscrowMilestoneTracker
+                    //  escrow={escrowDetails} 
+                    escrowOnChainDetails={escrowOnChainDetails}
+                    escrowDetails={escrowDetails}
+                    userType={escrowDetails.escrow.creator_walletaddress.toLowerCase() === String(address).toLowerCase() ? "creator" : "receiver"}
+                  />}
               </div>
             </TabsContent>
-            <TabsContent value="chat">
-              <EscrowDisputeChat/>
-            </TabsContent>
+            {escrowDetails.resolver && <TabsContent value="chat">
+              <EscrowDisputeChat
+                escrowDetails={escrowDetails}
+              />
+            </TabsContent>}
             <TabsContent value="dispute">
               <div className="space-y-6">
                 <div className="grid gap-4">
@@ -137,7 +140,7 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
                             <h3 className="font-medium">Escrow Contract</h3>
                             <p className="text-sm text-gray-500">View the complete contract terms and conditions</p>
                           </div>
-                          <Button 
+                          <Button
                             onClick={() => handleSignContract(escrowDetails?.escrow?.escrow_contract_address || '')}
                             variant="outline"
                             className="border-[#BB7333] text-[#BB7333] hover:bg-[#BB7333] hover:text-white"

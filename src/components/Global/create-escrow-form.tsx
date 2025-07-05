@@ -29,7 +29,6 @@ import { handleApiError, handleError } from "../../../utils/errorHandler"
 import { toast } from "react-toastify"
 import { createEscrowResponse } from "@/types/escrow"
 import { useUser } from "@/context/userContext"
-import { axiosService } from "@/services/Api/apiConfig"
 import { updateUserEmail } from "@/services/Api/auth/auth"
 
 export function CreateEscrowForm() {
@@ -67,13 +66,14 @@ export function CreateEscrowForm() {
   const [hasContractBeenSaved, setHasContractBeenSaved] = useState(false)
   const [showDownloadButton, setShowDownloadButton] = useState(false)
   const [showEmailModal, setShowEmailModal] = useState(false)
+  const [profitAmount, setProfitAmount] = useState<number>(0)
   const [userEmail, setUserEmail] = useState("")
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false)
   //web 3 context
   const { signer, account } = useWeb3()
   const { user, setUser } = useUser()
   // multi-sig factory contract hook
-  const { fetchTotalEscrows, createEscrow  } = useFactory()
+  const { creationFee, createEscrow } = useFactory()
   const [currentStep, setCurrentStep] = useState(1)
   const totalSteps = 6
   const steps = [
@@ -110,16 +110,33 @@ export function CreateEscrowForm() {
   ]
 
   useEffect(() => {
-    if (!signer) return
-    fetchTotalEscrows()
-
     // Check if user needs to register email
     if (user && !user.email) {
       setShowEmailModal(true)
     }
-  }, [signer, user])
+    if (currentStep === 5) {
+      if (paymentType === "full") {
+        const amounts = [amount];
+        calculateEsrowCreationFee(amounts)
+      } else {
+        const milestoneAmounts = milestones.map(milestone => milestone.amount)
+        calculateEsrowCreationFee(milestoneAmounts)
+      }
+
+    }
+  }, [signer, user, currentStep])
   // This would fetch the user's wallet address from the wallet provider)
 
+  const calculateEsrowCreationFee = async (amount: string[]) => {
+    const res = await creationFee(amount);
+    if (res.success) {
+      console.log("got the value here", res)
+      setProfitAmount(res.feeAmount)
+    }
+  }
+
+
+  console.log("bith-contracts", editedContractContent)
   const toggleEmailModal = () => {
     if (user && !user.email) {
       setShowEmailModal(true)
@@ -132,11 +149,11 @@ export function CreateEscrowForm() {
       // Check if the selected date is at least 24 hours from now
       const now = new Date();
       const hoursDifference = (date.getTime() - now.getTime()) / (1000 * 60 * 60);
-      
-      if (hoursDifference < 24) {
-        toast.error("Project duration must be at least 24 hours");
-        return;
-      }
+
+      // if (hoursDifference < 24) {
+      //   toast.error("Project duration must be at least 24 hours");
+      //   return;
+      // }
 
       setSelectedDate(date);
       setUnixTimestamp(Math.floor(date.getTime() / 1000));
@@ -147,7 +164,7 @@ export function CreateEscrowForm() {
       // Check if the selected date is at least 24 hours from now
       const now = new Date();
       const hoursDifference = (date.getTime() - now.getTime()) / (1000 * 60 * 60);
-      
+
       if (hoursDifference < 24) {
         toast.error("Project duration must be at least 24 hours");
         return;
@@ -188,7 +205,7 @@ export function CreateEscrowForm() {
     //   const currentMilestoneDate = new Date(value);
     //   const now = new Date();
     //   const hoursDifference = (currentMilestoneDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-      
+
     //   if (hoursDifference < 24) {
     //     setMilestoneError("First milestone must be at least 24 hours from now");
     //     return;
@@ -210,7 +227,7 @@ export function CreateEscrowForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    
+
     try {
       // Check if user has registered email
       if (!user?.email) {
@@ -227,8 +244,31 @@ export function CreateEscrowForm() {
         return;
       }
 
+      if (account === observer) {
+        toast.error("Obserever cannot be same as the Creator");
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (account === receiver) {
+        toast.error("Receiver cannot be same as the Creator");
+        setIsSubmitting(false);
+        return;
+      }
+
+
       if (!ethers.isAddress(receiver)) {
         toast.error("Please enter a valid Ethereum address");
+        setIsSubmitting(false);
+        return;
+      }
+      if (user.email === receiverEmail) {
+        toast.error("Receiver's email cannot be same as creator email");
+        setIsSubmitting(false);
+        return;
+      }
+      if (user.email === receiverEmail) {
+        toast.error("Receiver's email cannot be same as creator email");
         setIsSubmitting(false);
         return;
       }
@@ -243,7 +283,7 @@ export function CreateEscrowForm() {
 
       const milestoneAmounts = milestones.map(milestone => milestone.amount)
       const milestoneTimestamps = dateToUnix(milestones[0].date)// Only get first milestone timestamp
-      
+
       let escrowCreationResponse: createEscrowResponse;
       if (paymentType === "full") {
         const amounts = [amount];
@@ -267,8 +307,8 @@ export function CreateEscrowForm() {
         )
       }
       if (escrowCreationResponse.success) {
-        
-       
+
+
         const escrowCreationData: EscrowCreationData = {
           receiver_walletaddress: receiver,
           receiver_email: receiverEmail,
@@ -285,6 +325,7 @@ export function CreateEscrowForm() {
           receiver_signature: false,
           escrow_contract_address: escrowCreationResponse.escrow_contract_address,
           transaction_hash: escrowCreationResponse.transaction_hash,
+          ProfitAmount: escrowCreationResponse.admin_profit,
           ...(paymentType === "milestone" && {
             milestones: milestones.map(milestone => ({
               amount: parseFloat(milestone.amount),
@@ -293,12 +334,12 @@ export function CreateEscrowForm() {
             }))
           })
         }
-       
+
         const response = await saveEscrow(escrowCreationData)
-       
+
         if (response.status === 201) {
-         
-         toast.success(response?.data?.message);
+
+          toast.success(response?.data?.message);
           setAmount("")
           setReceiver("")
           setMilestones([{ amount: "", date: now, description: "" }])
@@ -313,7 +354,7 @@ export function CreateEscrowForm() {
 
     } catch (error) {
       console.error("Error creating escrow:", error)
-      handleError(error )
+      handleError(error)
     } finally {
       setIsSubmitting(false)
     }
@@ -331,7 +372,7 @@ export function CreateEscrowForm() {
   };
 
   const nextStep = () => {
-    if(user && !user.email){
+    if (user && !user.email) {
       setShowEmailModal(true)
       return;
     }
@@ -364,7 +405,7 @@ export function CreateEscrowForm() {
         const now = new Date();
         const selectedDateTime = new Date(selectedDate);
         const hoursDifference = (selectedDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-        
+
         if (hoursDifference < 24) {
           toast.error("Project duration must be at least 24 hours");
           return;
@@ -377,12 +418,12 @@ export function CreateEscrowForm() {
         }
 
         // Check if all milestones have valid amounts
-        const invalidMilestone = milestones.find(m => 
-          !m.amount || 
-          isNaN(parseFloat(m.amount)) || 
-          parseFloat(m.amount) <= 0 
+        const invalidMilestone = milestones.find(m =>
+          !m.amount ||
+          isNaN(parseFloat(m.amount)) ||
+          parseFloat(m.amount) <= 0
         );
-        
+
         if (invalidMilestone) {
           toast.error("All milestones must have valid amounts");
           return;
@@ -405,7 +446,7 @@ export function CreateEscrowForm() {
         const now = new Date();
         const firstMilestoneDate = new Date(firstMilestone.date);
         const hoursDifference = (firstMilestoneDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-        
+
         // if (hoursDifference < 24) {
         //   toast.error("First milestone must be at least 24 hours from now");
         //   return;
@@ -471,6 +512,7 @@ export function CreateEscrowForm() {
 
   // Add this new function to handle content updates
   const handleContractContentChange = (content: string) => {
+    //console.log('yooo',)
     setEditedContractContent(content)
   }
 
@@ -495,7 +537,7 @@ export function CreateEscrowForm() {
 
   const handleDownloadPDF = async () => {
     try {
-    // Get the most up-to-date content
+      // Get the most up-to-date content
       let currentContent = contractContent;
       const editableContentElement = document.querySelector('[contenteditable="true"]');
 
@@ -505,69 +547,69 @@ export function CreateEscrowForm() {
         setContractContent(currentContent);
       }
 
-    // Create a container for the PDF content
+      // Create a container for the PDF content
       const container = document.createElement('div');
-    container.style.width = '8.5in';
-    container.style.position = 'fixed';
-    container.style.left = '-9999px';
-    container.style.top = '-9999px';
-    container.style.backgroundColor = '#ffffff';
+      container.style.width = '8.5in';
+      container.style.position = 'fixed';
+      container.style.left = '-9999px';
+      container.style.top = '-9999px';
+      container.style.backgroundColor = '#ffffff';
       document.body.appendChild(container);
 
-    // Insert the contract content
-    container.innerHTML = currentContent;
+      // Insert the contract content
+      container.innerHTML = currentContent;
 
-    // Process editable fields to show their content
-    const contentEditableElements = container.querySelectorAll('[contenteditable="true"]');
-    contentEditableElements.forEach(field => {
-      if (field instanceof HTMLElement) {
-        field.removeAttribute('contenteditable');
-        field.style.border = 'none';
-        field.style.backgroundColor = 'transparent';
+      // Process editable fields to show their content
+      const contentEditableElements = container.querySelectorAll('[contenteditable="true"]');
+      contentEditableElements.forEach(field => {
+        if (field instanceof HTMLElement) {
+          field.removeAttribute('contenteditable');
+          field.style.border = 'none';
+          field.style.backgroundColor = 'transparent';
+        }
+      });
+
+      // Process input fields
+      const inputFields = container.querySelectorAll('input, textarea');
+      inputFields.forEach(input => {
+        if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement) {
+          const valueDiv = document.createElement('div');
+          valueDiv.textContent = input.value || input.placeholder;
+          input.parentNode?.replaceChild(valueDiv, input);
+        }
+      });
+
+      // Handle signatures
+      if (clientSignature) {
+        const clientPlaceholder = container.querySelector('#client-signature-canvas');
+        if (clientPlaceholder instanceof HTMLElement) {
+          const imgEl = document.createElement('img');
+          imgEl.src = clientSignature;
+          imgEl.alt = "Client Signature";
+          imgEl.style.maxWidth = "100%";
+          clientPlaceholder.parentNode?.replaceChild(imgEl, clientPlaceholder);
+        }
       }
-    });
 
-    // Process input fields
-    const inputFields = container.querySelectorAll('input, textarea');
-    inputFields.forEach(input => {
-      if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement) {
-        const valueDiv = document.createElement('div');
-        valueDiv.textContent = input.value || input.placeholder;
-        input.parentNode?.replaceChild(valueDiv, input);
+      if (providerSignature) {
+        const providerPlaceholder = container.querySelector('#provider-signature-canvas');
+        if (providerPlaceholder instanceof HTMLElement) {
+          const imgEl = document.createElement('img');
+          imgEl.src = providerSignature;
+          imgEl.alt = "Provider Signature";
+          imgEl.style.maxWidth = "100%";
+          providerPlaceholder.parentNode?.replaceChild(imgEl, providerPlaceholder);
+        }
       }
-    });
 
-    // Handle signatures
-    if (clientSignature) {
-      const clientPlaceholder = container.querySelector('#client-signature-canvas');
-      if (clientPlaceholder instanceof HTMLElement) {
-        const imgEl = document.createElement('img');
-        imgEl.src = clientSignature;
-        imgEl.alt = "Client Signature";
-        imgEl.style.maxWidth = "100%";
-        clientPlaceholder.parentNode?.replaceChild(imgEl, clientPlaceholder);
-      }
-    }
+      // Short delay to ensure rendering
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-    if (providerSignature) {
-      const providerPlaceholder = container.querySelector('#provider-signature-canvas');
-      if (providerPlaceholder instanceof HTMLElement) {
-        const imgEl = document.createElement('img');
-        imgEl.src = providerSignature;
-        imgEl.alt = "Provider Signature";
-        imgEl.style.maxWidth = "100%";
-        providerPlaceholder.parentNode?.replaceChild(imgEl, providerPlaceholder);
-      }
-    }
-
-    // Short delay to ensure rendering
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Generate PDF
+      // Generate PDF
       const canvas = await html2canvas(container, {
         scale: 2,
         useCORS: true,
-      backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff'
       });
 
       // Create PDF using jsPDF
@@ -577,36 +619,36 @@ export function CreateEscrowForm() {
         format: 'letter'
       });
 
-    // Calculate dimensions
-    const imgWidth = 7.5;
+      // Calculate dimensions
+      const imgWidth = 7.5;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-    // Add image to PDF with proper margins
+      // Add image to PDF with proper margins
       pdf.addImage(
-      canvas.toDataURL('image/png'),
+        canvas.toDataURL('image/png'),
         'PNG',
-      0.5, // left margin
-      0.5, // top margin
+        0.5, // left margin
+        0.5, // top margin
         imgWidth,
         imgHeight
       );
 
-    // Handle multi-page content if needed
-    let heightLeft = imgHeight - 10; // 10 inches per page (letter size minus margins)
-    let position = 0;
-    
+      // Handle multi-page content if needed
+      let heightLeft = imgHeight - 10; // 10 inches per page (letter size minus margins)
+      let position = 0;
+
       while (heightLeft > 0) {
-      position += 10;
+        position += 10;
         pdf.addPage();
         pdf.addImage(
-        canvas.toDataURL('image/png'),
+          canvas.toDataURL('image/png'),
           'PNG',
           0.5,
-        0.5 - position, // Shift content up
+          0.5 - position, // Shift content up
           imgWidth,
           imgHeight
         );
-      heightLeft -= 10;
+        heightLeft -= 10;
       }
 
       // Save the PDF
@@ -616,10 +658,10 @@ export function CreateEscrowForm() {
       document.body.removeChild(container);
 
     } catch (error) {
-    console.error('Error generating PDF:', error);
+      console.error('Error generating PDF:', error);
       alert('Error generating PDF. Please try again.');
     }
-};
+  };
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
@@ -951,14 +993,14 @@ export function CreateEscrowForm() {
                 <p><strong>Payment Type:</strong> {paymentType === "full" ? "Full Amount" : "Milestone-based"}</p>
                 <p><strong>Amount:</strong> {paymentType === "full" ? amount : totalMilestoneAmount} USDT</p>
                 <p><strong>Receiver:</strong> {receiver}</p>
-                <p><strong>Project Duration:</strong> {paymentType === "full" ? selectedDate.toLocaleString() : (
-                    <>
-                        <span>Total: {totalProjectDate.toLocaleString()}</span>
-                        {milestones.length > 0 && (
-                            <span className="ml-4">First Milestone: {new Date(milestones[0].date).toLocaleString()}</span>
-                        )}
-                    </>
+                <p><strong>{paymentType === "full" ? 'Project' : 'Milestone'} Duration:</strong> {paymentType === "full" ? selectedDate.toLocaleString() : (
+                  <>
+                    {milestones.length > 0 && (
+                      <span className="ml-4 "> {new Date(milestones[0].date).toLocaleString()}</span>
+                    )}
+                  </>
                 )} </p>
+                <p><strong>Creation Fee:</strong> {profitAmount} USDT</p>
                 {observer && <p><strong>Observer:</strong> {observer}</p>}
                 {jurisdiction && <p><strong>Jurisdiction:</strong> {jurisdiction}</p>}
                 {showContractTerms && <p><strong>Custom Contract Terms:</strong> Added</p>}
@@ -997,7 +1039,7 @@ export function CreateEscrowForm() {
     setIsUpdatingEmail(true)
     try {
       const response = await updateUserEmail(userEmail);
-      
+
       if (response.status === 200) {
         console.log("response", response)
         toast.success(response?.data?.message)
@@ -1006,12 +1048,14 @@ export function CreateEscrowForm() {
       }
     } catch (error) {
       console.error("Error updating email:", error)
-      
+
       handleApiError(error)
     } finally {
       setIsUpdatingEmail(false)
     }
   }
+
+
 
   return (
     <div className="w-full max-w-2xl mx-auto ">

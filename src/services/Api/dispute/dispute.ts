@@ -4,7 +4,7 @@ import { createDisputeData, UserDisputeResponse } from "@/types/dispute"
 
 export const openDispute = async (disputeData: createDisputeData) => {
     try {
-        const response = await axiosService.post<EscrowCreationResponse>('api/dispute/createDispute', disputeData)
+        const response = await axiosService.post<EscrowCreationResponse>('api/dispute/create', disputeData)
 
         return response
     } catch (error) {
@@ -19,6 +19,15 @@ export const getUserDisputes = async (page: number = 1, limit: number = 10, stat
         return response
     } catch (error) {
         console.log("error while fetching user disputes", error)
+        throw error
+    }
+}
+
+export const getRemaningTimeForActiveDispute = async () => {
+    try {
+        const response = await axiosService.get
+
+    } catch (error) {
         throw error
     }
 }

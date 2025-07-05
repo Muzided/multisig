@@ -26,8 +26,10 @@ import { useRouter } from "next/navigation"
 import { getUserEscrows, getLegalDocuments, signLegalDocument } from "@/services/Api/escrow/escrow"
 import { getUserEscrowsResponse } from "@/types/escrow"
 import { toast } from "react-toastify"
+
 import DOMPurify from 'dompurify'
 import { Skeleton } from "@/components/ui/skeleton"
+import he from "he"
 
 // Helper function to format wallet address
 const formatAddress = (address: string) => {
@@ -72,17 +74,37 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
   const navgateToDetailPage = (id: string) => {
     router.push(`/escrow/${id}`)
   }
-
+  function normaliseContract(raw: string): string {
+    // 1) turn &lt; back into <
+    const decoded = he.decode(raw);
+  
+    // 2) parse to DOM so we can trim it
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(decoded, "text/html");
+  
+    // 3) keep just the useful part
+    const root = doc.querySelector(".contract-container") || doc.body;
+  
+    //    strip out editing helpers you don't want in the signed copy
+    root.querySelectorAll("[contenteditable]").forEach(el =>
+      el.removeAttribute("contenteditable")
+    );
+  
+    // 4) sanitise for safety
+    return DOMPurify.sanitize(root.outerHTML, { ADD_ATTR: ["style"] });
+  }
   const handleSignContract = async (escrowAddress: string) => {
     try {
       setCurrentEscrowAddress(escrowAddress);
-      const legalDocs = await getLegalDocuments(escrowAddress);
-      const sanitizedContent = DOMPurify.sanitize(legalDocs?.data?.document || "");
-      setOriginalContractContent(sanitizedContent);
-      setContractContent(sanitizedContent);
+  
+      const { data } = await getLegalDocuments(escrowAddress);
+      const cleaned = normaliseContract(data.document);   // <— use helper
+  
+      setOriginalContractContent(cleaned);
+      setContractContent(cleaned);
       setShowContractTerms(true);
-    } catch (error) {
-      console.error("Error fetching legal documents:", error);
+    } catch (err) {
+      console.error(err);
       toast.error("Failed to fetch contract document");
     }
   };

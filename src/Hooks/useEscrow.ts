@@ -93,7 +93,7 @@ export const useEscrow = () => {
                 requestTime: milestone[7]?.toString()
             }));
         } catch (error) {
-            console.error("Error fetching total escrows", error);
+            console.error("Error fetching getting milestones ", error);
             return [{
                 id: '',
                 amount: '',
@@ -107,7 +107,7 @@ export const useEscrow = () => {
         }
     }
 
-    const requestPayment = async (escrowAddress: string, escrowIndex: string, amount: string): Promise<RequestPaymentResponse> => {
+    const requestPayment = async (escrowAddress: string, escrowIndex: string, amount: string, receiver_wallet_address: string, escrowType: string): Promise<RequestPaymentResponse> => {
         let id: any;
         try {
             id = toast.loading(`Requesting payment...`);
@@ -125,10 +125,9 @@ export const useEscrow = () => {
                     message: "Error while initializing escrow contract"
                 };
             }
-
             const requestPayment = await escorwContract.requestMilestone(escrowIndex);
             const tx = await requestPayment.wait();
-            const res = await saveHistory("payment_request", tx.hash, amount)
+            const res = await saveHistory("payment_request", tx.hash, amount, escrowAddress, escrowIndex, receiver_wallet_address, escrowType)
             if (res.status === 201) {
                 toast.update(id, { render: `Requested payment hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
                 triggerRefresh();
@@ -165,7 +164,7 @@ export const useEscrow = () => {
     }
 
 
-    const releasePayment = async (escrowAddress: string, escrowIndex: string, amount: string, nextMilestoneDueDate: string): Promise<RequestPaymentResponse> => {
+    const releasePayment = async (escrowAddress: string, escrowIndex: string, amount: string, nextMilestoneDueDate: string, receiver_wallet_address: string, escrowType: string): Promise<RequestPaymentResponse> => {
         let id: any;
         try {
             id = toast.loading(`Releasing payment...`);
@@ -188,7 +187,7 @@ export const useEscrow = () => {
             //request payment from blockchain
             const requestPayment = await escorwContract.approveRequest(escrowIndex, nextMilestoneDueDate);
             const tx = await requestPayment.wait();
-            const res = await saveHistory("payment_released", tx.hash, amount)
+            const res = await saveHistory("payment_released", tx.hash, amount, escrowAddress, escrowIndex, receiver_wallet_address, escrowType)
             if (res.status === 201) {
                 toast.update(id, { render: `Released payment hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
                 triggerRefresh();
@@ -342,15 +341,16 @@ export const useEscrow = () => {
             //request payment from blockchain
             const disputeRes = await escorwContract.raiseDispute(escrowIndex, reason);
             const tx = await disputeRes.wait();
-            console.log("tx", tx ,tx.logs,tx.logs[0] ,tx.logs[0].address);
+            console.log("tx", tx, tx.logs, tx.logs[0], tx.logs[0].address);
 
-            const disputeContractAddress  =  tx.logs[0].address
+            const disputeContractAddress = tx.logs[0].address
             console.log("disputeContractAddress", disputeContractAddress)
             const disputeData: createDisputeData = {
                 escrowContractAddress: escrowAddress,
                 type: type,
                 disputeContractAddress: disputeContractAddress,
-                milestoneIndex: Number(escrowIndex)
+                milestoneIndex: Number(escrowIndex),
+                transaction_hash: tx.hash
             }
             const res = await openDispute(disputeData)
             if (res.status === 201) {

@@ -50,3 +50,6 @@ export const dateToUnix = (date: Date): number => {
     return Math.floor(date.getTime() / 1000); // Convert milliseconds to seconds
 };
 
+export const formatAddress = (address: string) => {
+  return `${address.substring(0, 6)}...${address.substring(address.length - 6)}`
+}

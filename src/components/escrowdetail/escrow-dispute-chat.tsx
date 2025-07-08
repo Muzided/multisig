@@ -203,10 +203,10 @@ const MessageList = React.memo(({
                   {msg.media?.type==='image' ? (
                     <div className="mb-2">
                       <img 
-                        src={`https://escrow.ipcre8.com${msg?.media?.url}`}
+                        src={`http://localhost:5000${msg?.media?.url}`}
                         alt={msg.media.originalName || 'Image'}
                         className="max-w-full sm:max-w-xs md:max-w-sm lg:max-w-md rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-cover"
-                        onClick={() => window.open(`https://escrow.ipcre8.com${msg?.media?.url}`, '_blank')}
+                        onClick={() => window.open(`http://localhost:5000${msg?.media?.url}`, '_blank')}
                       />
                     </div>
                   ) : (

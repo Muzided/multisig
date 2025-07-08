@@ -14,3 +14,13 @@ export const fetchTransactionHistory = async (type: string, page: number = 1, li
         throw error
     }
 }
+
+export const getUserStats=async()=>{
+    try {
+        const response = await axiosService.get<TransactionHistory>(`api/user/stats`)
+        return response 
+    } catch (error) {
+        console.log("getting error while fetchig user stats",error)
+        throw error
+        }
+}

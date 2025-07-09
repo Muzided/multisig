@@ -228,6 +228,7 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
         index,
         "payment_released"
       );
+      console.log("tansaction-details",transactionDetails)
       setTransactionDetails(response.data);
     } catch (error) {
       console.error("Error fetching transaction details:", error);
@@ -358,6 +359,10 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
     return <Badge variant="secondary">Pending</Badge>;
   }
   const renderDisputeButton = (milestone: ContractMilestone) => {
+    // Observer can only view, not perform actions
+    if (userType === "observer") {
+      return null;
+    }
     // Don't show dispute button if dispute is already raised
     if (milestone.disputedRaised) {
       return null;
@@ -387,6 +392,10 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
     return null;
   };
   const renderActionButtons = (milestone: ContractMilestone) => {
+    // Observer can only view, not perform actions
+    if (userType === "observer") {
+      return null;
+    }
     // If milestone is released, show payment released status
     if (milestone.released) {
       return (
@@ -554,7 +563,6 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
         <div className="relative">
           <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-[#BB7333]/20" />
           {escrowDetails?.escrow?.payment_type === "full" ? (
-
             <div key={escrowDetails?.escrow?.__v} className="relative pl-12 pb-8">
               <div className="absolute left-0 top-0 flex h-8 w-8 items-center justify-center rounded-full bg-white border-2 border-[#BB7333]">
                 {getStatusIcon(escrowDetails?.escrow?.status, escrowOnChainDetails[0], 0)}
@@ -593,36 +601,23 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
                               {formatDate(escrowOnChainDetails[0]?.dueDate)}
                             </span>
                           </div>
-                          {escrowOnChainDetails[0]?.released && (
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Released:</span>
-                              <span className="font-medium text-green-600">
-                                {formatDate(escrowOnChainDetails[0]?.requestTime || escrowOnChainDetails[0]?.dueDate)}
-                              </span>
-                            </div>
-                          )}
-                          {/* {milestone.completedAt && (
-                              <div className="flex justify-between text-sm">
-                                <span className="text-gray-500">Completed:</span>
-                                <span className="font-medium">
-                                  {format(new Date(milestone.completedAt), "MMM d, yyyy")}
-                                </span>
-                              </div>
-                            )} */}
+                        
                         </div>
                         <div className="flex flex-col gap-2">
                           {renderActionButtons(escrowOnChainDetails[0])}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="flex-1 py-1.5 border-[#BB7333] text-[#BB7333] hover:bg-[#BB7333] hover:text-white"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openTransactionModal(escrowOnChainDetails[0], 0);
-                            }}
-                          >
-                            View Details
-                          </Button>
+                          {escrowOnChainDetails[0]?.released && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 py-1.5 border-[#BB7333] text-[#BB7333] hover:bg-[#BB7333] hover:text-white"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openTransactionModal(escrowOnChainDetails[0], 0);
+                              }}
+                            >
+                              View Details
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -630,7 +625,6 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
                 </Card>
               </Collapsible>
             </div>
-
           ) : (
             escrowOnChainDetails.map((milestone: ContractMilestone, index: number) => (
               <div key={milestone.id} className="relative pl-12 pb-8">
@@ -669,35 +663,29 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
                               <span className="text-gray-500">Amount:</span>
                               <span className="font-medium">{milestone.amount}</span>
                             </div>
-                                                      <div className="flex justify-between text-sm">
-                            <span className="text-gray-500">Due Date:</span>
-                            <span className="font-medium">
-                              {formatDate(milestone.dueDate)}
-                            </span>
-                          </div>
-                          {milestone.released && (
                             <div className="flex justify-between text-sm">
-                              <span className="text-gray-500">Released:</span>
-                              <span className="font-medium text-green-600">
-                                {formatDate(milestone.requestTime || milestone.dueDate)}
+                              <span className="text-gray-500">Due Date:</span>
+                              <span className="font-medium">
+                                {formatDate(milestone.dueDate)}
                               </span>
                             </div>
-                          )}
-
+                            
                           </div>
                           <div className="flex flex-col gap-2">
                             {renderActionButtons(milestone)}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="flex-1 py-1.5 border-[#BB7333] text-[#BB7333] hover:bg-[#BB7333] hover:text-white"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openTransactionModal(milestone, index);
-                              }}
-                            >
-                              View Details
-                            </Button>
+                            {milestone.released && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="flex-1 py-1.5 border-[#BB7333] text-[#BB7333] hover:bg-[#BB7333] hover:text-white"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openTransactionModal(milestone, index);
+                                }}
+                              >
+                                View Details
+                              </Button>
+                            )}
                           </div>
                         </div>
                       </CardContent>
@@ -709,7 +697,7 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
           )}
         </div>
       </div>
-
+      {/* Dialogs and Modals */}
       <Dialog open={disputeModalOpen} onOpenChange={setDisputeModalOpen}>
         <DialogContent>
           <DialogHeader>
@@ -749,7 +737,6 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       <Dialog open={releasePaymentModalOpen} onOpenChange={setReleasePaymentModalOpen}>
         <DialogContent>
           <DialogHeader>
@@ -810,7 +797,6 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
       {/* Transaction Details Modal */}
       <Dialog open={transactionModalOpen} onOpenChange={setTransactionModalOpen}>
         <DialogContent className="max-w-2xl">

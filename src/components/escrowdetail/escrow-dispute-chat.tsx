@@ -525,8 +525,8 @@ export function EscrowDisputeChat({ escrowDetails }: { escrowDetails: getEscrowD
     setSelectedUser(user)
     initializeConversation()
 
-
   }
+  
   const initializeConversation = async () => {
     if (!escrowDetails?.resolver?.dispute_contract_address && chatDetails?.conversationId) return;
     console.log("yoo!!")
@@ -568,6 +568,8 @@ export function EscrowDisputeChat({ escrowDetails }: { escrowDetails: getEscrowD
       setLoading(false)
     }
   }
+
+
   useEffect(() => {
     initializeConversation()
   }, [escrowDetails?.resolver?.dispute_contract_address, escrowDetails?.resolver?.wallet_address])

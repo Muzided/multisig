@@ -97,7 +97,7 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
     }
   };
 
-  console.log("shaka", escrowDetails,escrowOnChainDetails);
+  console.log("shaka", escrowDetails);
   return (
     <div className="container mx-auto p-1 md:p-4 space-y-6">
       <div className="flex flex-col gap-4 shadow-xl border border-gray-500/10 rounded-lg md:px-4 py-6">
@@ -117,7 +117,13 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
                     //  escrow={escrowDetails} 
                     escrowOnChainDetails={escrowOnChainDetails}
                     escrowDetails={escrowDetails}
-                    userType={escrowDetails.escrow.creator_walletaddress.toLowerCase() === String(address).toLowerCase() ? "creator" : "receiver"}
+                    userType={
+                      escrowDetails.escrow.creator_walletaddress.toLowerCase() === String(address).toLowerCase()
+                        ? "creator"
+                        : escrowDetails.escrow.observer_wallet && escrowDetails.escrow.observer_wallet.toLowerCase() === String(address).toLowerCase()
+                          ? "observer"
+                          : "receiver"
+                    }
                   />}
               </div>
             </TabsContent>

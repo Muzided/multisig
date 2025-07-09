@@ -9,6 +9,7 @@ import { Web3Provider } from '@/context/Web3Context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { UserProvider } from '@/context/userContext';
 import { EscrowProvider } from "@/context/EscrowContext";
+import { TabProvider } from '@/context/TabContext';
 
 const queryClient = new QueryClient()
 
@@ -54,19 +55,21 @@ export default function RootLayout({
           theme="dark"
           toastStyle={customToastStyle}
         />
-        <ThemeProvider attribute="class" defaultTheme="dark" >
-          <QueryClientProvider client={queryClient}>
-            <AppKit>
-              <Web3Provider>
-                <UserProvider>
-                  <EscrowProvider>
-                    {children}
-                  </EscrowProvider>
-                </UserProvider>
-              </Web3Provider>
-            </AppKit>
-          </QueryClientProvider>
-        </ThemeProvider>
+        <TabProvider>
+          <ThemeProvider attribute="class" defaultTheme="dark" >
+            <QueryClientProvider client={queryClient}>
+              <AppKit>
+                <Web3Provider>
+                  <UserProvider>
+                    <EscrowProvider>
+                      {children}
+                    </EscrowProvider>
+                  </UserProvider>
+                </Web3Provider>
+              </AppKit>
+            </QueryClientProvider>
+          </ThemeProvider>
+        </TabProvider>
       </body>
     </html>
   )

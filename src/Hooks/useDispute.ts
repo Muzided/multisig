@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import EscrowAbi from "../Web3/Abis/EscrowAbi.json";
 import disputeContractAbi from "../Web3/Abis/disputeContractAbi.json";
 import { convertUnixToDate } from "../../utils/helper";
+import { useTab } from "@/context/TabContext";
 
 interface UseDsiputeReturn {
 
@@ -15,6 +16,7 @@ interface UseDsiputeReturn {
 
 export const useDispute = () => {
     const { signer } = useWeb3();
+    const { setActiveTab } = useTab()
 
     //initialize escrow contract
     const fetchDisputeContract = async (escrowAddress: string) => {
@@ -41,7 +43,7 @@ export const useDispute = () => {
 
             const reason = await contract.reason();
             const isDisputeResolved = await contract.resolved()
-console.log("dispute things",reason,isDisputeResolved)
+            console.log("dispute things", reason, isDisputeResolved)
             return {
                 reason: reason,
                 isDisputeResolved: isDisputeResolved

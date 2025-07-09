@@ -11,6 +11,7 @@ import { MileStone, ContractMilestone, RequestPaymentResponse } from "@/types/co
 import { saveHistory } from "@/services/Api/escrow/escrow";
 import { openDispute } from "@/services/Api/dispute/dispute";
 import { createDisputeData } from "@/types/dispute";
+import { useTab } from "@/context/TabContext";
 
 interface UseEscrowReturn {
 
@@ -20,6 +21,7 @@ interface UseEscrowReturn {
 export const useEscrow = () => {
     const { signer } = useWeb3();
     const { triggerRefresh } = useEscrowRefresh();
+    const { setActiveTab } = useTab()
 
     //initialize escrow contract
     const fetchEscrowContract = async (escrowAddress: string) => {
@@ -356,6 +358,7 @@ export const useEscrow = () => {
             if (res.status === 201) {
                 toast.update(id, { render: `initiated dispute hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
                 triggerRefresh();
+                setActiveTab("dispute")
                 return {
                     transactionHash: tx.hash,
                     isSuccess: true,

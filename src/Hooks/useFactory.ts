@@ -565,7 +565,7 @@ export const useFactory = () => {
                 success: true,
                 escrow_contract_address: escrowContractAddress || '',
                 transaction_hash: receipt.hash,
-                admin_profit: Number(feeAmount)
+                admin_profit:Number(ethers.formatUnits(feeAmount,tokenDecimals)) 
             }
         } catch (err: any) {
             setLoading(false)

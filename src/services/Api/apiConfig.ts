@@ -30,7 +30,7 @@ class AxiosService {
   private constructor() {
     this.axiosInstance = axios.create({
       // baseURL: 'https://escrow.ipcre8.com',
-      baseURL: 'http://localhost:5000/',
+      baseURL: 'https://escrow.ipcre8.com/',
       timeout: 50000,
       headers: {
         'Content-Type': 'application/json',

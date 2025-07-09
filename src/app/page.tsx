@@ -17,10 +17,11 @@ import DaoTab from "@/components/dashboard/doa-tab"
 import { useUser } from "@/context/userContext"
 import ObserveDispute from "@/components/dashboard/observe-dispute"
 import { ObserveEscrow } from "@/components/dashboard/observe-escrow"
+import { useTab } from "@/context/TabContext"
 
 export default function Dashboard() {
   const [isClient, setIsClient] = useState(false)
-  const [activeTab, setActiveTab] = useState("overview")
+  const {activeTab, setActiveTab} = useTab()
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
   const { isAuthenticated } = useUser()
 

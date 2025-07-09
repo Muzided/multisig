@@ -30,6 +30,7 @@ import { toast } from "react-toastify"
 import { createEscrowResponse } from "@/types/escrow"
 import { useUser } from "@/context/userContext"
 import { updateUserEmail } from "@/services/Api/auth/auth"
+import { useTab } from "@/context/TabContext"
 
 export function CreateEscrowForm() {
   const [amount, setAmount] = useState("")
@@ -71,7 +72,10 @@ export function CreateEscrowForm() {
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false)
   //web 3 context
   const { signer, account } = useWeb3()
+  //user context
   const { user, setUser } = useUser()
+  //tab context
+  const { setActiveTab } = useTab()
   // multi-sig factory contract hook
   const { creationFee, createEscrow } = useFactory()
   const [currentStep, setCurrentStep] = useState(1)
@@ -349,6 +353,7 @@ export function CreateEscrowForm() {
           setJurisdiction("")
           setLegalAgreement(false)
           setMilestoneError("")
+          setActiveTab("escrows")
         }
       }
 

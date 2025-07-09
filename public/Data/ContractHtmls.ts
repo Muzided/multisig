@@ -13,7 +13,7 @@ export const contractTemplates1 = {
       background: #ffffff;
       border-radius: 8px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-      padding: 2.5rem;
+      padding: 1.5rem;
       font-family: Arial, sans-serif;
       line-height: 1.8;
       color: #000000;
@@ -28,7 +28,7 @@ export const contractTemplates1 = {
 
     .contract-title {
       color: #000000;
-      font-size: 2rem;
+      font-size: 1.5rem;
       font-weight: 600;
       margin-bottom: 1rem;
     }
@@ -193,14 +193,15 @@ export const contractTemplates = {
     body {
       margin: 0;
       padding: 0;
-      font-family: Arial, sans-serif;
+     
       color: #000000;
       background-color: #ffffff;
     }
     
     .contract-container {
-      width: 8.5in;
-      padding: 1in 0.75in;
+     width: 100% !important;
+    padding: 2rem !important;
+     
       box-sizing: border-box;
       background-color: #ffffff;
       line-height: 1.5;
@@ -368,13 +369,13 @@ export const contractTemplates = {
       
       <div class="signature-row">
         <div class="signature-column">
-          <div class="signature-label">CLIENT:</div>
+          <div class="signature-label">CREATOR:</div>
           <div id="client-signature-canvas"></div>
           <p class="signature-name editable" contenteditable="true">[Client Name]</p>
         </div>
         
         <div class="signature-column">
-          <div class="signature-label">PROVIDER:</div>
+          <div class="signature-label">RECEIVER:</div>
           <div id="provider-signature-canvas"></div>
           <p class="signature-name editable" contenteditable="true">[Provider Name]</p>
         </div>

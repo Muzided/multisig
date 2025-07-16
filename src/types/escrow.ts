@@ -120,3 +120,28 @@ export interface TransactionDetailsResponse {
         validTypes: string[];
     };
 }
+
+
+export interface EscrowStats {
+    total: number;
+    active: number;
+    disputed: number;
+    completed: number;
+}
+
+export interface TransactionStats {
+    escrowCreationTotal: number;
+    totalSent: number;
+    totalReceived: number;
+}
+
+export interface DisputeStats {
+    started: number;
+    resolved: number;
+}
+
+export interface DashboardStats {
+    escrows: EscrowStats;
+    transactions: TransactionStats;
+    disputes: DisputeStats;
+}

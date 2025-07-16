@@ -64,6 +64,8 @@ export const useEscrow = () => {
             return false
         }
     }
+
+    
     const getMileStones = async (escrowAddress: string): Promise<ContractMilestone[]> => {
         try {
 

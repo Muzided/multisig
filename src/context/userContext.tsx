@@ -29,6 +29,7 @@ export function UserProvider({ children }: UserProviderProps) {
     const [user, setUser] = useState<User | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    
     const [error, setError] = useState<string | null>(null);
 
     // Check if user is authenticated on wallet connection

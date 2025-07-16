@@ -62,9 +62,37 @@ console.log("transactionHistory", transactionHistory?.transactions)
     if (!transactionHistory?.pagination) return null;
     const { total, page, totalPages } = transactionHistory.pagination;
 
+    // Function to get visible page numbers (show current page and neighbors)
+    const getVisiblePages = () => {
+      const delta = 2; // Number of pages to show on each side
+      const range = [];
+      const rangeWithDots = [];
+
+      for (let i = Math.max(2, page - delta); i <= Math.min(totalPages - 1, page + delta); i++) {
+        range.push(i);
+      }
+
+      if (page - delta > 2) {
+        rangeWithDots.push(1, '...');
+      } else {
+        rangeWithDots.push(1);
+      }
+
+      rangeWithDots.push(...range);
+
+      if (page + delta < totalPages - 1) {
+        rangeWithDots.push('...', totalPages);
+      } else {
+        rangeWithDots.push(totalPages);
+      }
+
+      return rangeWithDots;
+    };
+
     return (
-      <div className="flex items-center justify-between px-2 py-4">
-        <div className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-2 py-4">
+        {/* Results info - Mobile: centered, Desktop: left */}
+        <div className="flex items-center justify-center sm:justify-start gap-2 text-sm text-zinc-500 dark:text-zinc-400">
           <span>Showing</span>
           <span className="font-medium text-zinc-900 dark:text-white">
             {(page - 1) * pageSize + 1}
@@ -77,7 +105,10 @@ console.log("transactionHistory", transactionHistory?.transactions)
           <span className="font-medium text-zinc-900 dark:text-white">{total}</span>
           <span>results</span>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Pagination controls - Mobile: centered, Desktop: right */}
+        <div className="flex items-center justify-center sm:justify-end gap-2">
+          {/* Previous button */}
           <Button
             variant="outline"
             size="sm"
@@ -87,24 +118,43 @@ console.log("transactionHistory", transactionHistory?.transactions)
               dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
           >
             <ChevronLeft className="h-4 w-4" />
-            Previous
+            <span className="hidden sm:inline">Previous</span>
           </Button>
+
+          {/* Page numbers - Mobile: limited, Desktop: full */}
           <div className="flex items-center gap-1">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-              <Button
-                key={pageNum}
-                variant={pageNum === page ? "default" : "outline"}
-                size="sm"
-                onClick={() => setCurrentPage(pageNum)}
-                className={pageNum === page 
-                  ? "bg-[#BB7333] text-white hover:bg-[#965C29] dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
-                  : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
-                }
-              >
-                {pageNum}
-              </Button>
-            ))}
+            {/* Mobile: Show only current page and total */}
+            <div className="flex sm:hidden items-center gap-2">
+              <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                Page {page} of {totalPages}
+              </span>
+            </div>
+
+            {/* Desktop: Show full pagination */}
+            <div className="hidden sm:flex items-center gap-1">
+              {getVisiblePages().map((pageNum, index) => (
+                <div key={index}>
+                  {pageNum === '...' ? (
+                    <span className="px-2 text-zinc-500 dark:text-zinc-400">...</span>
+                  ) : (
+                    <Button
+                      variant={pageNum === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(pageNum as number)}
+                      className={pageNum === page 
+                        ? "bg-[#BB7333] text-white hover:bg-[#965C29] dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
+                        : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
+                      }
+                    >
+                      {pageNum}
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
+
+          {/* Next button */}
           <Button
             variant="outline"
             size="sm"
@@ -113,7 +163,7 @@ console.log("transactionHistory", transactionHistory?.transactions)
             className="border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 
               dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
           >
-            Next
+            <span className="hidden sm:inline">Next</span>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>

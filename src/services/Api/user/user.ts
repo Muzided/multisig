@@ -1,7 +1,7 @@
 import { EscrowCreationResponse } from "@/types/contract"
 import { axiosService } from "../apiConfig"
 import { EscrowCreationData } from "@/types/user"
-import { getEscrowDetailsResponse, getLegalDocumentsResponse, getUserEscrowsResponse, TransactionHistory } from "@/types/escrow"
+import { DashboardStats, getEscrowDetailsResponse, getLegalDocumentsResponse, getUserEscrowsResponse, TransactionHistory } from "@/types/escrow"
 
 
 
@@ -17,7 +17,7 @@ export const fetchTransactionHistory = async (type: string, page: number = 1, li
 
 export const getUserStats=async()=>{
     try {
-        const response = await axiosService.get<TransactionHistory>(`api/user/stats`)
+        const response = await axiosService.get<DashboardStats>(`api/user/stats`)
         return response 
     } catch (error) {
         console.log("getting error while fetchig user stats",error)

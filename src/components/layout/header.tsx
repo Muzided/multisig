@@ -73,7 +73,7 @@ export function Header({ toggleMobileNav }: HeaderProps) {
 
       <div className="flex items-center gap-2">
         <ThemeToggle />
-
+{/* 
         <Button
           variant="ghost"
           size="icon"
@@ -83,7 +83,7 @@ export function Header({ toggleMobileNav }: HeaderProps) {
         >
           <Bell className="h-5 w-5" />
           <span className="sr-only">Notifications</span>
-        </Button>
+        </Button> */}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -104,16 +104,24 @@ export function Header({ toggleMobileNav }: HeaderProps) {
             className="w-56 border-zinc-200/80 bg-white/95 backdrop-blur-sm text-zinc-900 shadow-lg 
               dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
           >
-            <DropdownMenuLabel className="font-medium">My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator className="bg-zinc-200 dark:bg-zinc-800" />
-            <DropdownMenuItem
-            onClick={disconnectWallet}
-              className="hover:bg-zinc-50 hover:shadow-sm transition-all duration-200 
-              dark:hover:bg-zinc-800 dark:hover:text-white cursor-pointer dark:hover:shadow-none"
-            >
-              <LogOut  className="mr-2 h-4 w-4" />
-              <span >Disconnect</span>
-            </DropdownMenuItem>
+            {isConnected ? (
+              <>
+                <DropdownMenuLabel className="font-medium">My Account</DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-zinc-200 dark:bg-zinc-800" />
+                <DropdownMenuItem
+                  onClick={disconnectWallet}
+                  className="hover:bg-zinc-50 hover:shadow-sm transition-all duration-200 
+                  dark:hover:bg-zinc-800 dark:hover:text-white cursor-pointer dark:hover:shadow-none"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Disconnect</span>
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <DropdownMenuLabel className="font-medium text-zinc-500 dark:text-zinc-400">
+                Please connect your wallet
+              </DropdownMenuLabel>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

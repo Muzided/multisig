@@ -42,6 +42,7 @@ type EscrowOverviewProps = {
 
 export function EscrowOverview({ limit }: EscrowOverviewProps) {
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [loadingEscrows, setLoadingEscrows] = useState<{ [key: string]: boolean }>({});
@@ -60,15 +61,14 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
   const queryClient = useQueryClient();
   // TanStack Query for fetching escrows
   const { data: userEscrows, isLoading, error } = useQuery<getUserEscrowsResponse>({
-    queryKey: ['escrows', address, currentPage, pageSize],
+    queryKey: ['escrows', address, currentPage, pageSize, statusFilter, paymentTypeFilter],
     queryFn: async () => {
-      const response = await getUserEscrows(currentPage, pageSize);
+      const response = await getUserEscrows(currentPage, pageSize, statusFilter, paymentTypeFilter);
       return response.data;
     },
     enabled: !!address,
   });
-  console.log("userEscrows", userEscrows)
-  // Filter escrows based on status
+  // Use escrows directly since filtering is now done on the server
   const filteredEscrows = userEscrows?.escrows || [];
 
   const navgateToDetailPage = (id: string) => {
@@ -133,7 +133,7 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
     toast.success("Signature added to contract");
     
   };
-  console.log("contractContent", contractContent)
+  
 
   const handleSaveChanges = async () => {
     if (!receiverSignature) {
@@ -278,39 +278,105 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <Button
-          variant="outline"
-          className="flex items-center gap-2 border-zinc-200 bg-white shadow-sm text-zinc-700 
-            hover:bg-zinc-50 hover:border-zinc-300 hover:shadow-md transition-all duration-200
-            dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none 
-            dark:hover:bg-zinc-700 dark:hover:border-zinc-600 dark:hover:shadow-none"
-        >
-          <Filter className="h-4 w-4" />
-          Filter
-        </Button>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger
-            className="w-full sm:w-[180px] border-zinc-200 bg-white text-zinc-900 
-            dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
-          >
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent
-            className="border-zinc-200 bg-white text-zinc-900 
-            dark:border-zinc-700 dark:bg-zinc-800 dark:text-white"
-          >
-            <SelectItem value="all">All Escrows</SelectItem>
-            {/* <SelectItem value="active">Active Escrows</SelectItem> */}
-            {/* <SelectItem value="disputed">Disputed Escrows</SelectItem> */}
-          </SelectContent>
-        </Select>
+      <div className="space-y-4">
+        {/* Mobile: Stacked layout */}
+        <div className="flex flex-col gap-3 sm:hidden">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">Escrows</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2 border-zinc-200 bg-white shadow-sm text-zinc-700 
+                hover:bg-zinc-50 hover:border-zinc-300 hover:shadow-md transition-all duration-200
+                dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none 
+                dark:hover:bg-zinc-700 dark:hover:border-zinc-600 dark:hover:shadow-none"
+            >
+              <Filter className="h-4 w-4" />
+              Filters
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 gap-3">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full border-zinc-200 bg-white text-zinc-900 
+                dark:border-zinc-700 dark:bg-zinc-800 dark:text-white">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent className="border-zinc-200 bg-white text-zinc-900 
+                dark:border-zinc-700 dark:bg-zinc-800 dark:text-white">
+                <SelectItem value="all">All Escrows</SelectItem>
+                <SelectItem value="pending">Pending Escrows</SelectItem>
+                <SelectItem value="active">Active Escrows</SelectItem>
+                <SelectItem value="disputed">Disputed Escrows</SelectItem>
+                <SelectItem value="completed">Completed Escrows</SelectItem>
+                <SelectItem value="terminated">Terminated Escrows</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={paymentTypeFilter} onValueChange={setPaymentTypeFilter}>
+              <SelectTrigger className="w-full border-zinc-200 bg-white text-zinc-900 
+                dark:border-zinc-700 dark:bg-zinc-800 dark:text-white">
+                <SelectValue placeholder="Filter by payment type" />
+              </SelectTrigger>
+              <SelectContent className="border-zinc-200 bg-white text-zinc-900 
+                dark:border-zinc-700 dark:bg-zinc-800 dark:text-white">
+                <SelectItem value="all">All Payment Types</SelectItem>
+                <SelectItem value="full">Full Payment</SelectItem>
+                <SelectItem value="milestone">Milestone Payment</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Desktop: Horizontal layout */}
+        <div className="hidden sm:flex sm:items-center sm:justify-between">
+          <h2 className="text-lg font-semibold text-zinc-900 dark:text-white">Escrows</h2>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2 border-zinc-200 bg-white shadow-sm text-zinc-700 
+                hover:bg-zinc-50 hover:border-zinc-300 hover:shadow-md transition-all duration-200
+                dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none 
+                dark:hover:bg-zinc-700 dark:hover:border-zinc-600 dark:hover:shadow-none"
+            >
+              <Filter className="h-4 w-4" />
+              Filters
+            </Button>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[180px] border-zinc-200 bg-white text-zinc-900 
+                dark:border-zinc-700 dark:bg-zinc-800 dark:text-white">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent className="border-zinc-200 bg-white text-zinc-900 
+                dark:border-zinc-700 dark:bg-zinc-800 dark:text-white">
+                <SelectItem value="all">All Escrows</SelectItem>
+                <SelectItem value="pending">Pending Escrows</SelectItem>
+                <SelectItem value="active">Active Escrows</SelectItem>
+                <SelectItem value="disputed">Disputed Escrows</SelectItem>
+                <SelectItem value="completed">Completed Escrows</SelectItem>
+                <SelectItem value="terminated">Terminated Escrows</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={paymentTypeFilter} onValueChange={setPaymentTypeFilter}>
+              <SelectTrigger className="w-[180px] border-zinc-200 bg-white text-zinc-900 
+                dark:border-zinc-700 dark:bg-zinc-800 dark:text-white">
+                <SelectValue placeholder="Filter by payment type" />
+              </SelectTrigger>
+              <SelectContent className="border-zinc-200 bg-white text-zinc-900 
+                dark:border-zinc-700 dark:bg-zinc-800 dark:text-white">
+                <SelectItem value="all">All Payment Types</SelectItem>
+                <SelectItem value="full">Full Payment</SelectItem>
+                <SelectItem value="milestone">Milestone Payment</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
       <Tabs defaultValue="table" className="w-full">
         <TabsContent value="table" className="mt-0">
-          <div className="rounded-md border border-zinc-200 dark:border-zinc-800">
-            <Table>
+          <div className="rounded-md border border-zinc-200 dark:border-zinc-800 overflow-x-auto">
+            <div className="min-w-[800px]">
+              <Table>
               <TableHeader className="bg-zinc-50 dark:bg-zinc-900">
                 <TableRow
                   className="border-zinc-200 hover:bg-zinc-100/50 
@@ -416,6 +482,7 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
                 )}
               </TableBody>
             </Table>
+            </div>
             {renderPagination()}
           </div>
         </TabsContent>

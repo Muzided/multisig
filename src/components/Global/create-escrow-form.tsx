@@ -358,7 +358,7 @@ export function CreateEscrowForm() {
       }
 
     } catch (error) {
-      console.error("Error creating escrow:", error)
+      console.log("Error creating escrow:", error)
       handleError(error)
     } finally {
       setIsSubmitting(false)

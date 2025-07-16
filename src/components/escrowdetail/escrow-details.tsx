@@ -25,6 +25,7 @@ import DOMPurify from 'dompurify'
 import { toast } from "react-toastify"
 import { Button } from "@/components/ui/button"
 import { useEscrowRefresh } from "@/context/EscrowContext"
+import { useEscrowSocket } from "@/Hooks/useEscrowSocket"
 
 
 
@@ -39,16 +40,107 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
 
   const { address } = useAppKitAccount();
 
-  const fetchEscrowDetailsFromBlockchain = useCallback(async (escrowId: string) => {
+  // Function to determine user role
+  const getUserRole = () => {
+    if (!escrowDetails?.escrow || !address) return null;
+    
+    if (escrowDetails.escrow.creator_walletaddress.toLowerCase() === String(address).toLowerCase()) {
+      return "creator";
+    } else if (escrowDetails.escrow.observer_wallet && escrowDetails.escrow.observer_wallet.toLowerCase() === String(address).toLowerCase()) {
+      return "observer";
+    } else {
+      return "receiver";
+    }
+  };
+
+  // Function to show appropriate toast based on action and user role
+  const showActionToast = (action: string) => {
+    const userRole = getUserRole();
+    
+    switch (action) {
+      case 'dispute_initiated':
+        if (userRole === 'creator') {
+          toast.warning('A dispute has been initiated by the receiver. Please review the dispute details.');
+        } else if (userRole === 'receiver') {
+          toast.success('Dispute initiated successfully. Waiting for resolution.');
+        } else {
+          toast.info('A dispute has been initiated for this escrow.');
+        }
+        break;
+        
+      case 'escrow_creation':
+        if (userRole === 'creator') {
+          toast.success('Escrow created successfully!');
+        } else if (userRole === 'receiver') {
+          toast.info('A new escrow has been created for you. Please review the terms.');
+        } else {
+          toast.info('A new escrow has been created.');
+        }
+        break;
+        
+      case 'dispute_adopted':
+        if (userRole === 'creator') {
+          toast.warning('The dispute has been adopted by the resolver. Resolution in progress.');
+        } else if (userRole === 'receiver') {
+          toast.warning('The dispute has been adopted by the resolver. Resolution in progress.');
+        } else if (userRole === 'observer') {
+          toast.info('You have adopted the dispute. Please review and provide resolution.');
+        } else {
+          toast.info('The dispute has been adopted by an observer.');
+        }
+        break;
+        
+      case 'dispute_resolved':
+        if (userRole === 'creator') {
+          toast.success('The dispute has been resolved. Check the resolution details.');
+        } else if (userRole === 'receiver') {
+          toast.success('The dispute has been resolved. Check the resolution details.');
+        } else if (userRole === 'observer') {
+          toast.success('Dispute resolved successfully.');
+        } else {
+          toast.success('The dispute has been resolved.');
+        }
+        break;
+        
+      case 'payment_released':
+        if (userRole === 'creator') {
+          toast.success('Payment has been released to the receiver.');
+        } else if (userRole === 'receiver') {
+          toast.success('Payment has been released! Check your wallet.');
+        } else {
+          toast.success('Payment has been released for this escrow.');
+        }
+        break;
+        
+      case 'payment_request':
+        if (userRole === 'creator') {
+          toast.info('A payment request has been submitted by the receiver.');
+        } else if (userRole === 'receiver') {
+          toast.success('Payment request submitted successfully. Waiting for approval.');
+        } else {
+          toast.info('A payment request has been submitted.');
+        }
+        break;
+        
+      default:
+        toast.info('An escrow event has occurred.');
+        break;
+    }
+  };
+
+  const fetchEscrowDetailsFromBlockchain = async (escrowId: string) => {
     const response = await getMileStones(escrowId);
+    console.log("response-in-shaka-terms-and-docs", response);
     setEscrowOnChainDetails(response);
-  }, [getMileStones]);
+  }
 
   useEffect(() => {
     if (escrowId) {
       fetchEscrowDetailsFromBlockchain(escrowId);
     }
   }, [escrowId, refreshTrigger]);
+
+ 
 
   const { data: escrowDetails, isLoading, error } = useQuery<getEscrowDetailsResponse>({
     queryKey: ['escrowDetails', escrowId],
@@ -58,7 +150,21 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
     },
     enabled: !!escrowId, // Only run query when address is available
   });
-
+  const userToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+  const { isConnected: socketConnected, error: socketError } = useEscrowSocket({
+    escrowContractAddress: escrowDetails?.escrow?.escrow_contract_address || '',
+    token: userToken || '',
+    onEventReceived: (data) => {
+      console.log('Escrow event received, triggering refresh...', data?.action)
+      
+      // Show appropriate toast message based on action
+      if (data?.action) {
+        showActionToast(data.action);
+      }
+      
+      fetchEscrowDetailsFromBlockchain(escrowId)
+    },
+  })
   if (isLoading) {
     return (
       <div className="container mx-auto p-4 space-y-6">
@@ -97,7 +203,7 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
     }
   };
 
-  console.log("shaka", escrowDetails);
+  console.log("shaka", escrowDetails , escrowOnChainDetails);
   return (
     <div className="container mx-auto p-1 md:p-4 space-y-6">
       <div className="flex flex-col gap-4 shadow-xl border border-gray-500/10 rounded-lg md:px-4 py-6">

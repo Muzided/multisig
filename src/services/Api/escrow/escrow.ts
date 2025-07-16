@@ -14,9 +14,16 @@ export const saveEscrow = async (escrowCreationData: EscrowCreationData) => {
     }
 }
 
-export const getUserEscrows = async (page: number = 1, limit: number = 10) => {
+export const getUserEscrows = async (page: number = 1, limit: number = 10, status?: string, paymentType?: string) => {
     try {
-        const response = await axiosService.get<getUserEscrowsResponse>(`api/escrow/getAllEscrows?page=${page}&limit=${limit}`)
+        let url = `api/escrow/getAllEscrows?page=${page}&limit=${limit}`;
+        if (status && status !== 'all') {
+            url += `&status=${status}`;
+        }
+        if (paymentType && paymentType !== 'all') {
+            url += `&payment_type=${paymentType}`;
+        }
+        const response = await axiosService.get<getUserEscrowsResponse>(url)
         console.log("response", response)
         return response
     } catch (error) {

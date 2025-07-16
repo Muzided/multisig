@@ -11,7 +11,12 @@ import { useFactory } from "@/Hooks/useFactory"
 import { ContractMilestone } from "@/types/contract"
 import { getEscrowDetailsResponse } from "@/types/escrow"
 import { useEscrow } from "@/Hooks/useEscrow"
+import { useEscrowSocket } from "@/Hooks/useEscrowSocket"
+import { useEscrowRefresh } from "@/context/EscrowContext"
+import { useUser } from "@/context/userContext"
 import { handleError } from "../../../utils/errorHandler"
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "react-toastify"
 import {
   Dialog,
@@ -88,7 +93,8 @@ const CountdownTimer = ({ dueDate }: { dueDate: string | number }) => {
 export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, userType }: EscrowMilestoneTrackerProps) {
   const [openMilestones, setOpenMilestones] = useState<Record<string, boolean>>({})
   const [loadingPayout, setLoadingPayout] = useState<Record<string, boolean>>({})
-
+  const now = new Date();
+  const [selectedDate, setSelectedDate] = useState<Date>(now);
   const [disputeModalOpen, setDisputeModalOpen] = useState(false)
   const [releasePaymentModalOpen, setReleasePaymentModalOpen] = useState(false)
   const [selectedMilestone, setSelectedMilestone] = useState<ContractMilestone | null>(null)
@@ -99,6 +105,11 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
   const [loadingTransaction, setLoadingTransaction] = useState(false)
   //use hooks
   const { requestPayment, releasePayment, claimUnRequestedAmounts, raiseDispute } = useEscrow()
+  const { triggerRefresh } = useEscrowRefresh()
+  const { user } = useUser()
+
+  
+
 
   const isDueDatePassed = useCallback((dueDate: string | number) => {
     const currentDate = Math.floor(Date.now() / 1000);
@@ -161,13 +172,16 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
 
   const handlePaymentRelease = useCallback(async (escrowAddress: string, milestoneId: string, amount: string, receiver_wallet_address: string, escrowType: string) => {
     try {
-      if (!nextMilestoneDueDate) {
+      // Check if this is the last milestone
+      const isLast = selectedMilestone && isLastMilestone(selectedMilestone);
+      
+      if (!isLast && !nextMilestoneDueDate) {
         toast.error("Please select a due date for the next milestone");
         return;
       }
 
-      // Convert the date to Unix timestamp (seconds)
-      const unixTimestamp = Math.floor(nextMilestoneDueDate.getTime() / 1000).toString();
+      // For last milestone, pass 0, otherwise convert the date to Unix timestamp
+      const unixTimestamp = isLast ? "0" : Math.floor(nextMilestoneDueDate!.getTime() / 1000).toString();
       console.log("unixTimestamp", unixTimestamp)
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: true }))
       const res = await releasePayment(escrowAddress, milestoneId, amount, unixTimestamp, receiver_wallet_address, escrowType)
@@ -179,7 +193,7 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
       console.error("Error requesting payment:", error)
       handleError(error);
     }
-  }, [releasePayment, nextMilestoneDueDate]);
+  }, [releasePayment, nextMilestoneDueDate, selectedMilestone]);
 
   const handleRaiseDispute = useCallback(async (escrowAddress: string, milestoneId: string) => {
     try {
@@ -206,13 +220,25 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
     setDisputeModalOpen(true);
   };
 
+  // Function to check if milestone is the last one
+  const isLastMilestone = (milestone: ContractMilestone) => {
+    const milestoneIndex = escrowOnChainDetails.findIndex(m => m.id === milestone.id);
+    return milestoneIndex === escrowOnChainDetails.length - 1;
+  };
+
   const openReleasePaymentModal = (milestone: ContractMilestone) => {
     setSelectedMilestone(milestone);
-    // Set default date to 24 hours from now
-    const defaultDate = new Date();
-    //defaultDate.setHours(defaultDate.getHours() + 24);
-    defaultDate.setHours(defaultDate.getHours());
-    setNextMilestoneDueDate(defaultDate);
+    
+    // If it's the last milestone, set due date to null (will be passed as 0)
+    if (isLastMilestone(milestone)) {
+      setNextMilestoneDueDate(null);
+    } else {
+      // Set default date to 24 hours from now for non-last milestones
+      const defaultDate = new Date();
+      defaultDate.setHours(defaultDate.getHours());
+      setNextMilestoneDueDate(defaultDate);
+    }
+    
     setReleasePaymentModalOpen(true);
   };
 
@@ -228,7 +254,7 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
         index,
         "payment_released"
       );
-      console.log("tansaction-details",transactionDetails)
+      console.log("tansaction-details", transactionDetails)
       setTransactionDetails(response.data);
     } catch (error) {
       console.error("Error fetching transaction details:", error);
@@ -555,10 +581,33 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
     }
   };
 
+
+  const handleDateChange = (date: Date | null) => {
+    if (date) {
+      // Check if the selected date is at least 24 hours from now
+      const now = new Date();
+      const hoursDifference = (date.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+      // if (hoursDifference < 24) {
+      //   toast.error("Project duration must be at least 24 hours");
+      //   return;
+      // }
+
+      setSelectedDate(date);
+      setNextMilestoneDueDate(date);
+    }
+  };
   console.log("escrowDetails-gotem-details", escrowOnChainDetails, escrowDetails)
+
 
   return (
     <>
+      {/* Socket Connection Status Indicator */}
+      {/* {socketError && (
+        <div className="mb-4 p-2 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
+          Socket Error: {socketError}
+        </div>
+      )} */}
       <div className="space-y-6 pt-6">
         <div className="relative">
           <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-[#BB7333]/20" />
@@ -601,7 +650,7 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
                               {formatDate(escrowOnChainDetails[0]?.dueDate)}
                             </span>
                           </div>
-                        
+
                         </div>
                         <div className="flex flex-col gap-2">
                           {renderActionButtons(escrowOnChainDetails[0])}
@@ -669,7 +718,7 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
                                 {formatDate(milestone.dueDate)}
                               </span>
                             </div>
-                            
+
                           </div>
                           <div className="flex flex-col gap-2">
                             {renderActionButtons(milestone)}
@@ -740,29 +789,41 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
       <Dialog open={releasePaymentModalOpen} onOpenChange={setReleasePaymentModalOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Set Next Milestone Due Date</DialogTitle>
+            <DialogTitle>
+              {selectedMilestone && isLastMilestone(selectedMilestone) 
+                ? "Release Final Payment" 
+                : "Set Next Milestone Due Date"
+              }
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Due Date (minimum 24 hours from now)</label>
-              <input
-                type="datetime-local"
-                value={nextMilestoneDueDate ? format(nextMilestoneDueDate, "yyyy-MM-dd'T'HH:mm") : ''}
-                onChange={(e) => {
-                  const selectedDate = new Date(e.target.value);
-                  const now = new Date();
-                  const minDate = new Date(now.getTime() + 24 * 60 * 60 * 1000); // 24 hours from now
-
-                  // if (selectedDate < minDate) {
-                  //   toast.error("Due date must be at least 24 hours from now");
-                  //   return;
-                  // }
-                  setNextMilestoneDueDate(selectedDate);
-                }}
-                min={format(new Date(new Date().getTime() + 24 * 60 * 60 * 1000), "yyyy-MM-dd'T'HH:mm")}
-                className="w-full p-2 border rounded-md border-[#BB7333]/50 focus:ring-[#BB7333] focus:border-[#BB7333]"
-              />
-            </div>
+            {selectedMilestone && !isLastMilestone(selectedMilestone) && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Due Date (minimum 24 hours from now)</label>
+                <DatePicker
+                  id="datetime"
+                  selected={selectedDate}
+                  onChange={handleDateChange}
+                  showTimeSelect
+                  timeFormat="HH:mm"
+                  timeIntervals={15}
+                  timeCaption="Time"
+                  dateFormat="yyyy-MM-dd HH:mm"
+                  minDate={now}
+                  className="border-zinc-200 p-1.5 text-center rounded-b-md cursor-pointer dark:hover:bg-zinc-600 bg-white shadow-sm text-zinc-900 focus-visible:ring-[#BB7333] 
+                    transition-all duration-200 hover:border-[#BB7333]/50 focus:shadow-md
+                    dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:shadow-none dark:hover:border-[#BB7333]/50"
+                  required
+                />
+              </div>
+            )}
+            {selectedMilestone && isLastMilestone(selectedMilestone) && (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  This is the final milestone. No next milestone due date is required.
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button
@@ -789,7 +850,10 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
                   );
                 }
               }}
-              disabled={!nextMilestoneDueDate || loadingPayout[selectedMilestone?.id || '']}
+              disabled={
+                (selectedMilestone && !isLastMilestone(selectedMilestone) && !nextMilestoneDueDate) || 
+                loadingPayout[selectedMilestone?.id || '']
+              }
               className="bg-[#BB7333] hover:bg-[#965C29] text-white"
             >
               {loadingPayout[selectedMilestone?.id || ''] ? "Processing..." : "Release Payment"}
@@ -806,7 +870,7 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
               Transaction Details
             </DialogTitle>
           </DialogHeader>
-          
+
           {loadingTransaction ? (
             <div className="space-y-4 py-6">
               <div className="flex items-center justify-center">

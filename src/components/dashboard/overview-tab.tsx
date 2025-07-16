@@ -2,17 +2,21 @@ import { StatsCard } from "@/components/dashboard/stats-card"
 import { EscrowOverview } from "@/components/Global/escrow-overview"
 import { useWeb3 } from "@/context/Web3Context"
 import { useFactory } from "@/Hooks/useFactory"
+import { getUserStats } from "@/services/Api/user/user"
+import { DashboardStats } from "@/types/escrow"
+import { useAppKitAccount } from "@reown/appkit/react"
+import { useQuery } from "@tanstack/react-query"
 import { useEffect, useState } from "react"
 
 export function OverviewTab() {
 
   //web 3 context
   const { signer } = useWeb3()
-
-  const {updateDisputeTeamMembers} =useFactory()
+  const { address } = useAppKitAccount();
+  const { updateDisputeTeamMembers } = useFactory()
 
   //multi-sig factory contract hook
-  const { fetchTotalEscrows,fetchTotalPayments } = useFactory()
+  const { fetchTotalEscrows, fetchTotalPayments } = useFactory()
 
   //states
   const [totalEscrows, setTotalEscrows] = useState<number>(0)
@@ -30,16 +34,28 @@ export function OverviewTab() {
   }
 
   const totalPaymentsMade = async () => {
-    const res =  await fetchTotalPayments()
+    const res = await fetchTotalPayments()
     setTotalPayments(res)
   }
+
+
+  const { data: userEscrows, isLoading, error } = useQuery<DashboardStats>({
+    queryKey: ['user-details'],
+    queryFn: async () => {
+      const response = await getUserStats();
+      return response.data;
+    },
+    enabled: !!address,
+  });
+
+  console.log("userEscrowszzzz", userEscrows)
 
   return (
     <>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
-        <StatsCard title="Total Escrows" description="Your total escrow created" value={totalEscrows} />
+        <StatsCard title="Total Escrows" description="Your total escrow created" value={userEscrows?.escrows?.total || 0} />
         {/* <StatsCard title="Pending Signatures" description="Transactions awaiting your approval" value="2" /> */}
-        <StatsCard title="Total Value Locked" description="Value secured in escrow" value={`${totalPayments} usdt`} />
+        <StatsCard title="Active Escrows" description="Escrows you are actively involved in" value={userEscrows?.escrows?.active || 0} />
       </div>
       {/* <button 
       onClick={updateDisputeTeamMembers}

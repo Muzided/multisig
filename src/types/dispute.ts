@@ -40,5 +40,33 @@ interface UserDisputeResponse {
     pagination: Pagination;
 }
 
-export type { UserDisputeResponse, Dispute, EscrowDetails, MilestoneDetails };
+export interface AffectedMilestone {
+    index: number;
+    amount: number;
+    _id: string;
+  }
+  
+  export interface DisputeResolution {
+    dispute_contract_address: string;
+    escrow_creator_walletaddress: string;
+    escrow_receiver_walletaddress: string;
+    resolved_in_favor_of_walletaddress: string;
+    continue_work: boolean;
+    is_milestone_dispute: boolean;
+    affected_milestones: AffectedMilestone[];
+    total_returned_amount: number;
+    tx_hash: string;
+    resolution_date: string;
+  }
+  
+   interface DisputeResolutionResponse {
+    success: boolean;
+    resolution: DisputeResolution;
+  }
+
+
+
+export type { UserDisputeResponse,DisputeResolutionResponse, Dispute, EscrowDetails, MilestoneDetails };
+
+
 

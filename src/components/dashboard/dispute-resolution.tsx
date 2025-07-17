@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Check, Clock, ExternalLink, Filter, MoreHorizontal, X, ChevronLeft, ChevronRight } from "lucide-react"
-
+import { Check, Clock, ExternalLink, Filter, MoreHorizontal, X, ChevronLeft, ChevronRight,CheckCircle, XCircle, DollarSign, Hash, Calendar, User, Users } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,8 +28,8 @@ import { disputesDemoData } from "../../../public/Data/Ecsrows"
 import { getStatusStyles } from "../../../utils/helper"
 import { useRouter } from "next/navigation"
 import PageHeading from "../ui/pageheading"
-import { getUserDisputes } from "@/services/Api/dispute/dispute"
-import {  Dispute, UserDisputeResponse } from "@/types/dispute"
+import { getDisputedResolutionHistory, getUserDisputes } from "@/services/Api/dispute/dispute"
+import {  Dispute, DisputeResolutionResponse, UserDisputeResponse } from "@/types/dispute"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 // Mock data for escrow transactions
 
@@ -49,6 +48,9 @@ export function DisputeResolution() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
+  const [loadingStates, setLoadingStates] = useState<{ [key: string]: boolean }>({});
+  const [selectedResolution, setSelectedResolution] = useState<DisputeResolutionResponse | null>(null);
+  const [isResolutionModalOpen, setIsResolutionModalOpen] = useState(false);
   const { address } = useAppKitAccount();
   const queryClient = useQueryClient();
   const { data: disputesData, isLoading, error } = useQuery<UserDisputeResponse>({
@@ -218,6 +220,79 @@ export function DisputeResolution() {
     );
   }
 
+  const handleViewResolutionDetails = async (disputeContractAddress: string) => {
+    try {
+      setLoadingStates(prev => ({ ...prev, [disputeContractAddress]: true }));
+      
+      const response = await getDisputedResolutionHistory(disputeContractAddress);
+      setSelectedResolution(response.data);
+      setIsResolutionModalOpen(true);
+      
+    } catch (error) {
+      console.error("Error fetching resolution details:", error);
+     
+    } finally {
+      setLoadingStates(prev => ({ ...prev, [disputeContractAddress]: false }));
+    }
+  };
+
+  const formatAddress = (address: string) => {
+    return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getEtherscanUrl = (address: string, type: 'address' | 'tx' = 'address') => {
+    // You can change this to your preferred network (mainnet, testnet, etc.)
+    const baseUrl = 'https://etherscan.io';
+    return type === 'address' ? `${baseUrl}/address/${address}` : `${baseUrl}/tx/${address}`;
+  };
+
+  const handleEtherscanClick = (address: string, type: 'address' | 'tx' = 'address') => {
+    const url = getEtherscanUrl(address, type);
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const getResolutionStatusIcon = (resolution: DisputeResolutionResponse) => {
+    const { continue_work, resolved_in_favor_of_walletaddress, escrow_creator_walletaddress } = resolution.resolution;
+    
+    if (continue_work) {
+      return <CheckCircle className="w-5 h-5 text-green-500" />;
+    } else {
+      return <XCircle className="w-5 h-5 text-red-500" />;
+    }
+  };
+
+  const getResolutionStatusText = (resolution: DisputeResolutionResponse) => {
+    const { continue_work, resolved_in_favor_of_walletaddress, escrow_creator_walletaddress } = resolution.resolution;
+    
+    if (continue_work) {
+      return "Project Continued";
+    } else {
+      return "Project Stopped";
+    }
+  };
+
+  const getWinnerText = (resolution: DisputeResolutionResponse) => {
+    const { resolved_in_favor_of_walletaddress, escrow_creator_walletaddress, escrow_receiver_walletaddress } = resolution.resolution;
+    
+    if (resolved_in_favor_of_walletaddress.toLowerCase() === escrow_creator_walletaddress.toLowerCase()) {
+      return "Creator";
+    } else if (resolved_in_favor_of_walletaddress.toLowerCase() === escrow_receiver_walletaddress.toLowerCase()) {
+      return "Receiver";
+    } else {
+      return "Unknown";
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -302,13 +377,31 @@ export function DisputeResolution() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      size="sm"
-                      className="bg-[#BB7333] text-white hover:bg-[#965C29] my-2 w dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
-                      onClick={() => navgateToDetailPage(dispute.escrowDetails.contractAddress)}
-                    >
-                      View Details
-                    </Button>
+                    {dispute.status === 'resolved' ? (
+                      <Button
+                        size="sm"
+                        className="bg-[#9C5F2A] text-white hover:bg-[#9C5F2A] my-2 w dark:bg-[#9C5F2A] dark:text-white dark:hover:bg-[#9C5F2A]"
+                        onClick={() => handleViewResolutionDetails(dispute.disputeContractAddress)}
+                        disabled={loadingStates[dispute.disputeContractAddress]}
+                      >
+                        {loadingStates[dispute.disputeContractAddress] ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Loading...
+                          </div>
+                        ) : (
+                          "View Resolution"
+                        )}
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        className="bg-[#BB7333] text-white hover:bg-[#965C29] my-2 w dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
+                        onClick={() => navgateToDetailPage(dispute.escrowDetails.contractAddress)}
+                      >
+                        View Escrow
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
@@ -317,6 +410,158 @@ export function DisputeResolution() {
         </Table>
         {renderPagination()}
       </div>
+
+       {/* Resolution Details Modal */}
+       <Dialog open={isResolutionModalOpen} onOpenChange={setIsResolutionModalOpen}>
+        <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-sm sm:text-base">
+              <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-500" />
+              Resolution Details
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedResolution && (
+            <div className="space-y-4 sm:space-y-6">
+              {/* Resolution Summary */}
+              <Card>
+                <CardHeader className="pb-3 sm:pb-6">
+                  <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                    <Hash className="w-4 h-4 sm:w-5 sm:h-5" />
+                    Resolution Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3 sm:space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Status:</span>
+                      <span className="text-xs">{getResolutionStatusText(selectedResolution)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Resolved in favor of:</span>
+                      <span className="text-xs font-semibold text-green-600">{getWinnerText(selectedResolution)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Total returned amount:</span>
+                      <span className="text-xs font-semibold">{selectedResolution.resolution.total_returned_amount} USDT</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Resolution date:</span>
+                      <span className="text-xs">{formatDate(selectedResolution.resolution.resolution_date)}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Contract Addresses */}
+              <Card>
+                <CardHeader className="pb-3 sm:pb-6">
+                  <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                    <Hash className="w-4 h-4 sm:w-5 sm:h-5" />
+                    Contract Addresses
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div>
+                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Dispute Contract:</span>
+                    <button
+                      onClick={() => handleEtherscanClick(selectedResolution.resolution.dispute_contract_address, 'address')}
+                      className="text-xs font-mono bg-zinc-100 dark:bg-zinc-800 p-2 rounded mt-1 break-all w-full text-left hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-between group"
+                    >
+                      <span>{selectedResolution.resolution.dispute_contract_address}</span>
+                      <ExternalLink className="w-3 h-3 text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300" />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 sm:gap-4">
+                    <div>
+                      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Creator:</span>
+                      <button
+                        onClick={() => handleEtherscanClick(selectedResolution.resolution.escrow_creator_walletaddress, 'address')}
+                        className="text-xs font-mono bg-zinc-100 dark:bg-zinc-800 p-2 rounded mt-1 w-full text-left hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-between group"
+                      >
+                        <span>{formatAddress(selectedResolution.resolution.escrow_creator_walletaddress)}</span>
+                        <ExternalLink className="w-3 h-3 text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300" />
+                      </button>
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Receiver:</span>
+                      <button
+                        onClick={() => handleEtherscanClick(selectedResolution.resolution.escrow_receiver_walletaddress, 'address')}
+                        className="text-xs font-mono bg-zinc-100 dark:bg-zinc-800 p-2 rounded mt-1 w-full text-left hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-between group"
+                      >
+                        <span>{formatAddress(selectedResolution.resolution.escrow_receiver_walletaddress)}</span>
+                        <ExternalLink className="w-3 h-3 text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300" />
+                      </button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Affected Milestones */}
+              {selectedResolution.resolution.affected_milestones && selectedResolution.resolution.affected_milestones.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-3 sm:pb-6">
+                    <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                      <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+                      Affected Milestones
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs sm:text-sm">Index</TableHead>
+                            <TableHead className="text-xs sm:text-sm">Amount (USDT)</TableHead>
+                            <TableHead className="text-xs sm:text-sm hidden sm:table-cell">ID</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {selectedResolution.resolution.affected_milestones.map((milestone, index) => (
+                            <TableRow key={milestone._id}>
+                              <TableCell className="text-xs sm:text-sm">{milestone.index}</TableCell>
+                              <TableCell className="text-xs sm:text-sm">{milestone.amount}</TableCell>
+                              <TableCell className="font-mono text-xs hidden sm:table-cell">
+                                {milestone._id}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Transaction Hash */}
+              <Card>
+                <CardHeader className="pb-3 sm:pb-6">
+                  <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                    <Hash className="w-4 h-4 sm:w-5 sm:h-5" />
+                    Transaction Details
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div>
+                    <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Transaction Hash:</span>
+                    <button
+                      onClick={() => handleEtherscanClick(selectedResolution.resolution.tx_hash, 'tx')}
+                      className="text-xs font-mono bg-zinc-100 dark:bg-zinc-800 p-2 rounded mt-1 break-all w-full text-left hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors flex items-center justify-between group"
+                    >
+                      <span>{selectedResolution.resolution.tx_hash}</span>
+                      <ExternalLink className="w-3 h-3 text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300" />
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

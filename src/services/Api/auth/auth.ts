@@ -67,7 +67,7 @@ export function isUserRejectedSignatureError(error: any) {
 }
 
 
-export const generateSumsubAccessToken = async () => {
+export const generateSumsubAccessTokens = async () => {
     try {
         const response = await axiosService.get<SumsubAccessTokenResponse>('api/user/kyc/token')
         return response.data.token

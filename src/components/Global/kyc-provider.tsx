@@ -15,6 +15,7 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
     isKYCMandatory,
     isKYCRequired,
     isKYCModalOpen,
+    kycStatus,
     openKYCModal,
     closeKYCModal,
     checkKYCRequirement,
@@ -42,10 +43,22 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
     }
   }, [showMandatoryKYC, isKYCModalOpen, openKYCModal]);
 
+
+  console.log("KYC Provider State:", { 
+    isKYCMandatory, 
+    kycStatus, 
+    isKYCModalOpen, 
+    showMandatoryKYC 
+  });
+  
   const handleCloseMandatoryKYC = () => {
+    console.log("handleCloseMandatoryKYC called:", { isKYCMandatory, kycStatus });
     // For mandatory KYC, only allow closing if KYC is completed
-    if (!isKYCMandatory) {
+    if (!isKYCMandatory || kycStatus === 'approved') {
+      console.log("Closing mandatory KYC modal");
       setShowMandatoryKYC(false);
+    } else {
+      console.log("Cannot close mandatory KYC modal - not approved yet");
     }
   };
 
@@ -59,6 +72,7 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
           isOpen={isKYCModalOpen}
           onClose={handleCloseMandatoryKYC}
           isMandatory={isKYCMandatory}
+          setShowMandatoryKYC={setShowMandatoryKYC}
         />
       )}
     </>

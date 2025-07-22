@@ -1,64 +1,102 @@
 'use client'
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { useKYC } from '@/Hooks/useKYC';
+import SumsubWebSdk from '@sumsub/websdk-react';
+import { generateSumsubAccessTokens } from '@/services/Api/auth/auth';
+import { useUser } from '@/context/userContext';
+import { KYCState } from '@/types/kyc';
 
 interface KYCModalProps {
   isOpen: boolean;
   onClose: () => void;
   isMandatory?: boolean;
+  setShowMandatoryKYC: (show: boolean) => void;
 }
 
-export const KYCModal = ({ isOpen, onClose, isMandatory = false }: KYCModalProps) => {
+export const KYCModal = ({ isOpen, onClose, isMandatory = false ,setShowMandatoryKYC}: KYCModalProps) => {
+  const { user } = useUser();
   const {
-    isKYCLoading,
-    kycStatus,
-    error,
     closeKYCModal,
+    kycStatus,
+    setState,
+    setKycApproved,
   } = useKYC();
 
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [sdkError, setSdkError] = useState<string | null>(null);
+  const [isApplicantLoading, setIsApplicantLoading] = useState<boolean>(true);
+//console.log("accessToken-fullskd", accessToken)
+
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+
+  // Fetch access token when modal opens
+  useEffect(() => { 
+    if (isOpen && !accessToken) {
+      fetchAccessToken();
+    }
+  }, [isOpen]);
+
+  const fetchAccessToken = async () => {
+    try {
+      const token = await generateSumsubAccessTokens();
+      setAccessToken(token);
+    } catch (error) {
+      console.error('Error generating access token:', error);
+    }
+  }
 
   // Handle modal close
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
+    console.log("handleClose-kycmodal", isMandatory, kycStatus)
     if (!isMandatory || kycStatus === 'approved') {
       closeKYCModal();
+      setShowMandatoryKYC(false);
       onClose();
     }
-  };
+  }, [isMandatory, kycStatus, closeKYCModal, onClose]);
 
   // Auto-close modal when KYC is approved
   useEffect(() => {
+    console.log('KYC Status changed:', kycStatus, 'Modal open:', isOpen);
     if (kycStatus === 'approved' && isOpen) {
+      console.log('Auto-closing modal in 2 seconds...');
       setTimeout(() => {
         handleClose();
       }, 2000);
     }
-  }, [kycStatus, isOpen]);
+  }, [kycStatus, isOpen, handleClose]);
 
-  // Initialize Sumsub container when modal opens
-  useEffect(() => {
-    if (isOpen && containerRef.current) {
-      // Ensure the container has the correct ID for Sumsub
-      containerRef.current.id = 'sumsub-container';
-      
-      // Clear any existing content
-      containerRef.current.innerHTML = '';
-      
-      // Add a loading indicator
-      containerRef.current.innerHTML = `
-        <div class="flex items-center justify-center h-full">
-          <div class="text-center">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#BB7333] mx-auto mb-2"></div>
-            <p class="text-gray-600">Loading verification...</p>
-          </div>
-        </div>
-      `;
+  // Handle SDK errors
+  const handleError = (error: any) => {
+    console.error('Sumsub SDK error:', error);
+    setSdkError('Failed to load verification interface. Please try again.');
+  };
+
+  // Handle SDK messages
+  const handleMessage = (type: string, payload: any) => {
+    console.log('Sumsub SDK message:', type, payload);
+    if (type === 'idCheck.onApplicantLoaded') {
+      setIsApplicantLoading(false);
     }
-  }, [isOpen]);
+    if (type === 'idCheck.onApplicantVerificationCompleted') {
+      console.log('Verification completed:', payload?.reviewResult?.reviewAnswer);
+      if (payload?.reviewResult?.reviewAnswer === 'GREEN') {
+        console.log('Setting KYC as approved...');
+        setKycApproved();
+      } else {
+        console.log('Setting KYC as rejected...');
+        setState(prev => ({
+          ...prev,
+          kycStatus: 'rejected',
+          isKYCModalOpen: false,
+          isKYCLoading: false,
+        }));
+      }
+    }
+  };
 
   const getStatusContent = () => {
     switch (kycStatus) {
@@ -111,18 +149,8 @@ export const KYCModal = ({ isOpen, onClose, isMandatory = false }: KYCModalProps
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <div className="flex items-center gap-2">
-                <XCircle className="h-5 w-5 text-red-500" />
-                <p className="text-red-700 text-sm">{error}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Status Content */}
-          {getStatusContent()}
+          
+         {getStatusContent()}
 
           {/* Sumsub Container */}
           {!getStatusContent() && (
@@ -136,7 +164,7 @@ export const KYCModal = ({ isOpen, onClose, isMandatory = false }: KYCModalProps
               </div>
 
               {/* Loading State */}
-              {isKYCLoading && (
+              {!accessToken && (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-[#BB7333]" />
                   <span className="ml-2 text-gray-600">Loading verification...</span>
@@ -144,32 +172,45 @@ export const KYCModal = ({ isOpen, onClose, isMandatory = false }: KYCModalProps
               )
               }
 
-              {/* Sumsub Container */}
-              <div 
-                ref={containerRef}
-                id="sumsub-container"
-                className="w-full   rounded-lg overflow-hidden bg-transparent"
-                style={{ 
-                  minWidth: '100%',
-                  position: 'relative'
-                }}
-              />
-              
-              {/* Fallback if SDK fails to load */}
-              {error && (
-                <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-red-700 text-sm">
-                    Failed to load verification interface. Please refresh the page and try again.
-                  </p>
-                  <Button
-                    size="sm"
-                    onClick={() => window.location.reload()}
-                    className="mt-2 bg-red-600 hover:bg-red-700 text-white"
-                  >
-                    Refresh Page
-                  </Button>
-                </div>
+              {/* Sumsub React SDK Component */}
+              {accessToken && (
+                <>
+                  {isApplicantLoading && (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-[#BB7333]" />
+                      <span className="ml-2 text-gray-600">Loading applicant...</span>
+                    </div>
+                  )}
+                  <div className={isApplicantLoading ? 'opacity-50 pointer-events-none' : ''}>
+                    <SumsubWebSdk
+                      accessToken={accessToken}
+                      expirationHandler={async () => {
+                        try {
+                          const newToken = await generateSumsubAccessTokens();
+                          return newToken || '';
+                        } catch (error) {
+                          console.error('Error refreshing token:', error);
+                          setSdkError('Session expired. Please try again.');
+                          return '';
+                        }
+                      }}
+                      config={{
+                        lang: 'en',
+                        email: user?.email || '',
+                        phone: '',
+                      }}
+                      options={{
+                        addViewportTag: true,
+                        adaptIframeHeight: true,
+                      }}
+                      onMessage={handleMessage}
+                      onError={handleError}
+                    />
+                  </div>
+                </>
               )}
+              
+              
             </div>
           )}
 

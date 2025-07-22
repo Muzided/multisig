@@ -21,7 +21,7 @@ export const KYCStatusIndicator = ({ showButton = true, className = '' }: KYCSta
   } = useKYC();
 
   if (!user) return null;
-
+ console.log("kycStatus-indicator", kycStatus , isKYCMandatory)
   const getStatusDisplay = () => {
     switch (kycStatus) {
       case 'approved':
@@ -64,7 +64,7 @@ export const KYCStatusIndicator = ({ showButton = true, className = '' }: KYCSta
         <span className={status.color}>{status.text}</span>
       </Badge>
 
-      {showButton && kycStatus !== 'approved' && (
+      {/* {showButton && kycStatus !== 'approved' && (
         <Button
           size="sm"
           variant="outline"
@@ -73,7 +73,7 @@ export const KYCStatusIndicator = ({ showButton = true, className = '' }: KYCSta
         >
           {isKYCMandatory ? 'Complete KYC' : 'Verify Identity'}
         </Button>
-      )}
+      )} */}
     </div>
   );
 }; 

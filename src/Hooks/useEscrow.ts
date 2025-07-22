@@ -8,7 +8,7 @@ import { useEscrowRefresh } from "../context/EscrowContext";
 
 import { convertUnixToDate } from "../../utils/helper";
 import { MileStone, ContractMilestone, RequestPaymentResponse } from "@/types/contract";
-import { saveHistory } from "@/services/Api/escrow/escrow";
+import { saveHistory, saveMilestoneDueDate } from "@/services/Api/escrow/escrow";
 import { openDispute } from "@/services/Api/dispute/dispute";
 import { createDisputeData } from "@/types/dispute";
 import { useTab } from "@/context/TabContext";
@@ -27,7 +27,7 @@ export const useEscrow = () => {
     const fetchEscrowContract = async (escrowAddress: string) => {
         try {
             if (!signer) return null
-            console.log("escrow-address", signer)
+           
             const escrowContract = new Contract(escrowAddress, EscrowAbi, signer);
             return escrowContract;
         } catch (error) {
@@ -70,9 +70,9 @@ export const useEscrow = () => {
         try {
 
 
-            console.log("escrowAddress-add", escrowAddress);
+           
             const escorwContract = await fetchEscrowContract(escrowAddress);
-            console.log("escorwContract", escorwContract);
+           
             if (!escorwContract) return [{
                 id: '',
                 amount: '',
@@ -229,6 +229,59 @@ export const useEscrow = () => {
         }
     }
 
+
+    const setMileStoneDueDate = async (escrowAddress: string, escrowIndex: string, amount: string, nextMilestoneDueDate: string, receiver_wallet_address: string, escrowType: string): Promise<RequestPaymentResponse> => {
+        let id: any;
+        try {
+            id = toast.loading(`Setting milestone due date...`);
+            const escorwContract = await fetchEscrowContract(escrowAddress);
+
+            if (!escorwContract) {
+                toast.update(id, {
+                    render: "Error while initializing escrow contract",
+                    type: "error",
+                    isLoading: false,
+                    autoClose: 3000
+                });
+                return {
+                    transactionHash: "",
+                    isSuccess: false,
+                    message: "Error while initializing escrow contract"
+                };
+            }
+            //request payment from blockchain
+            const requestPayment = await escorwContract.setDueDate(escrowIndex, nextMilestoneDueDate);
+            const tx = await requestPayment.wait();
+            const res = await saveMilestoneDueDate( escrowAddress, Number(escrowIndex), Number(nextMilestoneDueDate))
+            if (res.status === 201 || res.status === 200) {
+                toast.update(id, { render: `Released payment hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
+                triggerRefresh();
+                return {
+                    transactionHash: tx.hash,
+                    isSuccess: true,
+                    message: "Milestone due date set successfully."
+                };
+            } else {
+
+                triggerRefresh();
+                return {
+                    transactionHash: tx.hash,
+                    isSuccess: true,
+                    message: "Milestone due date set successfully."
+                };
+            }
+        } catch (error: any) {
+
+            const errorString = error.toString().toLowerCase();
+            toast.update(id, { render: "Failed to set milestone due date.", type: "error", isLoading: false, autoClose: 3000 });
+            return {
+                transactionHash: "",
+                isSuccess: false,
+                message: errorString
+            };
+        }
+    }
+
     const claimUnRequestedAmounts = async (escrowAddress: string, escrowIndex: string): Promise<RequestPaymentResponse> => {
         let id: any;
         try {
@@ -307,7 +360,7 @@ export const useEscrow = () => {
             const disputeContract = await contract.disputeContract()
             const isEscrowDisputed = disputeContract !== "0x0000000000000000000000000000000000000000"
             const escrowAmount = ethers.formatUnits(amount, tokenDecimals);
-            console.log("Escrow details:", escrowAmount, convertUnixToDate(Number(deadline)), disputeContract);
+           
             return {
                 escrowAmount: escrowAmount,
                 deadline: convertUnixToDate(Number(deadline)),
@@ -345,10 +398,9 @@ export const useEscrow = () => {
             //request payment from blockchain
             const disputeRes = await escorwContract.raiseDispute(escrowIndex, reason);
             const tx = await disputeRes.wait();
-            console.log("tx", tx, tx.logs, tx.logs[0], tx.logs[0].address);
-
+           
             const disputeContractAddress = tx.logs[0].address
-            console.log("disputeContractAddress", disputeContractAddress)
+           
             const disputeData: createDisputeData = {
                 escrowContractAddress: escrowAddress,
                 type: type,
@@ -398,6 +450,7 @@ export const useEscrow = () => {
         requestPayment,
         releasePayment,
         claimUnRequestedAmounts,
-        raiseDispute
+        raiseDispute,
+        setMileStoneDueDate
     }
 }

@@ -1,4 +1,4 @@
-import { LoginResponse, RegistrationVerificationResponse, User } from "@/types/user";
+import { LoginResponse, RegistrationVerificationResponse, SumsubAccessTokenResponse, User } from "@/types/user";
 import { axiosService } from "../apiConfig";
 import { AxiosError } from "axios";
 
@@ -67,5 +67,13 @@ export function isUserRejectedSignatureError(error: any) {
 }
 
 
-
+export const generateSumsubAccessToken = async () => {
+    try {
+        const response = await axiosService.get<SumsubAccessTokenResponse>('api/user/kyc/token')
+        return response.data.token
+    } catch (error) {
+        console.log("error while generating sumsub access token", error)
+        throw error
+    }
+}
 

@@ -19,6 +19,7 @@ import animationData from "../../../public/animations/secure.json"
 import { ThemeToggle } from "../Global/theme-toggle"
 import { useAppKitAccount, useDisconnect } from "@reown/appkit/react"
 import { useWeb3 } from "@/context/Web3Context"
+import { KYCStatusIndicator } from "../Global/kyc-status-indicator"
 
 interface HeaderProps {
   toggleMobileNav: () => void
@@ -72,6 +73,7 @@ export function Header({ toggleMobileNav }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        <KYCStatusIndicator showButton={false} className="hidden md:flex" />
         <ThemeToggle />
 {/* 
         <Button

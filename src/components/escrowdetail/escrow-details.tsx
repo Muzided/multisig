@@ -130,7 +130,6 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
 
   const fetchEscrowDetailsFromBlockchain = async (escrowId: string) => {
     const response = await getMileStones(escrowId);
-    console.log("response-in-shaka-terms-and-docs", response);
     setEscrowOnChainDetails(response);
   }
 
@@ -155,7 +154,6 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
     escrowContractAddress: escrowDetails?.escrow?.escrow_contract_address || '',
     token: userToken || '',
     onEventReceived: (data) => {
-      console.log('Escrow event received, triggering refresh...', data?.action)
       
       // Show appropriate toast message based on action
       if (data?.action) {
@@ -203,7 +201,6 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
     }
   };
 
-  console.log("shaka", escrowDetails , escrowOnChainDetails);
   return (
     <div className="container mx-auto p-1 md:p-4 space-y-6">
       <div className="flex flex-col gap-4 shadow-xl border border-gray-500/10 rounded-lg md:px-4 py-6">

@@ -43,7 +43,7 @@ export const useDispute = () => {
 
             const reason = await contract.reason();
             const isDisputeResolved = await contract.resolved()
-            console.log("dispute things", reason, isDisputeResolved)
+           
             return {
                 reason: reason,
                 isDisputeResolved: isDisputeResolved

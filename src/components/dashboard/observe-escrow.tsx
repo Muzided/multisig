@@ -54,7 +54,6 @@ export function ObserveEscrow() {
         },
         enabled: !!address,
     });
-    console.log("userEscrows", userEscrows)
     // Filter escrows based on status
     const filteredEscrows = userEscrows?.escrows || [];
 

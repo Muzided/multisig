@@ -104,7 +104,6 @@ const MessageList = React.memo(({
 
   // Handle scroll to load more messages
   const handleScroll = useCallback(async () => {
-    console.log("sane=pagination", messagePagination)
     const container = messagesContainerRef.current;
     if (!container || isLoadingMore || messagePagination.page === messagePagination.totalPages) return;
 
@@ -116,11 +115,7 @@ const MessageList = React.memo(({
 
     // Check if we're near the top (within 100px) to load more messages
     if (scrollTop < 100) {
-      console.log('Loading more messages...', {
-        scrollTop,
-        currentPage: messagePagination.page,
-        hasMore: messagePagination.page < messagePagination.totalPages
-      });
+    
 
       try {
         // Store current scroll height before loading
@@ -150,7 +145,7 @@ const MessageList = React.memo(({
       clearTimeout(timeoutId);
     };
   }, [handleScroll]);
-  console.log("check", messagePagination, messagePagination.page, messagePagination.totalPages)
+
   return (
     <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3">
       {isLoadingMore && (
@@ -361,9 +356,7 @@ console.log("message received",message,allMessages)
     const file = event.target.files?.[0]
     if (file && conversationId) {
       try {
-        console.log("File uploaded:", file)
         const response = await uploadMediatoChat(file)
-        console.log("response", response)
         if (response.status === 200) {
           setMedia(response.data.media)
           toast.success("File uploaded successfully")

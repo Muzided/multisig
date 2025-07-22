@@ -15,7 +15,6 @@ export const getObserverDisputes = async (page: number = 1, limit: number = 10, 
 export const getObserverEscrow = async (page: number = 1, limit: number = 10) => {
     try {
         const response = await axiosService.get<ObservedEscrowResponse>(`api/observer/observed-escrows?page=${page}&limit=${limit}`)
-        console.log("response", response)
         return response
     } catch (error) {
         console.log("error while fetching user escrows ", error)

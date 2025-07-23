@@ -241,7 +241,7 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
                     }
                   />}
               </div>
-              <button onClick={()=>refetchMileStonesData()}>Call him here</button>
+             
             </TabsContent>  
             {escrowDetails.resolver && <TabsContent value="chat">
               <EscrowDisputeChat

@@ -23,7 +23,7 @@ export const AuthenticatieUser = async (wallet_address: string, signature: strin
             wallet_address,
             signature
         })
-
+console.log("response-auth", response)
         return response
     } catch (error) {
         console.log("error while logging in", error)

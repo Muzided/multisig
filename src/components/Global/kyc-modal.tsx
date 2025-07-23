@@ -4,27 +4,24 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import { useKYC } from '@/Hooks/useKYC';
 import SumsubWebSdk from '@sumsub/websdk-react';
 import { generateSumsubAccessTokens } from '@/services/Api/auth/auth';
 import { useUser } from '@/context/userContext';
-import { KYCState } from '@/types/kyc';
+import { useKYC } from './kyc-provider';
 
 interface KYCModalProps {
   isOpen: boolean;
   onClose: () => void;
   isMandatory?: boolean;
-  setShowMandatoryKYC: (show: boolean) => void;
 }
 
-export const KYCModal = ({ isOpen, onClose, isMandatory = false ,setShowMandatoryKYC}: KYCModalProps) => {
+export const KYCModal = ({ 
+  isOpen, 
+  onClose, 
+  isMandatory = false
+}: KYCModalProps) => {
   const { user } = useUser();
-  const {
-    closeKYCModal,
-    kycStatus,
-    setState,
-    setKycApproved,
-  } = useKYC();
+  const { kycStatus, setKycApproved, setKycRejected } = useKYC();
 
   const [sdkError, setSdkError] = useState<string | null>(null);
   const [isApplicantLoading, setIsApplicantLoading] = useState<boolean>(true);
@@ -52,11 +49,9 @@ export const KYCModal = ({ isOpen, onClose, isMandatory = false ,setShowMandator
   const handleClose = useCallback(() => {
     console.log("handleClose-kycmodal", isMandatory, kycStatus)
     if (!isMandatory || kycStatus === 'approved') {
-      closeKYCModal();
-      setShowMandatoryKYC(false);
       onClose();
     }
-  }, [isMandatory, kycStatus, closeKYCModal, onClose]);
+  }, [isMandatory, kycStatus, onClose]);
 
   // Auto-close modal when KYC is approved
   useEffect(() => {
@@ -88,12 +83,7 @@ export const KYCModal = ({ isOpen, onClose, isMandatory = false ,setShowMandator
         setKycApproved();
       } else {
         console.log('Setting KYC as rejected...');
-        setState(prev => ({
-          ...prev,
-          kycStatus: 'rejected',
-          isKYCModalOpen: false,
-          isKYCLoading: false,
-        }));
+        setKycRejected();
       }
     }
   };

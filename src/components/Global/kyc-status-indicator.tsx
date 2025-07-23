@@ -2,8 +2,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { useKYC } from '@/Hooks/useKYC';
-import { useUser } from '@/context/userContext';
+import { useKYC } from '@/components/Global/kyc-provider';
 import { AlertCircle, CheckCircle, XCircle, Shield } from 'lucide-react';
 
 interface KYCStatusIndicatorProps {
@@ -12,16 +11,9 @@ interface KYCStatusIndicatorProps {
 }
 
 export const KYCStatusIndicator = ({ showButton = true, className = '' }: KYCStatusIndicatorProps) => {
-  const { user } = useUser();
-  const {
-    isKYCMandatory,
-    isKYCRequired,
-    kycStatus,
-    openKYCModal,
-  } = useKYC();
-
-  if (!user) return null;
- console.log("kycStatus-indicator", kycStatus , isKYCMandatory)
+  const { kycStatus, isKYCMandatory } = useKYC();
+  
+  console.log("kycStatus-indicator", kycStatus, isKYCMandatory);
   const getStatusDisplay = () => {
     switch (kycStatus) {
       case 'approved':
@@ -30,20 +22,6 @@ export const KYCStatusIndicator = ({ showButton = true, className = '' }: KYCSta
           text: 'KYC Verified',
           variant: 'default' as const,
           color: 'text-green-700',
-        };
-      case 'rejected':
-        return {
-          icon: <XCircle className="h-4 w-4 text-red-500" />,
-          text: 'KYC Rejected',
-          variant: 'destructive' as const,
-          color: 'text-red-700',
-        };
-      case 'pending':
-        return {
-          icon: <AlertCircle className="h-4 w-4 text-yellow-500" />,
-          text: 'KYC Pending',
-          variant: 'secondary' as const,
-          color: 'text-yellow-700',
         };
       default:
         return {

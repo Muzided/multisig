@@ -66,8 +66,6 @@ export function Web3Provider({ children }: Web3ProviderProps) {
 
             const ethersProvider = new BrowserProvider(walletProvider as Eip1193Provider);
             const signer = await ethersProvider.getSigner();
-
-         
             const factoryContract = new ethers.Contract(MultiSig_Factory_Address, MultiSigFactoryAbi, signer);
             const erc20TokenContract = new ethers.Contract(Usdt_Contract_Address, Erc20TokenAbi, signer);
             const userAddress = await signer.getAddress()

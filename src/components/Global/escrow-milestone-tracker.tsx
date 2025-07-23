@@ -242,7 +242,7 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
     setReleasePaymentModalOpen(true);
   };
 
-  const openTransactionModal = async (milestone: ContractMilestone, index: number) => {
+    const openTransactionModal = async (milestone: ContractMilestone, index: number) => {
     setSelectedMilestone(milestone);
     setTransactionModalOpen(true);
     setLoadingTransaction(true);

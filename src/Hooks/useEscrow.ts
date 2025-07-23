@@ -1,7 +1,8 @@
+'use client'
 import { useState, useCallback, Dispatch, SetStateAction, useEffect } from "react";
 import { ethers, Contract } from "ethers";
 import { useWeb3 } from "../context/Web3Context"; // Import your Web3 context
-import { MultiSig_Factory_Address, tokenDecimals, Usdt_Contract_Address } from "@/Web3/web3-config";
+import { infuraRpcUrl, MultiSig_Factory_Address, tokenDecimals, Usdt_Contract_Address } from "@/Web3/web3-config";
 import { toast } from "react-toastify";
 import EscrowAbi from "../Web3/Abis/EscrowAbi.json";
 import { useEscrowRefresh } from "../context/EscrowContext";
@@ -13,10 +14,7 @@ import { openDispute } from "@/services/Api/dispute/dispute";
 import { createDisputeData } from "@/types/dispute";
 import { useTab } from "@/context/TabContext";
 
-interface UseEscrowReturn {
 
-    fetchEscrowDetails(escrowAddress: string): Promise<void>;
-}
 
 export const useEscrow = () => {
     const { signer } = useWeb3();
@@ -29,6 +27,16 @@ export const useEscrow = () => {
             if (!signer) return null
             console.log("escrow-address", signer)
             const escrowContract = new Contract(escrowAddress, EscrowAbi, signer);
+            return escrowContract;
+        } catch (error) {
+            console.error("Error creating  escrow contract", error);
+        }
+    }
+    const fetchReadOnlyEscrowContract = async (escrowAddress: string) => {
+        try {
+            const provider = new ethers.JsonRpcProvider(infuraRpcUrl);
+            
+            const escrowContract = new Contract(escrowAddress, EscrowAbi, provider);
             return escrowContract;
         } catch (error) {
             console.error("Error creating  escrow contract", error);
@@ -66,12 +74,12 @@ export const useEscrow = () => {
     }
 
     
-    const getMileStones = async (escrowAddress: string): Promise<ContractMilestone[]> => {
+    const getMileStonesData = async (escrowAddress: string): Promise<ContractMilestone[]> => {
         try {
 
 
             console.log("escrowAddress-add", escrowAddress);
-            const escorwContract = await fetchEscrowContract(escrowAddress);
+            const escorwContract = await fetchReadOnlyEscrowContract(escrowAddress);
             console.log("escorwContract", escorwContract);
             if (!escorwContract) return [{
                 id: '',
@@ -84,7 +92,7 @@ export const useEscrow = () => {
                 requestTime: ''
             }];
             const totalMileStones = await escorwContract.getMilestones();
-            //  console.log("totalMileStones",totalMileStones)
+              console.log("totalMileStoneszzzz",totalMileStones)
             // Map the array data into milestone objects
             return totalMileStones.map((milestone: any): ContractMilestone => ({
                 id: milestone[0]?.toString(),
@@ -110,7 +118,50 @@ export const useEscrow = () => {
             }];
         }
     }
+    const updateMileStonesData = async (escrowAddress: string): Promise<ContractMilestone[]> => {
+        try {
 
+
+            console.log("escrowAddress-add", escrowAddress);
+            const escorwContract = await fetchReadOnlyEscrowContract(escrowAddress);
+            console.log("escorwContract", escorwContract);
+            if (!escorwContract) return [{
+                id: '',
+                amount: '',
+                dueDate: '',
+                released: false,
+                rejected: false,
+                disputedRaised: false,
+                requested: false,
+                requestTime: ''
+            }];
+            const totalMileStones = await escorwContract.getMilestones();
+              console.log("totalMileStoneszzzz",totalMileStones)
+            // Map the array data into milestone objects
+            return totalMileStones.map((milestone: any): ContractMilestone => ({
+                id: milestone[0]?.toString(),
+                amount: ethers.formatUnits(milestone[1]?.toString(), tokenDecimals),
+                dueDate: milestone[2],
+                released: milestone[3],
+                rejected: milestone[4],
+                disputedRaised: milestone[5],
+                requested: milestone[6],
+                requestTime: milestone[7]?.toString()
+            }));
+        } catch (error) {
+            console.error("Error fetching getting milestones ", error);
+            return [{
+                id: '',
+                amount: '',
+                dueDate: '',
+                released: false,
+                rejected: false,
+                disputedRaised: false,
+                requested: false,
+                requestTime: ''
+            }];
+        }
+    }
     const requestPayment = async (escrowAddress: string, escrowIndex: string, amount: string, receiver_wallet_address: string, escrowType: string): Promise<RequestPaymentResponse> => {
         let id: any;
         try {
@@ -394,7 +445,8 @@ export const useEscrow = () => {
 
     return {
         fetchEscrowDetails,
-        getMileStones,
+        getMileStonesData,
+        updateMileStonesData,
         requestPayment,
         releasePayment,
         claimUnRequestedAmounts,

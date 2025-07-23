@@ -32,7 +32,7 @@ import { useEscrowSocket } from "@/Hooks/useEscrowSocket"
 
 export function EscrowDetails({ escrowId }: { escrowId: string }) {
   const { refreshTrigger } = useEscrowRefresh();
-  const { getMileStones } = useEscrow();
+  const { getMileStonesData,updateMileStonesData } = useEscrow();
   const [escrowOnChainDetails, setEscrowOnChainDetails] = useState<ContractMilestone[]>([]);
   const [showContractTerms, setShowContractTerms] = useState(false);
   const [contractContent, setContractContent] = useState("");
@@ -129,7 +129,7 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
   };
 
   const fetchEscrowDetailsFromBlockchain = async (escrowId: string) => {
-    const response = await getMileStones(escrowId);
+    const response = await getMileStonesData(escrowId);
     console.log("response-in-shaka-terms-and-docs", response);
     setEscrowOnChainDetails(response);
   }
@@ -150,9 +150,17 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
     },
     enabled: !!escrowId, // Only run query when address is available
   });
+  const refetchMileStonesData = async () => {
+    const response = await updateMileStonesData(escrowId);
+    console.log("response-refetchMileStonesData", response);
+    setEscrowOnChainDetails(response);
+    
+  }
+
+
   const userToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null
   const { isConnected: socketConnected, error: socketError } = useEscrowSocket({
-    escrowContractAddress: escrowDetails?.escrow?.escrow_contract_address || '',
+    escrowContractAddress:escrowId,
     token: userToken || '',
     onEventReceived: (data) => {
       console.log('Escrow event received, triggering refresh...', data?.action)
@@ -162,9 +170,10 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
         showActionToast(data.action);
       }
       
-      fetchEscrowDetailsFromBlockchain(escrowId)
+      refetchMileStonesData()
     },
   })
+
   if (isLoading) {
     return (
       <div className="container mx-auto p-4 space-y-6">
@@ -232,7 +241,8 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
                     }
                   />}
               </div>
-            </TabsContent>
+              <button onClick={()=>refetchMileStonesData()}>Call him here</button>
+            </TabsContent>  
             {escrowDetails.resolver && <TabsContent value="chat">
               <EscrowDisputeChat
                 escrowDetails={escrowDetails}

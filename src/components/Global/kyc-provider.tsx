@@ -3,7 +3,8 @@
 import { useEffect, useState, ReactNode, useCallback, createContext, useContext } from 'react';
 import { KYCModal } from './kyc-modal';
 import { useUser } from '@/context/userContext';
-import { kyc_status } from '@/Web3/web3-config';
+import { useTab } from '@/context/TabContext';
+import { checkKYCStatus } from '@/services/Api/auth/auth';
 
 interface KYCState {
   isKYCMandatory: boolean;
@@ -12,6 +13,8 @@ interface KYCState {
   isKYCLoading: boolean;
   kycStatus: 'pending' | 'approved' | 'rejected' | 'not_started';
   error: string | null;
+  isCheckingKYC: boolean;
+  isKYCStatusInitialized: boolean;
 }
 
 interface KYCContextType extends KYCState {
@@ -19,7 +22,9 @@ interface KYCContextType extends KYCState {
   closeKYCModal: () => void;
   setKycApproved: () => void;
   setKycRejected: () => void;
+  resetKycStatus: () => void;
   updateKYCState: (updates: Partial<KYCState>) => void;
+  refreshKYCRequirement: () => Promise<void>;
 }
 
 const KYCContext = createContext<KYCContextType | undefined>(undefined);
@@ -38,7 +43,9 @@ interface KYCProviderProps {
 
 export const KYCProvider = ({ children }: KYCProviderProps) => {
   const { user, isAuthenticated } = useUser();
-  
+  const { activeTab, setActiveTab } = useTab();
+  const [kyc_status, setKycStatus] = useState<boolean>(false);
+
   const [state, setState] = useState<KYCState>({
     isKYCMandatory: false,
     isKYCRequired: false,
@@ -46,30 +53,76 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
     isKYCLoading: false,
     kycStatus: 'not_started',
     error: null,
+    isCheckingKYC: false,
+    isKYCStatusInitialized: false,
   });
 
-  const [showMandatoryKYC, setShowMandatoryKYC] = useState(false);
 
-  // Check if KYC is mandatory based on config and user status
+
+  // Check if KYC is mandatory based on API and user status
   const checkKYCRequirement = useCallback((): boolean => {
     if (!user) return false;
 
-    // KYC is mandatory if global config is true and user's KYC status is false
-    const isMandatory = kyc_status && !user.kyc_status;
+    try {
+      setState(prev => ({ ...prev, isCheckingKYC: true, error: null }));
 
-    setState(prev => ({
-      ...prev,
-      isKYCMandatory: isMandatory,
-      isKYCRequired: isMandatory,
-    }));
+      // KYC is mandatory if API returns true and user's KYC status is false
+      const isMandatory = kyc_status && !user.kyc_status;
 
-    return isMandatory;
-  }, [user]);
+      setState(prev => ({
+        ...prev,
+        isKYCMandatory: isMandatory,
+        isKYCRequired: isMandatory,
+        isCheckingKYC: false,
+        isKYCStatusInitialized: true,
+      }));
+
+      return isMandatory;
+    } catch (error) {
+      console.error('Error checking KYC status:', error);
+      setState(prev => ({
+        ...prev,
+        error: 'Failed to check KYC requirement',
+        isCheckingKYC: false,
+        isKYCStatusInitialized: true,
+      }));
+      return false;
+    }
+  }, [user, kyc_status]);
+
+  // Refresh KYC requirement manually
+  const refreshKYCRequirement = useCallback(async () => {
+    setState(prev => ({ ...prev, isKYCStatusInitialized: false }));
+    await fetchKYCStatus();
+    checkKYCRequirement();
+  }, [checkKYCRequirement]);
+
+  //fetch kyc status from api
+  const fetchKYCStatus = async () => {
+    try {
+      const response = await checkKYCStatus()
+      setKycStatus(response)
+    } catch (error) {
+      console.log("error while fetching kyc status", error)
+    }
+  }
+
+  useEffect(() => {
+    fetchKYCStatus()
+
+  }, [user])
+
+  // Initialize KYC status when user is authenticated
+  useEffect(() => {
+    if (isAuthenticated && user && !state.isKYCStatusInitialized) {
+      checkKYCRequirement();
+    }
+  }, [isAuthenticated, user, state.isKYCStatusInitialized, kyc_status, checkKYCRequirement]);
+
 
   // Initialize KYC status when user changes
   useEffect(() => {
     if (user) {
-      checkKYCRequirement();
       // Set KYC status based on user data
       setState(prev => ({
         ...prev,
@@ -78,25 +131,27 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
     }
   }, [user]);
 
-  // Check KYC requirement when user changes
+  // Check KYC requirement when user tries to access create tab (only if already initialized)
   useEffect(() => {
-    if (isAuthenticated && user) {
-      const isRequired = checkKYCRequirement();
-      setShowMandatoryKYC(isRequired);
+    if (isAuthenticated && user && activeTab === 'create' && state.isKYCStatusInitialized) {
+      // If KYC is required and user hasn't completed it, show modal
+      if (state.isKYCMandatory && !user.kyc_status && !state.isKYCModalOpen) {
+        setState(prev => ({
+          ...prev,
+          isKYCModalOpen: true,
+          isKYCMandatory: true
+        }));
+      }
+    } else {
+      // If user is not on create tab, close the modal if it's open
+      if (state.isKYCModalOpen && activeTab !== 'create') {
+        setState(prev => ({
+          ...prev,
+          isKYCModalOpen: false
+        }));
+      }
     }
-  }, [isAuthenticated, user]);
-
-  // Auto-open mandatory KYC modal
-  useEffect(() => {
-    if (showMandatoryKYC && !state.isKYCModalOpen) {
-      // Small delay to ensure the app is fully loaded
-      const timer = setTimeout(() => {
-        openKYCModal();
-      }, 1000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [showMandatoryKYC, state.isKYCModalOpen]);
+  }, [isAuthenticated, user, activeTab, state.isKYCMandatory, state.isKYCModalOpen, state.isKYCStatusInitialized]);
 
   // Open KYC modal
   const openKYCModal = useCallback(() => {
@@ -122,7 +177,9 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
       isKYCMandatory: false,
       isKYCModalOpen: false,
     }));
-    setShowMandatoryKYC(false);
+
+    // If user was on create tab and KYC is now approved, they can stay on create tab
+    // The CreateTab component will automatically show the form now
   }, []);
 
   // Set KYC as rejected
@@ -135,27 +192,39 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
     }));
   }, []);
 
+  // Reset KYC status
+  const resetKycStatus = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      kycStatus: 'not_started',
+      isKYCLoading: false,
+      isKYCModalOpen: false,
+    }));
+  }, []);
+
   // Update KYC state (for external use)
   const updateKYCState = useCallback((updates: Partial<KYCState>) => {
     setState(prev => ({ ...prev, ...updates }));
   }, []);
 
-  console.log("KYC Provider State:", { 
-    isKYCMandatory: state.isKYCMandatory, 
-    kycStatus: state.kycStatus, 
-    isKYCModalOpen: state.isKYCModalOpen, 
-    showMandatoryKYC 
+  console.log("KYC Provider State:", {
+    isKYCMandatory: state.isKYCMandatory,
+    kycStatus: state.kycStatus,
+    isKYCModalOpen: state.isKYCModalOpen,
+    activeTab,
+    isCheckingKYC: state.isCheckingKYC,
+    error: state.error,
+    isKYCStatusInitialized: state.isKYCStatusInitialized
   });
-  
+
   const handleCloseMandatoryKYC = () => {
-    console.log("handleCloseMandatoryKYC called:", { 
-      isKYCMandatory: state.isKYCMandatory, 
-      kycStatus: state.kycStatus 
+    console.log("handleCloseMandatoryKYC called:", {
+      isKYCMandatory: state.isKYCMandatory,
+      kycStatus: state.kycStatus
     });
     // For mandatory KYC, only allow closing if KYC is completed
     if (!state.isKYCMandatory || state.kycStatus === 'approved') {
       console.log("Closing mandatory KYC modal");
-      setShowMandatoryKYC(false);
       closeKYCModal();
     } else {
       console.log("Cannot close mandatory KYC modal - not approved yet");
@@ -168,15 +237,17 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
     closeKYCModal,
     setKycApproved,
     setKycRejected,
+    resetKycStatus,
     updateKYCState,
+    refreshKYCRequirement,
   };
 
   return (
     <KYCContext.Provider value={contextValue}>
       {children}
-      
-      {/* Mandatory KYC Modal */}
-      {showMandatoryKYC && (
+
+      {/* KYC Modal - only show when modal is open */}
+      {state.isKYCModalOpen && (
         <KYCModal
           isOpen={state.isKYCModalOpen}
           onClose={handleCloseMandatoryKYC}

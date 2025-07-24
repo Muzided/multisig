@@ -1,4 +1,4 @@
-import { LoginResponse, RegistrationVerificationResponse, SumsubAccessTokenResponse, User } from "@/types/user";
+import { KYCStatusResponse, LoginResponse, RegistrationVerificationResponse, SumsubAccessTokenResponse, User } from "@/types/user";
 import { axiosService } from "../apiConfig";
 import { AxiosError } from "axios";
 
@@ -77,3 +77,12 @@ export const generateSumsubAccessTokens = async () => {
     }
 }
 
+export const checkKYCStatus = async () => {
+    try {
+        const response = await axiosService.get<KYCStatusResponse>('api/user/kyc/isRequired')
+        return response.data.kyc_required
+    } catch (error) {
+        console.log("error while checking kyc status", error)
+        throw error
+    }
+}

@@ -8,6 +8,7 @@ import SumsubWebSdk from '@sumsub/websdk-react';
 import { generateSumsubAccessTokens } from '@/services/Api/auth/auth';
 import { useUser } from '@/context/userContext';
 import { useKYC } from './kyc-provider';
+import { useTab } from '@/context/TabContext';
 
 interface KYCModalProps {
   isOpen: boolean;
@@ -21,13 +22,13 @@ export const KYCModal = ({
   isMandatory = false
 }: KYCModalProps) => {
   const { user } = useUser();
-  const { kycStatus, setKycApproved, setKycRejected } = useKYC();
+  const { kycStatus, setKycApproved, setKycRejected, resetKycStatus } = useKYC();
+  const { setActiveTab } = useTab();
 
   const [sdkError, setSdkError] = useState<string | null>(null);
   const [isApplicantLoading, setIsApplicantLoading] = useState<boolean>(true);
-//console.log("accessToken-fullskd", accessToken)
-
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [showStatusContent, setShowStatusContent] = useState<boolean>(false);
 
   // Fetch access token when modal opens
   useEffect(() => { 
@@ -50,8 +51,29 @@ export const KYCModal = ({
     console.log("handleClose-kycmodal", isMandatory, kycStatus)
     if (!isMandatory || kycStatus === 'approved') {
       onClose();
+    } else {
+      // If KYC is mandatory and not approved, redirect to overview tab
+      setActiveTab('overview');
+      onClose();
     }
-  }, [isMandatory, kycStatus, onClose]);
+  }, [isMandatory, kycStatus, onClose, setActiveTab]);
+
+  // Handle Try Again functionality
+  const handleTryAgain = useCallback(async () => {
+    // Reset all states
+    setShowStatusContent(false);
+    setSdkError(null);
+    setIsApplicantLoading(true);
+    setAccessToken(null);
+    
+    // Reset KYC status in context
+    if (resetKycStatus) {
+      resetKycStatus();
+    }
+    
+    // Re-fetch access token
+    await fetchAccessToken();
+  }, [resetKycStatus]);
 
   // Auto-close modal when KYC is approved
   useEffect(() => {
@@ -63,6 +85,19 @@ export const KYCModal = ({
       }, 2000);
     }
   }, [kycStatus, isOpen, handleClose]);
+
+  // Show status content with smooth transition
+  useEffect(() => {
+    if (kycStatus === 'approved' || kycStatus === 'rejected' || kycStatus === 'pending') {
+      // Add a small delay for smooth transition
+      const timer = setTimeout(() => {
+        setShowStatusContent(true);
+      }, 300);
+      return () => clearTimeout(timer);
+    } else {
+      setShowStatusContent(false);
+    }
+  }, [kycStatus]);
 
   // Handle SDK errors
   const handleError = (error: any) => {
@@ -92,7 +127,7 @@ export const KYCModal = ({
     switch (kycStatus) {
       case 'approved':
         return (
-          <div className="text-center space-y-4">
+          <div className="text-center space-y-4 animate-in fade-in duration-500">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
             <h3 className="text-lg font-semibold text-green-700">KYC Verification Approved!</h3>
             <p className="text-gray-600">
@@ -102,20 +137,23 @@ export const KYCModal = ({
         );
       case 'rejected':
         return (
-          <div className="text-center space-y-4">
+          <div className="text-center space-y-4 animate-in fade-in duration-500">
             <XCircle className="h-16 w-16 text-red-500 mx-auto" />
             <h3 className="text-lg font-semibold text-red-700">KYC Verification Rejected</h3>
             <p className="text-gray-600">
               Your verification was not approved. Please try again with valid documents.
             </p>
-            <Button onClick={handleClose} className="bg-red-600 hover:bg-red-700">
+            <Button 
+              onClick={handleTryAgain} 
+              className="bg-red-600 hover:bg-red-700 transition-colors duration-200"
+            >
               Try Again
             </Button>
           </div>
         );
       case 'pending':
         return (
-          <div className="text-center space-y-4">
+          <div className="text-center space-y-4 animate-in fade-in duration-500">
             <Loader2 className="h-16 w-16 text-blue-500 mx-auto animate-spin" />
             <h3 className="text-lg font-semibold text-blue-700">KYC Verification in Progress</h3>
             <p className="text-gray-600">
@@ -140,11 +178,12 @@ export const KYCModal = ({
 
         <div className="space-y-4">
           
-         {getStatusContent()}
+          {/* Status Content with Smooth Transition */}
+          {showStatusContent && getStatusContent()}
 
-          {/* Sumsub Container */}
-          {!getStatusContent() && (
-            <div className="space-y-4">
+          {/* Sumsub Container with Fade Out */}
+          {!showStatusContent && (
+            <div className={`space-y-4 transition-opacity duration-500 ${showStatusContent ? 'opacity-0' : 'opacity-100'}`}>
               <div className="text-center space-y-2">
                 <h3 className="text-lg font-semibold">Complete Your Identity Verification</h3>
                 <p className="text-gray-600 text-sm">
@@ -159,8 +198,7 @@ export const KYCModal = ({
                   <Loader2 className="h-8 w-8 animate-spin text-[#BB7333]" />
                   <span className="ml-2 text-gray-600">Loading verification...</span>
                 </div>
-              )
-              }
+              )}
 
               {/* Sumsub React SDK Component */}
               {accessToken && (
@@ -199,13 +237,11 @@ export const KYCModal = ({
                   </div>
                 </>
               )}
-              
-              
             </div>
           )}
 
           {/* Footer Actions */}
-          {!isMandatory && kycStatus !== 'approved' && (
+          {!isMandatory && kycStatus !== 'approved' && !showStatusContent && (
             <div className="flex justify-end gap-2 pt-4 border-t">
               <Button
                 variant="outline"

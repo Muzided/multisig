@@ -28,10 +28,12 @@ class AxiosService {
   private axiosInstance: AxiosInstance;
 
   private constructor() {
+    // Get base URL from environment variable with fallback
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/';
+
     this.axiosInstance = axios.create({
-      // baseURL: 'https://escrow.ipcre8.com',
-      baseURL: 'https://escrow.ipcre8.com/',
-      timeout: 50000,
+      baseURL: API_BASE_URL,
+      timeout: 10000,
       headers: {
         'Content-Type': 'application/json',
       },

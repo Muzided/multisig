@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogOverlay, DialogPortal } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import SumsubWebSdk from '@sumsub/websdk-react';
@@ -168,92 +168,96 @@ export const KYCModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-scroll">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-[#BB7333]" />
-            {isMandatory ? 'Required Identity Verification' : 'Identity Verification'}
-          </DialogTitle>
-        </DialogHeader>
+      <DialogPortal>
+        {/* Custom darker backdrop */}
+        <DialogOverlay className="bg-black/40 backdrop-blur-sm" />
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-scroll bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-[#BB7333]" />
+              {isMandatory ? 'Required Identity Verification' : 'Identity Verification'}
+            </DialogTitle>
+          </DialogHeader>
 
-        <div className="space-y-4">
-          
-          {/* Status Content with Smooth Transition */}
-          {showStatusContent && getStatusContent()}
+          <div className="space-y-4">
+            
+            {/* Status Content with Smooth Transition */}
+            {showStatusContent && getStatusContent()}
 
-          {/* Sumsub Container with Fade Out */}
-          {!showStatusContent && (
-            <div className={`space-y-4 transition-opacity duration-500 ${showStatusContent ? 'opacity-0' : 'opacity-100'}`}>
-              <div className="text-center space-y-2">
-                <h3 className="text-lg font-semibold">Complete Your Identity Verification</h3>
-                <p className="text-gray-600 text-sm">
-                  Please provide your identification documents to continue.
-                  {isMandatory && ' This verification is required to use our services.'}
-                </p>
-              </div>
-
-              {/* Loading State */}
-              {!accessToken && (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-[#BB7333]" />
-                  <span className="ml-2 text-gray-600">Loading verification...</span>
+            {/* Sumsub Container with Fade Out */}
+            {!showStatusContent && (
+              <div className={`space-y-4 transition-opacity duration-500 ${showStatusContent ? 'opacity-0' : 'opacity-100'}`}>
+                <div className="text-center space-y-2">
+                  <h3 className="text-lg font-semibold">Complete Your Identity Verification</h3>
+                  <p className="text-gray-600 text-sm">
+                    Please provide your identification documents to continue.
+                    {isMandatory && ' This verification is required to use our services.'}
+                  </p>
                 </div>
-              )}
 
-              {/* Sumsub React SDK Component */}
-              {accessToken && (
-                <>
-                  {isApplicantLoading && (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-8 w-8 animate-spin text-[#BB7333]" />
-                      <span className="ml-2 text-gray-600">Loading applicant...</span>
-                    </div>
-                  )}
-                  <div className={isApplicantLoading ? 'opacity-50 pointer-events-none' : ''}>
-                    <SumsubWebSdk
-                      accessToken={accessToken}
-                      expirationHandler={async () => {
-                        try {
-                          const newToken = await generateSumsubAccessTokens();
-                          return newToken || '';
-                        } catch (error) {
-                          console.error('Error refreshing token:', error);
-                          setSdkError('Session expired. Please try again.');
-                          return '';
-                        }
-                      }}
-                      config={{
-                        lang: 'en',
-                        email: user?.email || '',
-                        phone: '',
-                      }}
-                      options={{
-                        addViewportTag: true,
-                        adaptIframeHeight: true,
-                      }}
-                      onMessage={handleMessage}
-                      onError={handleError}
-                    />
+                {/* Loading State */}
+                {!accessToken && (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-[#BB7333]" />
+                    <span className="ml-2 text-gray-600">Loading verification...</span>
                   </div>
-                </>
-              )}
-            </div>
-          )}
+                )}
 
-          {/* Footer Actions */}
-          {!isMandatory && kycStatus !== 'approved' && !showStatusContent && (
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <Button
-                variant="outline"
-                onClick={handleClose}
-                className="border-[#BB7333] text-[#BB7333] hover:bg-[#BB7333] hover:text-white"
-              >
-                Cancel
-              </Button>
-            </div>
-          )}
-        </div>
-      </DialogContent>
+                {/* Sumsub React SDK Component */}
+                {accessToken && (
+                  <>
+                    {isApplicantLoading && (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-[#BB7333]" />
+                        <span className="ml-2 text-gray-600">Loading applicant...</span>
+                      </div>
+                    )}
+                    <div className={isApplicantLoading ? 'opacity-50 pointer-events-none' : ''}>
+                      <SumsubWebSdk
+                        accessToken={accessToken}
+                        expirationHandler={async () => {
+                          try {
+                            const newToken = await generateSumsubAccessTokens();
+                            return newToken || '';
+                          } catch (error) {
+                            console.error('Error refreshing token:', error);
+                            setSdkError('Session expired. Please try again.');
+                            return '';
+                          }
+                        }}
+                        config={{
+                          lang: 'en',
+                          email: user?.email || '',
+                          phone: '',
+                        }}
+                        options={{
+                          addViewportTag: true,
+                          adaptIframeHeight: true,
+                        }}
+                        onMessage={handleMessage}
+                        onError={handleError}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Footer Actions */}
+            {!isMandatory && kycStatus !== 'approved' && !showStatusContent && (
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={handleClose}
+                  className="border-[#BB7333] text-[#BB7333] hover:bg-[#BB7333] hover:text-white"
+                >
+                  Cancel
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </DialogPortal>
     </Dialog>
   );
 }; 

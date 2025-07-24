@@ -20,7 +20,7 @@ export const useSocketChat = ({
   useEffect(() => {
     try {
       // Initialize socket connection
-      socketRef.current = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000', {
+      socketRef.current = io('https://escrow.ipcre8.com', {
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1000,

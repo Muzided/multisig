@@ -48,7 +48,6 @@ export function OverviewTab() {
     enabled: !!address,
   });
 
-  console.log("userEscrowszzzz", userEscrows)
 
   return (
     <>

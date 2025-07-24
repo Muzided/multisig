@@ -1,4 +1,4 @@
-import { LoginResponse, RegistrationVerificationResponse, User } from "@/types/user";
+import { KYCStatusResponse, LoginResponse, RegistrationVerificationResponse, SumsubAccessTokenResponse, User } from "@/types/user";
 import { axiosService } from "../apiConfig";
 import { AxiosError } from "axios";
 
@@ -23,7 +23,7 @@ export const AuthenticatieUser = async (wallet_address: string, signature: strin
             wallet_address,
             signature
         })
-
+console.log("response-auth", response)
         return response
     } catch (error) {
         console.log("error while logging in", error)
@@ -67,5 +67,22 @@ export function isUserRejectedSignatureError(error: any) {
 }
 
 
+export const generateSumsubAccessTokens = async () => {
+    try {
+        const response = await axiosService.get<SumsubAccessTokenResponse>('api/user/kyc/token')
+        return response.data.token
+    } catch (error) {
+        console.log("error while generating sumsub access token", error)
+        throw error
+    }
+}
 
-
+export const checkKYCStatus = async () => {
+    try {
+        const response = await axiosService.get<KYCStatusResponse>('api/user/kyc/isRequired')
+        return response.data.kyc_required
+    } catch (error) {
+        console.log("error while checking kyc status", error)
+        throw error
+    }
+}

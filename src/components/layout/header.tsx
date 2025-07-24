@@ -19,6 +19,8 @@ import animationData from "../../../public/animations/secure.json"
 import { ThemeToggle } from "../Global/theme-toggle"
 import { useAppKitAccount, useDisconnect } from "@reown/appkit/react"
 import { useWeb3 } from "@/context/Web3Context"
+import { KYCStatusIndicator } from "../Global/kyc-status-indicator"
+import { useKYC } from "../Global/kyc-provider"
 
 interface HeaderProps {
   toggleMobileNav: () => void
@@ -28,7 +30,7 @@ export function Header({ toggleMobileNav }: HeaderProps) {
 
   const { disconnectWallet } = useWeb3()
   const { address, isConnected } = useAppKitAccount();
-
+  const { kyc_status } = useKYC();
 
 
   return (
@@ -72,6 +74,7 @@ export function Header({ toggleMobileNav }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-2">
+        {kyc_status && isConnected && <KYCStatusIndicator showButton={false} className="hidden md:flex" />}
         <ThemeToggle />
 {/* 
         <Button

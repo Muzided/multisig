@@ -55,7 +55,7 @@ export function UserProvider({ children }: UserProviderProps) {
         try {
             //register user if not registered
             const response = await RegisterUser(account)
-            console.log("response", response)
+          
             if (response?.status === 200) {
                 //sign message and authenticate user
                 if (signer) {
@@ -82,7 +82,6 @@ export function UserProvider({ children }: UserProviderProps) {
     };
 
    
-console.log("isAuthenticated",isAuthenticated)
 
 
     return (

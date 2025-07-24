@@ -51,7 +51,6 @@ export function TransactionsTab() {
     },
     enabled: !!address,
   });
-console.log("transactionHistory", transactionHistory?.transactions)
   const filteredTransactions = useMemo(() => {
     if (!transactionHistory?.transactions) return [];
     return transactionHistory.transactions;

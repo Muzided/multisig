@@ -143,7 +143,7 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
 
     try {
       const isSigned = await signLegalDocument(currentEscrowAddress, contractContent);
-      console.log("isSigned", isSigned)
+
       if (isSigned) {
         // Refetch escrows after successful signature
         toast.success("Contract signed successfully");

@@ -73,7 +73,6 @@ export function Web3Provider({ children }: Web3ProviderProps) {
             // const disputeMembers = await factoryContract.getDisputeTeamMembers();
             // const isUserInDisputeTeam = disputeMembers.includes(userAddress);
 
-//console.log('checks that happen',isUserInDisputeTeam)
             setProvider(ethersProvider);
             setSigner(signer);
             setAccount(userAddress);
@@ -88,14 +87,6 @@ export function Web3Provider({ children }: Web3ProviderProps) {
         }
     };
 
-    //console.log("after intializations", provider, signer, account, chainId, multisigFactoryContract)
-    // Handle disconnection: Reset state and redirect to "/"
-    // useEffect(() => {
-    //     if (!isConnected) {
-    //         resetState();
-    //         router.push('/');
-    //     }
-    // }, [isConnected]);
 
     // Function to reset Web3 state on disconnect
     const resetState = () => {

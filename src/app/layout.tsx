@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { UserProvider } from '@/context/userContext';
 import { EscrowProvider } from "@/context/EscrowContext";
 import { TabProvider } from '@/context/TabContext';
+import { KYCProvider } from '@/components/Global/kyc-provider';
 
 const queryClient = new QueryClient()
 
@@ -61,9 +62,11 @@ export default function RootLayout({
               <AppKit>
                 <Web3Provider>
                   <UserProvider>
-                    <EscrowProvider>
-                      {children}
-                    </EscrowProvider>
+                    <KYCProvider>
+                      <EscrowProvider>
+                        {children}
+                      </EscrowProvider>
+                    </KYCProvider>
                   </UserProvider>
                 </Web3Provider>
               </AppKit>

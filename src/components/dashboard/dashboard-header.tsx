@@ -22,7 +22,6 @@ export function DashboardHeader({ activeTab }: DashboardHeaderProps) {
     history: "View your escrow history and track transactions on Etherscan",
   }
 
-  console.log("activeTab", activeTab)
   return (
     <div className={`${activeTab ==='create'?'md:justify-center':'md:justify-between'} mb-6  flex flex-col gap-4 md:flex-row md:items-center `}>
       <div>

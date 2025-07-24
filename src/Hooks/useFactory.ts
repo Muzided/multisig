@@ -23,16 +23,13 @@ export const useFactory = () => {
     const { multisigFactoryContract, erc20TokenContract, provider } = useWeb3(); // Get signer & provider from context
 
 
-    // useEffect(() => {
-    //     console.log("multisigFactoryContract", multisigFactoryContract);
-    //     fetchTotalEscrows();
-    // }, [multisigFactoryContract]);
+   
     //approve USDT
     const approveUSDT = async (usdtContract: Contract, factoryAddress: string, amount: string) => {
 
         const tx = await usdtContract.approve(factoryAddress, amount);
         await tx.wait(); // Wait for transaction confirmation
-        console.log("Approval successful");
+      
     };
 
     const fetchThreshold = async (): Promise<number> => {
@@ -74,7 +71,7 @@ export const useFactory = () => {
     const checkUserBalance = async (usdtContract: Contract, userAddress: string) => {
         const balance = await usdtContract.balanceOf(userAddress);
         const formattedBalance = ethers.formatUnits(balance.toString(), tokenDecimals);
-        console.log("User Balance:", formattedBalance);
+       
         return formattedBalance;
     }
 
@@ -125,7 +122,7 @@ export const useFactory = () => {
             const payment = await multisigFactoryContract.totalPaymentsUsed();
 
             const paymentUsed = ethers.formatUnits(payment.toString(), tokenDecimals);
-            console.log("payment", payment.toString(), paymentUsed);
+          
             return paymentUsed
         } catch (error) {
             console.error("Error fetching total escrows", error);
@@ -196,7 +193,7 @@ export const useFactory = () => {
         try {
             if (!multisigFactoryContract) return 0;
             const disputeMembers = await multisigFactoryContract.getDisputeTeamMembers();
-            console.log("team memebers fetched", disputeMembers[0])
+           
 
         } catch (error) {
             console.error("Error fetching total escrows", error);
@@ -222,7 +219,7 @@ export const useFactory = () => {
 
             const tx = await multisigFactoryContract.requestPayment(escrowAddress);
             const receipt = await tx.wait();
-            console.log("Receipt:", receipt);
+           
 
             toast.update(id, {
                 render: `Claim Requested`,
@@ -263,7 +260,7 @@ export const useFactory = () => {
 
             const tx = await multisigFactoryContract.releaseFunds(escrowAddress);
             const receipt = await tx.wait();
-            console.log("Receipt:", receipt);
+           
 
             toast.update(id, {
                 render: `Funds released`,
@@ -302,7 +299,7 @@ export const useFactory = () => {
 
             const tx = await multisigFactoryContract.approvePayment(escrowAddress);
             const receipt = await tx.wait();
-            console.log("Receipt:", receipt);
+           
 
             toast.update(id, {
                 render: `Funds approved`,
@@ -342,7 +339,7 @@ export const useFactory = () => {
 
             const tx = await multisigFactoryContract.initiateDispute(escrowAddress, disputeReason);
             const receipt = await tx.wait();
-            console.log("Receipt:", receipt);
+          
 
             toast.update(id, {
                 render: `Dispute initiated`,
@@ -382,7 +379,7 @@ export const useFactory = () => {
 
             const tx = await multisigFactoryContract.resolveDispute(escrowAddress, resolveApproved);
             const receipt = await tx.wait();
-            console.log("Receipt:", receipt);
+            
 
             toast.update(id, {
                 render: `Dispute resolved`,
@@ -423,9 +420,9 @@ export const useFactory = () => {
             id = toast.loading(`Executing USDT approval...`);
 
             const parsedAmounts = amount.map(amt => ethers.parseUnits(amt, 6));
-            console.log("parsedAmounts", parsedAmounts)
+           
             const totalparsedAmount = parsedAmounts.reduce((sum, amts) => sum + BigInt(amts?.toString()), BigInt(0));
-            console.log("totalparsedAmount", totalparsedAmount)
+           
             // Check user balance before proceeding
             const userBalance = await checkUserBalance(erc20TokenContract, userAddress);
             const totalAmount = amount.reduce((sum, amt) => sum + parseFloat(amt), 0);
@@ -448,7 +445,7 @@ export const useFactory = () => {
             )
 
             const receipt = await tx.wait()
-            console.log("receipt", receipt)
+       
             toast.update(id, { render: `Escrow Created hash: ${receipt.hash}`, type: "success", isLoading: false, autoClose: 3000 });
 
             // // Find the escrow address from event logs
@@ -521,7 +518,6 @@ export const useFactory = () => {
             // Add fee to total amount
             const totalAmountWithFee = totalparsedAmount + feeAmount;
 
-            console.log("admin_profit", feeAmount)
             // Check user balance before proceeding
             const userBalance = await checkUserBalance(erc20TokenContract, userAddress);
             const totalAmount = amount.reduce((sum, amt) => sum + parseFloat(amt), 0);
@@ -590,21 +586,18 @@ export const useFactory = () => {
             success:false,
             feeAmount: 0 }
             //fetch fee structure
-            console.log("amount",amount)
+        
             const feeThreshold = await fetchThreshold();
             const fixedFee = await fetchFixedFee();
             const feePercentage = await fetchPercentageFee();
             //parse amount in wei
             const parsedAmounts = amount.map(amt => ethers.parseUnits(amt, tokenDecimals));
-            console.log("parsed-amounts",parsedAmounts)
+            
             //sum of all the parsed amounts
             const totalparsedAmount = parsedAmounts.reduce((sum, amts) => sum + BigInt(amts?.toString()), BigInt(0));
             // Calculate fee based on threshold
 
-            console.log("fixed-fee",fixedFee);
-            console.log("feePercentage",feePercentage),
-            
-            console.log("totalamount",totalparsedAmount,BigInt(feeThreshold))
+          
             let feeAmount;
             if (totalparsedAmount <= BigInt(feeThreshold)) {
                 // If amount is less than or equal to threshold, use fixed fee
@@ -616,7 +609,6 @@ export const useFactory = () => {
             }
             
             
-            console.log("admin_profit", )
             return {
                 success:true, 
                 feeAmount: Number(ethers.formatUnits(feeAmount,tokenDecimals)) }
@@ -641,7 +633,7 @@ export const useFactory = () => {
                     const parsed = iface.parseLog(log);
                     if (parsed && parsed.name === "EscrowCreated") {
                         escrowAddress = parsed.args.escrow;
-                        console.log("🟢 Escrow contract deployed at:", escrowAddress);
+                       
                         break;
                     }
                 } catch (err) {
@@ -677,7 +669,7 @@ export const useFactory = () => {
             ]
             const tx = await multisigFactoryContract.updateDisputeTeamMember("0x76399c8A5027fD58A1D1b07500ccC8a223BEE0c3", true);
             const receipt = await tx.wait();
-            console.log("Receipt:", receipt);
+           
 
 
 

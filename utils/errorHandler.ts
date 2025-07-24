@@ -23,7 +23,6 @@ export const handleError = (error: any) => {
         // Extract the revert reason if available
         const reasonMatch = errorString.match(/reason="([^"]+)"/);
         const revertReason = reasonMatch ? reasonMatch[1] : "Transaction reverted by the contract.";
-        console.log("revertReason", revertReason);
         toast.error(revertReason);
     }
     else if (errorString.includes("network error") || errorString.includes("network changed")) {

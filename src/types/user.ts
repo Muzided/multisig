@@ -41,6 +41,16 @@ export interface EscrowCreationData {
     }[];
 }
 
+export interface SumsubAccessTokenResponse {
+    token: string,
+    userId:string
+}
+
+export interface KYCStatusResponse {
+    success: string;
+    kyc_required: boolean;
+}
+
 // {
 //     "message": "User not found. Please sign this key to verify and register.",
 //     "toSign": "681de1d3c9bf75ae61b38678",

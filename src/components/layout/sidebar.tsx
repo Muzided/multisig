@@ -14,7 +14,6 @@ interface SidebarProps {
 export function Sidebar({ activeTab, setActiveTab, isMobileNavOpen }: SidebarProps) {
   const { isDisputeMember } = useWeb3()
 
-  console.log("isDisputeMember", isDisputeMember)
   const navItems = [
     {
       id: "overview",

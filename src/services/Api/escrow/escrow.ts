@@ -77,7 +77,6 @@ export const saveHistory = async (txType: string, txHash: string, amount: string
             index: index,
             receiver_wallet_address: receiver_walletaddress,
         })
-        console.log("response", response)
         return response
     } catch (error) {
         console.log("error while fetching payment history", error)
@@ -90,6 +89,21 @@ export const fetchTransactionDetails = async (escrowContractAddress: string, ind
         const response = await axiosService.get<TransactionDetailsResponse>(`api/transaction/escrow-transactions?escrowContractAddress=${escrowContractAddress}&index=${index}&transaction_type=${transactionType}`)
         return response
     } catch (error) {
+        throw error
+    }
+}
+
+
+export const saveMilestoneDueDate = async ( escorwContract: string, index: number, due_date: number) => {
+    try {
+        const response = await axiosService.post<any>(`api/escrow/updateMilestone`, {
+            escrowContractAddress: escorwContract,
+            index:index,
+            due_date: due_date
+        })
+        return response
+    } catch (error) {
+        console.log("error while fetching payment history", error)
         throw error
     }
 }

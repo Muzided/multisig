@@ -37,6 +37,10 @@ export const useSocketChat = ({
         // Join conversation room
         socket.emit('joinConversation', conversationId);
         console.log(`Joined conversation ${conversationId}`);
+
+        // Emit markAsRead event immediately after connection
+        socket.emit('markAsRead', { conversationId, userId:senderId });
+        console.log('Marked messages as read for conversation:', conversationId, 'user:', senderId);
       });
 
       socket.on('connect_error', (err) => {
@@ -51,6 +55,17 @@ export const useSocketChat = ({
 
         // Pass the original Message to the callback
         onMessageReceived?.(data);
+
+        // Mark messages as read when receiving a new message
+        socket.emit('markAsRead', { conversationId, userId: senderId });
+        console.log('Marked messages as read after receiving message for conversation:', conversationId, 'user:', senderId);
+      });
+
+      // Mark as read event handler
+      socket.on('markAsRead', async ({ conversationId, senderId }) => {
+        console.log('Marking messages as read for conversation:', conversationId, 'user:', senderId);
+        // Handle marking messages as read
+        // You can add your logic here to update the UI or call an API
       });
 
       // Disconnection handler
@@ -65,6 +80,7 @@ export const useSocketChat = ({
           socket.off('connect');
           socket.off('connect_error');
           socket.off('receiveMessage');
+          socket.off('markAsRead');
           socket.off('disconnect');
           socket.disconnect();
         }

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Check, Clock, ExternalLink, Filter, MoreHorizontal, X, ChevronLeft, ChevronRight,CheckCircle, XCircle, DollarSign, Hash, Calendar, User, Users } from "lucide-react"
+import { Check, Clock, ExternalLink, Filter, MoreHorizontal, X, ChevronLeft, ChevronRight,CheckCircle, XCircle, DollarSign, Hash, Calendar, User, Users, MessageSquare } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -63,8 +63,8 @@ export function DisputeResolution() {
   });
 
   const router = useRouter()
-  const navgateToDetailPage = (id: string) => {
-    router.push(`/escrow/${id}`)
+  const navgateToDetailPage = (id: string,tab:string) => {
+   tab==='chat' ? router.push(`/escrow/${id}?tab=chat`) : router.push(`/escrow/${id}`)
   }
 
   // Filter disputes based on status
@@ -183,7 +183,7 @@ export function DisputeResolution() {
       </div>
     );
   };
-
+console.log("disputesData",filteredDisputes)
   // Show skeleton loading while fetching data
   if (isLoading) {
     return (
@@ -339,6 +339,7 @@ export function DisputeResolution() {
               <TableHead className="text-zinc-500 dark:text-zinc-400">Escrow Address</TableHead>
               <TableHead className="text-zinc-500 dark:text-zinc-400">Disputer Address</TableHead>
               <TableHead className="text-zinc-500 dark:text-zinc-400">Status</TableHead>
+              <TableHead className="text-zinc-500 dark:text-zinc-400">Chat</TableHead>
               <TableHead className="text-zinc-500 dark:text-zinc-400">View Details</TableHead>
             </TableRow>
           </TableHeader>
@@ -380,6 +381,51 @@ export function DisputeResolution() {
                     {dispute.status === 'resolved' ? (
                       <Button
                         size="sm"
+                        className=" my-2 bg-[#BB7333] text-white hover:bg-[#965C29] dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29] cursor-not-allowed"
+                        onClick={() => {}}
+                        disabled={!dispute.conversationId}
+                      >
+                        
+                          <div
+                          className="cursor-not-allowed flex items-center gap-2">
+                         <MessageSquare className="h-4 w-4" />
+                            <span>Chat</span>
+                          </div>
+                        
+                      </Button>
+                    ) : (
+                      <div className={`relative ${ dispute.conversationId  ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
+                        <Button
+                          size="sm"
+                          className={`my-2  ${
+                            dispute.conversationId 
+                              ? "bg-[#BB7333] text-white hover:bg-[#965C29] dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]" 
+                              : "bg-[#BB7333] text-white hover:bg-[#965C29] dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29] cursor-not-allowed"
+                          }`}
+                          onClick={() => dispute.conversationId && navgateToDetailPage(dispute.escrowDetails.contractAddress,"chat")}
+                          disabled={!dispute.conversationId}
+                        >
+                          <div className="flex items-center  gap-2">
+                            <MessageSquare className="h-4 w-4" />
+                            Chat
+                          </div>
+                        </Button>
+                        {dispute.unreadCount > 0 && (
+                          <div className="absolute top-0 left-0">
+                            <span  
+                              className="h-5 w-5 rounded-full p-0 text-white text-xs flex items-center justify-center min-w-0 border-2 bg-red-500 border-white dark:border-gray-300/60 shadow-2xl font-medium"
+                            >
+                              {dispute.unreadCount > 99 ? '99+' : dispute.unreadCount}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {dispute.status === 'resolved' ? (
+                      <Button
+                        size="sm"
                         className="bg-[#9C5F2A] text-white hover:bg-[#9C5F2A] my-2 w dark:bg-[#9C5F2A] dark:text-white dark:hover:bg-[#9C5F2A]"
                         onClick={() => handleViewResolutionDetails(dispute.disputeContractAddress)}
                         disabled={loadingStates[dispute.disputeContractAddress]}
@@ -397,7 +443,7 @@ export function DisputeResolution() {
                       <Button
                         size="sm"
                         className="bg-[#BB7333] text-white hover:bg-[#965C29] my-2 w dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
-                        onClick={() => navgateToDetailPage(dispute.escrowDetails.contractAddress)}
+                        onClick={() => navgateToDetailPage(dispute.escrowDetails.contractAddress,"escrow")}
                       >
                         View Escrow
                       </Button>
@@ -443,11 +489,11 @@ export function DisputeResolution() {
                       <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Resolved in favor of:</span>
                       <span className="text-xs font-semibold text-green-600">{getWinnerText(selectedResolution)}</span>
                     </div>
-                    <div className="flex items-center gap-2">
+                   { getWinnerText(selectedResolution) === "Creator" && <div className="flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-yellow-500 flex-shrink-0" />
                       <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Total returned amount:</span>
                       <span className="text-xs font-semibold">{selectedResolution.resolution.total_returned_amount} USDT</span>
-                    </div>
+                    </div>}
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-purple-500 flex-shrink-0" />
                       <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Resolution date:</span>

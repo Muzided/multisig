@@ -32,6 +32,8 @@ interface Dispute {
     milestone: MilestoneDetails;
     createdByWallet: string;
     adoptedBy: string | null;
+    conversationId: string | null;
+    unreadCount: number;
 }
 
 interface UserDisputeResponse {

@@ -123,7 +123,7 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
     return currentDate > disputeEndTime;
   }, []);
 
-  const getClaimButtonState = useCallback((milestone: ContractMilestone) => {
+  const getClaimButtonState = useCallback((milestone: ContractMilestone, userType: string) => {
     if (!isDueDatePassed(milestone.dueDate)) {
       return {
         text: "Not Requested",
@@ -140,11 +140,20 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
       };
     }
 
-    return {
-      text: "Claim Amount",
-      disabled: false,
-      message: "Dispute period ended"
-    };
+    // After dispute period ends, show different messages based on user type
+    if (userType === "creator") {
+      return {
+        text: "Claim Amount",
+        disabled: false,
+        message: "Amounts reverted to creator"
+      };
+    } else {
+      return {
+        text: "Amount Reverted",
+        disabled: true,
+        message: "Amounts reverted to creator"
+      };
+    }
   }, [isDueDatePassed, isDisputePeriodOver]);
 
   const handleClaimAmount = useCallback(async (escrowAddress: string, milestoneId: string) => {
@@ -529,12 +538,30 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
     }
     // user forgot to request payment and due date has passed
     if (userType === "receiver" && isDueDatePassed(milestone.dueDate) && !milestone.requested) {
+      // Check if dispute period is over
+      if (isDisputePeriodOver(milestone.dueDate)) {
+        return (
+          <div className="space-y-2">
+            <Button
+              size="sm"
+              className="w-full bg-gray-400 cursor-not-allowed"
+              disabled={true}
+            >
+              Amount Reverted
+            </Button>
+            <p className="text-sm text-gray-500 text-center">
+              Amounts reverted to creator
+            </p>
+          </div>
+        );
+      }
+      
       return (
         <div className="space-y-2">
           {renderDisputeButton(milestone)}
           {!milestone.requested && isDueDatePassed(milestone.dueDate) && (
             <p className="text-sm text-gray-500 text-center">
-              {getClaimButtonState(milestone).message}
+              {getClaimButtonState(milestone, userType).message}
             </p>
           )}
         </div>
@@ -542,12 +569,30 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
     }
     // user requested the payment but the creator has not released the payment
     else if (userType === "receiver" && isDueDatePassed(milestone.dueDate) && milestone.requested && !milestone.released) {
+      // Check if dispute period is over
+      if (isDisputePeriodOver(milestone.dueDate)) {
+        return (
+          <div className="space-y-2">
+            <Button
+              size="sm"
+              className="w-full bg-gray-400 cursor-not-allowed"
+              disabled={true}
+            >
+              Amount Reverted
+            </Button>
+            <p className="text-sm text-gray-500 text-center">
+              Amounts reverted to creator
+            </p>
+          </div>
+        );
+      }
+      
       return (
         <div className="space-y-2">
           {renderDisputeButton(milestone)}
           {!milestone.released && isDueDatePassed(milestone.dueDate) && (
             <p className="text-sm text-gray-500 text-center">
-              {getClaimButtonState(milestone).message}
+              {getClaimButtonState(milestone, userType).message}
             </p>
           )}
         </div>
@@ -573,12 +618,12 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
           >
             {loadingPayout[milestone.id] ? "Processing..." :
               userType === "creator" ?
-                getClaimButtonState(milestone).text
+                getClaimButtonState(milestone, userType).text
                 : "Request Payout"}
           </Button>
           {milestone.requested && isDueDatePassed(milestone.dueDate) && (
             <p className="text-sm text-gray-500 text-center">
-              {getClaimButtonState(milestone).message}
+              {getClaimButtonState(milestone, userType).message}
             </p>
           )}
 
@@ -586,6 +631,45 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
       );
     }
     else if (!milestone.requested && !milestone.released) {
+      // Check if dispute period is over for both creator and receiver
+      if (isDisputePeriodOver(milestone.dueDate)) {
+        if (userType === "creator") {
+          return (
+            <div className="space-y-2">
+              <Button
+                size="sm"
+                className="w-full bg-[#BB7333] hover:bg-[#965C29] text-white"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleClaimAmount(escrowDetails.escrow.escrow_contract_address, milestone.id)
+                }}
+                disabled={loadingPayout[milestone.id]}
+              >
+                {loadingPayout[milestone.id] ? "Processing..." : "Claim Amount"}
+              </Button>
+              <p className="text-sm text-gray-500 text-center">
+                Amounts reverted to creator
+              </p>
+            </div>
+          );
+        } else {
+          return (
+            <div className="space-y-2">
+              <Button
+                size="sm"
+                className="w-full bg-gray-400 cursor-not-allowed"
+                disabled={true}
+              >
+                Amount Reverted
+              </Button>
+              <p className="text-sm text-gray-500 text-center">
+                Amounts reverted to creator
+              </p>
+            </div>
+          );
+        }
+      }
+      
       return (
         <div className="space-y-2">
           <Button
@@ -605,12 +689,12 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
           >
             {loadingPayout[milestone.id] ? "Processing..." :
               userType === "creator" ?
-                getClaimButtonState(milestone).text
+                getClaimButtonState(milestone, userType).text
                 : "Request Payout"}
           </Button>
           {!milestone.requested && isDueDatePassed(milestone.dueDate) && (
             <p className="text-sm text-gray-500 text-center">
-              {getClaimButtonState(milestone).message}
+              {getClaimButtonState(milestone, userType).message}
             </p>
           )}
 

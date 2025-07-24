@@ -1,6 +1,6 @@
 "use client"
 
-import { useParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 import { EscrowDetails } from "@/components/escrowdetail/escrow-details"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
@@ -10,10 +10,11 @@ import { Header } from "@/components/layout/header"
 
 export default function EscrowDetailsPage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const escrowId = params.id as string
+  const defaultTab = searchParams.get('tab') || "general"
 
   const [isClient, setIsClient] = useState(false)
-  const [activeTab, setActiveTab] = useState("overview")
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
 
   useEffect(() => {
@@ -47,7 +48,7 @@ export default function EscrowDetailsPage() {
         <h1 className="text-2xl font-bold bg-gradient-to-r from-[#BB7333] to-[#965C29] bg-clip-text text-transparent">Escrow Details</h1>
       </div>
      
-      <EscrowDetails escrowId={escrowId} />
+      <EscrowDetails escrowId={escrowId} defaultTab={defaultTab} />
     
       </div>
     </div>

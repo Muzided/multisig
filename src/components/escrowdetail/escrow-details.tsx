@@ -30,7 +30,7 @@ import { useEscrowSocket } from "@/Hooks/useEscrowSocket"
 
 
 
-export function EscrowDetails({ escrowId }: { escrowId: string }) {
+export function EscrowDetails({ escrowId, defaultTab = "general" }: { escrowId: string; defaultTab?: string }) {
   const { refreshTrigger } = useEscrowRefresh();
   const { getMileStonesData,updateMileStonesData } = useEscrow();
   const [escrowOnChainDetails, setEscrowOnChainDetails] = useState<ContractMilestone[]>([]);
@@ -215,7 +215,7 @@ export function EscrowDetails({ escrowId }: { escrowId: string }) {
     <div className="container mx-auto p-1 md:p-4 space-y-6">
       <div className="flex flex-col gap-4 shadow-xl border border-gray-500/10 rounded-lg md:px-4 py-6">
         <CardContent>
-          <Tabs defaultValue="general" className="w-full">
+          <Tabs defaultValue={defaultTab} className="w-full">
             <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 mb-6">
               <TabsTrigger className="data-[state=active]:bg-[#BB7333] data-[state=active]:text-white" value="general">Milestones & Payments</TabsTrigger>
               {escrowDetails.resolver && <TabsTrigger className="data-[state=active]:bg-[#BB7333] data-[state=active]:text-white" value="chat">Chat</TabsTrigger>}

@@ -25,6 +25,7 @@ interface KYCContextType extends KYCState {
   resetKycStatus: () => void;
   updateKYCState: (updates: Partial<KYCState>) => void;
   refreshKYCRequirement: () => Promise<void>;
+  kyc_status: boolean;
 }
 
 const KYCContext = createContext<KYCContextType | undefined>(undefined);
@@ -101,6 +102,7 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
   const fetchKYCStatus = async () => {
     try {
       const response = await checkKYCStatus()
+      console.log("kyc-response", response)
       setKycStatus(response)
     } catch (error) {
       console.log("error while fetching kyc status", error)
@@ -240,6 +242,7 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
     resetKycStatus,
     updateKYCState,
     refreshKYCRequirement,
+    kyc_status
   };
 
   return (

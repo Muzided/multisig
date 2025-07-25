@@ -25,7 +25,7 @@ interface KYCContextType extends KYCState {
   resetKycStatus: () => void;
   updateKYCState: (updates: Partial<KYCState>) => void;
   refreshKYCRequirement: () => Promise<void>;
-  kyc_status: boolean;
+  kycRequired: boolean;
 }
 
 const KYCContext = createContext<KYCContextType | undefined>(undefined);
@@ -45,7 +45,7 @@ interface KYCProviderProps {
 export const KYCProvider = ({ children }: KYCProviderProps) => {
   const { user, isAuthenticated } = useUser();
   const { activeTab, setActiveTab } = useTab();
-  const [kyc_status, setKycStatus] = useState<boolean>(false);
+  const [kycStatus, setKycStatus] = useState<boolean>(false);
 
   const [state, setState] = useState<KYCState>({
     isKYCMandatory: false,
@@ -67,8 +67,10 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
     try {
       setState(prev => ({ ...prev, isCheckingKYC: true, error: null }));
 
-      // KYC is mandatory if API returns true and user's KYC status is false
-      const isMandatory = kyc_status && !user.kyc_status;
+      // KYC is mandatory if API returns true (kyc_required) and user's KYC status is false (not completed)
+      
+      const isMandatory = kycStatus && !user.kyc_status;
+      console.log("isMandatory result:", isMandatory,kycStatus,!user.kyc_status)
 
       setState(prev => ({
         ...prev,
@@ -89,7 +91,7 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
       }));
       return false;
     }
-  }, [user, kyc_status]);
+  }, [user, kycStatus]);
 
   // Refresh KYC requirement manually
   const refreshKYCRequirement = useCallback(async () => {
@@ -102,10 +104,12 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
   const fetchKYCStatus = async () => {
     try {
       const response = await checkKYCStatus()
-      console.log("kyc-response", response)
+      console.log("kyc-response", response, "type:", typeof response)
       setKycStatus(response)
     } catch (error) {
       console.log("error while fetching kyc status", error)
+      // Set to false if API fails
+      setKycStatus(false)
     }
   }
 
@@ -114,12 +118,12 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
 
   }, [user])
 
-  // Initialize KYC status when user is authenticated
+  // Initialize KYC status when user is authenticated and API data is available
   useEffect(() => {
-    if (isAuthenticated && user && !state.isKYCStatusInitialized) {
+    if (isAuthenticated && user && !state.isKYCStatusInitialized && kycStatus !== undefined) {
       checkKYCRequirement();
     }
-  }, [isAuthenticated, user, state.isKYCStatusInitialized, kyc_status, checkKYCRequirement]);
+  }, [isAuthenticated, user, state.isKYCStatusInitialized, kycStatus, checkKYCRequirement]);
 
 
   // Initialize KYC status when user changes
@@ -141,7 +145,6 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
         setState(prev => ({
           ...prev,
           isKYCModalOpen: true,
-          isKYCMandatory: true
         }));
       }
     } else {
@@ -242,7 +245,7 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
     resetKycStatus,
     updateKYCState,
     refreshKYCRequirement,
-    kyc_status
+    kycRequired: kycStatus
   };
 
   return (

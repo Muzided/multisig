@@ -1,4 +1,4 @@
-export const MultiSig_Factory_Address ="0xA4b46929966c929fafd67986Dfb0507F9Ffc14f1";
+export const MultiSig_Factory_Address ="0xd0cd6cf3dec1fdec1c37645a400d2e99956789a1";
 //0xc994D54c079b59FcCe46bC6007Cd196c1D0A8348 verifed contract address
 export const Usdt_Contract_Address ="0xc365Fc4c14259b861Dddbe771618ab9258da32f3"
 export const escrow_Contract_Address ="0x949e1BA0ff30a792D1C4e7276dDCAC923187BAB5";
@@ -15,3 +15,5 @@ export const infuraRpcUrl = "https://sepolia.infura.io/v3/38908a5032784374a5536d
 
 
 //0xc7a03536c401b8a00734e135768a24a88d47ea784e2d8b1512079d79c9ffa906 escrow dispute hash
+
+//0xd0cd6cf3dec1fdec1c37645a400d2e99956789a1

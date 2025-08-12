@@ -14,7 +14,7 @@ import { useEscrow } from "@/Hooks/useEscrow"
 import { useEscrowSocket } from "@/Hooks/useEscrowSocket"
 import { useEscrowRefresh } from "@/context/EscrowContext"
 import { useUser } from "@/context/userContext"
-import { handleError } from "../../../utils/errorHandler"
+import { handleError } from "../../../../utils/errorHandler"
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { toast } from "react-toastify"
@@ -26,7 +26,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
-import { dateToUnix } from "../../../utils/helper"
+import { dateToUnix } from "../../../../utils/helper"
 import { fetchTransactionDetails } from "@/services/Api/escrow/escrow"
 import { TransactionDetailsResponse } from "@/types/escrow"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -43,15 +43,6 @@ const formatDate = (timestamp: string | number | undefined) => {
   }
 }
 
-interface Milestone {
-  id: string
-  title: string
-  amount: string
-  status: "completed" | "active" | "upcoming"
-  dueDate: string
-  completedAt: string | null
-}
-
 interface EscrowMilestoneTrackerProps {
 
   escrowDetails: getEscrowDetailsResponse
@@ -60,13 +51,13 @@ interface EscrowMilestoneTrackerProps {
 }
 
 // Separate component for countdown timer
-const CountdownTimer = ({ dueDate }: { dueDate: string | number }) => {
+const CountdownTimer = ({ dueDate, windowSeconds }: { dueDate: string | number; windowSeconds: number }) => {
   const [timeLeft, setTimeLeft] = useState<string>("");
 
   useEffect(() => {
     const updateTime = () => {
       const currentDate = Math.floor(Date.now() / 1000);
-      const disputeEndTime = Number(dueDate) + (48 * 60 * 60);
+      const disputeEndTime = Number(dueDate) + Number(windowSeconds);
       const remainingSeconds = disputeEndTime - currentDate;
 
       if (remainingSeconds <= 0) {
@@ -85,7 +76,7 @@ const CountdownTimer = ({ dueDate }: { dueDate: string | number }) => {
     const interval = setInterval(updateTime, 1000);
 
     return () => clearInterval(interval);
-  }, [dueDate]);
+  }, [dueDate, windowSeconds]);
 
   return <span>{timeLeft}</span>;
 };
@@ -104,24 +95,36 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
   const [transactionDetails, setTransactionDetails] = useState<TransactionDetailsResponse | null>(null)
   const [loadingTransaction, setLoadingTransaction] = useState(false)
   const [setDueDateModalOpen, setSetDueDateModalOpen] = useState(false);
+  const [disputeWindowSeconds, setDisputeWindowSeconds] = useState<number>(48 * 60 * 60);
   //use hooks
-  const { requestPayment, setMileStoneDueDate, releasePayment, claimUnRequestedAmounts, raiseDispute } = useEscrow()
+  const { requestPayment, setMileStoneDueDate, releasePayment, claimUnRequestedAmounts, raiseDispute ,fetchDisputeWindowEscrow} = useEscrow()
   const { triggerRefresh } = useEscrowRefresh()
   const { user } = useUser()
 
-
-
-
+useEffect(()=>{ 
+  initDisputeWindow()
+},[])
+console.log("disputeWindowSeconds",disputeWindowSeconds)
   const isDueDatePassed = useCallback((dueDate: string | number) => {
     const currentDate = Math.floor(Date.now() / 1000);
     return Number(dueDate) < currentDate;
   }, []);
-
-  const isDisputePeriodOver = useCallback((dueDate: string | number) => {
+ const initDisputeWindow= async()=>{
+  try {
+    const disputeWindow = await fetchDisputeWindowEscrow(escrowDetails.escrow.escrow_contract_address)
+    if(disputeWindow){
+      setDisputeWindowSeconds(disputeWindow)
+    }
+  } catch (error) {
+    console.error("Error fetching dispute window:", error)
+  }
+ }
+  const isDisputePeriodOver = useCallback( (dueDate: string | number) => {
+    // If you have an async fetch like fetchDisputeWindow(), set the result into disputeWindowSeconds state.
     const currentDate = Math.floor(Date.now() / 1000);
-    const disputeEndTime = Number(dueDate) + (48 * 60 * 60);
+    const disputeEndTime = Number(dueDate) + Number(disputeWindowSeconds);
     return currentDate > disputeEndTime;
-  }, []);
+  }, [disputeWindowSeconds]);
 
   const getClaimButtonState = useCallback((milestone: ContractMilestone, userType: string) => {
     if (!isDueDatePassed(milestone.dueDate)) {
@@ -136,7 +139,7 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
       return {
         text: "In Dispute Period",
         disabled: true,
-        message: <CountdownTimer dueDate={milestone.dueDate} />
+        message: <CountdownTimer dueDate={milestone.dueDate} windowSeconds={disputeWindowSeconds} />
       };
     }
 
@@ -145,7 +148,7 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
       return {
         text: "Claim Amount",
         disabled: false,
-        message: "Amounts reverted to creator"
+        message: "eligible for claim"
       };
     } else {
       return {
@@ -154,12 +157,12 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
         message: "Amounts reverted to creator"
       };
     }
-  }, [isDueDatePassed, isDisputePeriodOver]);
+  }, [isDueDatePassed, isDisputePeriodOver, disputeWindowSeconds]);
 
-  const handleClaimAmount = useCallback(async (escrowAddress: string, milestoneId: string) => {
+  const handleClaimAmount = useCallback(async (escrowAddress: string, milestoneId: string, milestoneRequested: boolean) => {
     try {
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: true }))
-      await claimUnRequestedAmounts(escrowAddress, milestoneId)
+      await claimUnRequestedAmounts(escrowAddress, milestoneId,milestoneRequested)
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: false }))
     } catch (error) {
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: false }))
@@ -323,7 +326,8 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
     }
 
     // Check if any milestone is disputed - show dispute icon for all milestones after dispute
-    const isAnyMilestoneDisputed = escrowOnChainDetails.some(m => m.disputedRaised);
+    const isAnyMilestoneDisputed = escrowOnChainDetails.some(m => m.disputedRaised && !m.released);
+    console.log("xxxx-xx", isAnyMilestoneDisputed)
     if (isAnyMilestoneDisputed) {
       return <AlertCircle className="h-6 w-6 text-red-500 animate-pulse" />
     }
@@ -357,15 +361,18 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
   }
 
   const getStatusBadge = (status: string, milestone: ContractMilestone, index: number) => {
+
+    const isDisputed = escrowOnChainDetails.some(m => m.disputedRaised && !m.released);
+
     // Check if milestone is completed (released)
     if (milestone.disputedRaised && milestone.released) {
       return <Badge variant="default">Disputed Payment Released</Badge>;
     }
-    if (!milestone.dueDate && userType === "creator") {
+    if (!milestone.dueDate && userType === "creator" && !isDisputed) {
       return <Badge variant="default">Set Due Date</Badge>;
     }
 
-    if (!milestone.dueDate && userType === "receiver") {
+    if (!milestone.dueDate && userType === "receiver" && !isDisputed) {
       return <Badge variant="default">Due Date Not Set</Badge>;
     }
 
@@ -471,9 +478,10 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
     if (userType === "observer") {
       return null;
     }
-
+    const isAnyMilestoneDisputed = escrowOnChainDetails.some(m => m.disputedRaised && !m.released);
+    console.log("xxxx-xx", isAnyMilestoneDisputed)
     //if milestone has no due date, add due date button
-    if (!milestone.dueDate && userType === "creator") {
+    if (!milestone.dueDate && userType === "creator" && !isAnyMilestoneDisputed) {
       return (
         <Button
           size="sm"
@@ -488,7 +496,7 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
       );
     }
 
-    if (!milestone.dueDate && userType === "receiver") {
+    if (!milestone.dueDate && userType === "receiver" && !isAnyMilestoneDisputed) {
       return (
         <Button
           size="sm"
@@ -512,8 +520,7 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
     }
 
     // Check if any milestone is disputed
-    const isAnyMilestoneDisputed = escrowOnChainDetails.some(m => m.disputedRaised);
-    console.log("isAnyMilestoneDisputed", isAnyMilestoneDisputed)
+    
     if (milestone.disputedRaised) {
       return (
         <Button
@@ -608,7 +615,7 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
               e.stopPropagation()
               if (userType === "creator") {
                 if (isDueDatePassed(milestone.dueDate) && isDisputePeriodOver(milestone.dueDate)) {
-                  handleClaimAmount(escrowDetails.escrow.escrow_contract_address, milestone.id)
+                  handleClaimAmount(escrowDetails.escrow.escrow_contract_address, milestone.id,milestone.requested)
                 }
               } else {
                 handlePayout(escrowDetails.escrow.escrow_contract_address, milestone.id, milestone.amount, escrowDetails.escrow.receiver_walletaddress, escrowDetails.escrow.payment_type)
@@ -641,7 +648,7 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
                 className="w-full bg-[#BB7333] hover:bg-[#965C29] text-white"
                 onClick={(e) => {
                   e.stopPropagation()
-                  handleClaimAmount(escrowDetails.escrow.escrow_contract_address, milestone.id)
+                  handleClaimAmount(escrowDetails.escrow.escrow_contract_address, milestone.id,milestone.requested)
                 }}
                 disabled={loadingPayout[milestone.id]}
               >
@@ -679,7 +686,7 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
               e.stopPropagation()
               if (userType === "creator") {
                 if (isDueDatePassed(milestone.dueDate) && isDisputePeriodOver(milestone.dueDate)) {
-                  handleClaimAmount(escrowDetails.escrow.escrow_contract_address, milestone.id)
+                  handleClaimAmount(escrowDetails.escrow.escrow_contract_address, milestone.id,milestone.requested)
                 }
               } else {
                 handlePayout(escrowDetails.escrow.escrow_contract_address, milestone.id, milestone.amount, escrowDetails.escrow.receiver_walletaddress, escrowDetails.escrow.payment_type)
@@ -761,7 +768,7 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
           Socket Error: {socketError}
         </div>
       )} */}
-      <div className="space-y-6 pt-6">
+      <div className="space-y-6 pt-6 "  >
         <div className="relative">
           <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-[#BB7333]/20" />
           {escrowDetails?.escrow?.payment_type === "full" ? (

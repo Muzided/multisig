@@ -56,6 +56,19 @@ export const useFactory = () => {
         }
     }
 
+    const fetchDisputeWindow = async (): Promise<number> => {
+        try {
+            if (!multisigFactoryContract) return 0;
+            const disputeWindow = await multisigFactoryContract.disputeWindow();
+            console.log("fixedFee", Number(disputeWindow))
+            return Number(disputeWindow);
+
+        } catch (error) {
+            console.error("Error fetching total escrows", error);
+            return 0;
+        }
+    }
+
     const fetchPercentageFee = async (): Promise<number> => {
         try {
             if (!multisigFactoryContract) return 0;
@@ -714,6 +727,7 @@ export const useFactory = () => {
         resolveDispute,
         fetchDisputeTeamMembers,
         updateDisputeTeamMembers,
-        creationFee
+        creationFee,
+        fetchDisputeWindow
     };
 };

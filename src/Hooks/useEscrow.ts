@@ -25,7 +25,7 @@ export const useEscrow = () => {
     const fetchEscrowContract = async (escrowAddress: string) => {
         try {
             if (!signer) return null
-           
+
             const escrowContract = new Contract(escrowAddress, EscrowAbi, signer);
             return escrowContract;
         } catch (error) {
@@ -35,7 +35,7 @@ export const useEscrow = () => {
     const fetchReadOnlyEscrowContract = async (escrowAddress: string) => {
         try {
             const provider = new ethers.JsonRpcProvider(infuraRpcUrl);
-            
+
             const escrowContract = new Contract(escrowAddress, EscrowAbi, provider);
             return escrowContract;
         } catch (error) {
@@ -72,8 +72,20 @@ export const useEscrow = () => {
             return false
         }
     }
+    const fetchDisputeWindowEscrow = async (escrowAddress: string): Promise<number> => {
+        try {
+             const escorwContract = await fetchReadOnlyEscrowContract(escrowAddress);
+            if (!escorwContract) return 0;
+            const disputeWindow = await escorwContract.disputeWindow();
+            console.log("fixedFee-xxxxxxxx", Number(disputeWindow))
+            return Number(disputeWindow);
 
-    
+        } catch (error) {
+            console.error("Error fetching total escrows", error);
+            return 0;
+        }
+    }
+
     const getMileStonesData = async (escrowAddress: string): Promise<ContractMilestone[]> => {
         try {
 
@@ -92,7 +104,7 @@ export const useEscrow = () => {
                 requestTime: ''
             }];
             const totalMileStones = await escorwContract.getMilestones();
-              console.log("totalMileStoneszzzz",totalMileStones)
+            console.log("totalMileStoneszzzz", totalMileStones)
             // Map the array data into milestone objects
             return totalMileStones.map((milestone: any): ContractMilestone => ({
                 id: milestone[0]?.toString(),
@@ -136,7 +148,7 @@ export const useEscrow = () => {
                 requestTime: ''
             }];
             const totalMileStones = await escorwContract.getMilestones();
-              console.log("totalMileStoneszzzz",totalMileStones)
+            console.log("totalMileStoneszzzz", totalMileStones)
             // Map the array data into milestone objects
             return totalMileStones.map((milestone: any): ContractMilestone => ({
                 id: milestone[0]?.toString(),
@@ -303,7 +315,7 @@ export const useEscrow = () => {
             //request payment from blockchain
             const requestPayment = await escorwContract.setDueDate(escrowIndex, nextMilestoneDueDate);
             const tx = await requestPayment.wait();
-            const res = await saveMilestoneDueDate( escrowAddress, Number(escrowIndex), Number(nextMilestoneDueDate))
+            const res = await saveMilestoneDueDate(escrowAddress, Number(escrowIndex), Number(nextMilestoneDueDate))
             if (res.status === 201 || res.status === 200) {
                 toast.update(id, { render: `Released payment hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
                 triggerRefresh();
@@ -333,7 +345,7 @@ export const useEscrow = () => {
         }
     }
 
-    const claimUnRequestedAmounts = async (escrowAddress: string, escrowIndex: string): Promise<RequestPaymentResponse> => {
+    const claimUnRequestedAmounts = async (escrowAddress: string, escrowIndex: string, milestoneRequested: boolean): Promise<RequestPaymentResponse> => {
         let id: any;
         try {
             id = toast.loading(`claiming amount...`);
@@ -351,9 +363,9 @@ export const useEscrow = () => {
                     message: "Error while initializing escrow contract"
                 };
             }
-
+            console.log("milestoneRequested", milestoneRequested)
             //request payment from blockchain
-            const requestPayment = await escorwContract.reclaimUnrequested(escrowIndex);
+            const requestPayment = milestoneRequested ?await escorwContract.withdrawExpired(escrowIndex): await escorwContract.reclaimUnrequested(escrowIndex) 
             const tx = await requestPayment.wait();
 
             toast.update(id, { render: `claimed amount hash: ${tx.hash}`, type: "success", isLoading: false, autoClose: 3000 });
@@ -411,7 +423,7 @@ export const useEscrow = () => {
             const disputeContract = await contract.disputeContract()
             const isEscrowDisputed = disputeContract !== "0x0000000000000000000000000000000000000000"
             const escrowAmount = ethers.formatUnits(amount, tokenDecimals);
-           
+
             return {
                 escrowAmount: escrowAmount,
                 deadline: convertUnixToDate(Number(deadline)),
@@ -449,9 +461,9 @@ export const useEscrow = () => {
             //request payment from blockchain
             const disputeRes = await escorwContract.raiseDispute(escrowIndex, reason);
             const tx = await disputeRes.wait();
-           
+
             const disputeContractAddress = tx.logs[0].address
-           
+
             const disputeData: createDisputeData = {
                 escrowContractAddress: escrowAddress,
                 type: type,
@@ -503,6 +515,7 @@ export const useEscrow = () => {
         releasePayment,
         claimUnRequestedAmounts,
         raiseDispute,
-        setMileStoneDueDate
+        setMileStoneDueDate,
+        fetchDisputeWindowEscrow
     }
 }

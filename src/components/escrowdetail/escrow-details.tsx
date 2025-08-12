@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { EscrowMilestoneTracker } from "../Global/escrow-milestone-tracker"
+import { EscrowMilestoneTracker } from "./milestones/escrow-milestone-tracker"
 import { EscrowDisputeChat } from "./escrow-dispute-chat"
 import { EscrowGeneralInfo } from "./escrow-general-info"
 import { useQuery } from "@tanstack/react-query"

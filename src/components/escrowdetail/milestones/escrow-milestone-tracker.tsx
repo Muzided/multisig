@@ -159,10 +159,10 @@ console.log("disputeWindowSeconds",disputeWindowSeconds)
     }
   }, [isDueDatePassed, isDisputePeriodOver, disputeWindowSeconds]);
 
-  const handleClaimAmount = useCallback(async (escrowAddress: string, milestoneId: string, milestoneRequested: boolean) => {
+  const handleClaimAmount = useCallback(async (escrowAddress: string, milestoneId: string, milestoneRequested: boolean,receiver_wallet_address: string,amount: string,escrowType: string) => {
     try {
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: true }))
-      await claimUnRequestedAmounts(escrowAddress, milestoneId,milestoneRequested)
+      await claimUnRequestedAmounts(escrowAddress, milestoneId,milestoneRequested,receiver_wallet_address,amount,escrowType)
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: false }))
     } catch (error) {
       setLoadingPayout(prev => ({ ...prev, [milestoneId]: false }))
@@ -615,7 +615,7 @@ console.log("disputeWindowSeconds",disputeWindowSeconds)
               e.stopPropagation()
               if (userType === "creator") {
                 if (isDueDatePassed(milestone.dueDate) && isDisputePeriodOver(milestone.dueDate)) {
-                  handleClaimAmount(escrowDetails.escrow.escrow_contract_address, milestone.id,milestone.requested)
+                  handleClaimAmount(escrowDetails.escrow.escrow_contract_address, milestone.id,milestone.requested,escrowDetails.escrow.receiver_walletaddress,milestone.amount,escrowDetails.escrow.payment_type)
                 }
               } else {
                 handlePayout(escrowDetails.escrow.escrow_contract_address, milestone.id, milestone.amount, escrowDetails.escrow.receiver_walletaddress, escrowDetails.escrow.payment_type)
@@ -648,7 +648,7 @@ console.log("disputeWindowSeconds",disputeWindowSeconds)
                 className="w-full bg-[#BB7333] hover:bg-[#965C29] text-white"
                 onClick={(e) => {
                   e.stopPropagation()
-                  handleClaimAmount(escrowDetails.escrow.escrow_contract_address, milestone.id,milestone.requested)
+                  handleClaimAmount(escrowDetails.escrow.escrow_contract_address, milestone.id,milestone.requested,escrowDetails.escrow.receiver_walletaddress,milestone.amount,escrowDetails.escrow.payment_type)
                 }}
                 disabled={loadingPayout[milestone.id]}
               >
@@ -686,7 +686,7 @@ console.log("disputeWindowSeconds",disputeWindowSeconds)
               e.stopPropagation()
               if (userType === "creator") {
                 if (isDueDatePassed(milestone.dueDate) && isDisputePeriodOver(milestone.dueDate)) {
-                  handleClaimAmount(escrowDetails.escrow.escrow_contract_address, milestone.id,milestone.requested)
+                  handleClaimAmount(escrowDetails.escrow.escrow_contract_address, milestone.id,milestone.requested,escrowDetails.escrow.receiver_walletaddress,milestone.amount,escrowDetails.escrow.payment_type)
                 }
               } else {
                 handlePayout(escrowDetails.escrow.escrow_contract_address, milestone.id, milestone.amount, escrowDetails.escrow.receiver_walletaddress, escrowDetails.escrow.payment_type)
@@ -1114,7 +1114,15 @@ console.log("disputeWindowSeconds",disputeWindowSeconds)
                 </div>
                 <h3 className="text-lg font-semibold text-gray-300">Payment Receipt</h3>
                 <p className="text-sm text-gray-300">
-                  {transactionDetails.transactions[0]?.transaction_type?.replace(/_/g, ' ').toUpperCase()}
+                  {(() => {
+                    const rawType = transactionDetails.transactions[0]?.transaction_type;
+                    if (!rawType) return null;
+                    const normalized = rawType.replace(/_/g, ' ').toUpperCase();
+                    if (normalized === "PAYMENT RECLAIMED") {
+                      return "Payment reclaimed by the creator";
+                    }
+                    return normalized;
+                  })()}
                 </p>
               </div>
 

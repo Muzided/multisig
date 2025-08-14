@@ -122,6 +122,17 @@ export function EscrowDetails({ escrowId, defaultTab = "general" }: { escrowId: 
         }
         break;
         
+        case 'payment_reclaimed':
+          if (userRole === 'creator') {
+            toast.success('You have successfully reclaimed the payment.');
+            
+          } else if (userRole === 'receiver') {
+            toast.info('The payment has been reclaimed by the creator.');
+          } else {
+            toast.info('A payment has been reclaimed.');
+          }
+          break;
+
       default:
         toast.info('An escrow event has occurred.');
         break;

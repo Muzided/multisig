@@ -34,6 +34,10 @@ interface Dispute {
     adoptedBy: string | null;
     conversationId: string | null;
     unreadCount: number;
+    creatorVote: boolean | null;
+    receiverVote: boolean | null; 
+    decisionInitiated: string | null;
+    decisionInFavorOf: string | null;
 }
 
 interface UserDisputeResponse {

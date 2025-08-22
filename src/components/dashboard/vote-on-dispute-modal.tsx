@@ -44,10 +44,14 @@ export function VoteOnDisputeModal({ isOpen, onOpenChange, dispute, userRole, mo
     try {
       setSubmitting(true)
       const voteBoolean = continueWork === "true"
-      await voteOnDispute(dispute.disputeContractAddress, voteBoolean)
-      toast.success("Your decision has been recorded")
-      onSuccess()
-      onOpenChange(false)
+     const result =  await voteOnDispute(dispute.disputeContractAddress, voteBoolean)
+      if(result.status === 201){
+        toast.success("Your decision has been recorded")
+        onSuccess()
+        onOpenChange(false)
+      }else{
+        toast.error("Failed to record your decision. Please try again.")
+      }
     } catch (error) {
       handleError(error)
     } finally {

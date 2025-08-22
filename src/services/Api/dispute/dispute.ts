@@ -45,7 +45,10 @@ export const getDisputedResolutionHistory = async (disputeContractAddress: strin
 
 export const voteOnDispute = async (disputeContractAddress: string, vote: boolean) => {
     try {
-        const response = await axiosService.post(`api/dispute/vote/${disputeContractAddress}`, { vote })
+        const response = await axiosService.post(`api/dispute/vote`, {
+            "dispute_contract_address": disputeContractAddress,
+            "vote": vote
+        })
         return response
     } catch (error) {
         console.log("error while voting on dispute", error)

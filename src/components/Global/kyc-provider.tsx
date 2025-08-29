@@ -30,6 +30,7 @@ interface KYCContextType extends KYCState {
 
 const KYCContext = createContext<KYCContextType | undefined>(undefined);
 
+
 export const useKYC = () => {
   const context = useContext(KYCContext);
   if (context === undefined) {

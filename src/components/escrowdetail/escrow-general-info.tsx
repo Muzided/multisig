@@ -16,6 +16,8 @@ export function EscrowGeneralInfo(escrow: EscrowDetails) {
         return <Badge variant="secondary">Completed</Badge>
       case "disputed":
         return <Badge variant="destructive">Disputed</Badge>
+      case "terminated":
+        return <Badge variant="destructive">Terminated</Badge>
       default:
         return <Badge variant="outline">Unknown</Badge>
     }
@@ -31,10 +33,10 @@ export function EscrowGeneralInfo(escrow: EscrowDetails) {
       <DetailCard title="Payment Type" value={escrow.payment_type} />
     </div>
   )
-} 
+}
 
-const DetailCard = ({title, value}: {title: string, value: string | ReactNode}) => {
-  return(
+const DetailCard = ({ title, value }: { title: string, value: string | ReactNode }) => {
+  return (
     <div className="flex flex-col gap-2 py-6">
       <p className="text-sm font-medium text-gray-500">{title}</p>
       <p className="text-sm font-medium">{value}</p>

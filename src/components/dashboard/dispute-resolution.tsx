@@ -42,6 +42,14 @@ export function DisputeResolution() {
   const [voteModalMode, setVoteModalMode] = useState<"vote" | "view">("vote")
   const [selectedDisputeForVote, setSelectedDisputeForVote] = useState<Dispute | null>(null)
 
+  const getUserRole = (dispute: Dispute): "creator" | "receiver" | null => {
+    if (!address) return null
+    const addr = address.toLowerCase()
+    if (dispute.escrowDetails.creatorWallet?.toLowerCase() === addr) return "creator"
+    if (dispute.escrowDetails.receiverWallet?.toLowerCase() === addr) return "receiver"
+    return null
+  }
+  
   // Compute the current user's role for the selected dispute; keep as a top-level hook
   const selectedUserRole = useMemo(() => (
     selectedDisputeForVote ? getUserRole(selectedDisputeForVote) : null
@@ -56,13 +64,7 @@ export function DisputeResolution() {
   const filteredDisputes = disputesData?.disputes;
 
   // Helpers for voting flow
-  const getUserRole = (dispute: Dispute): "creator" | "receiver" | null => {
-    if (!address) return null
-    const addr = address.toLowerCase()
-    if (dispute.escrowDetails.creatorWallet?.toLowerCase() === addr) return "creator"
-    if (dispute.escrowDetails.receiverWallet?.toLowerCase() === addr) return "receiver"
-    return null
-  }
+ 
 
   const parseDecisionStart = (isoString: string | null): number | null => {
     if (!isoString) return null

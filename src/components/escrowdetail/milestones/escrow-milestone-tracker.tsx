@@ -361,6 +361,10 @@ console.log("disputeWindowSeconds",disputeWindowSeconds)
   }
 
   const getStatusBadge = (status: string, milestone: ContractMilestone, index: number) => {
+    // If escrow is terminated, show Disputed Payment Released for all milestones
+    if ((escrowDetails as any)?.escrow?.status === "terminated" || (escrowDetails as any)?.status === "terminated") {
+      return <Badge variant="default">Disputed Payment Released</Badge>;
+    }
 
     const isDisputed = escrowOnChainDetails.some(m => m.disputedRaised && !m.released);
 
@@ -477,6 +481,17 @@ console.log("disputeWindowSeconds",disputeWindowSeconds)
     // Observer can only view, not perform actions
     if (userType === "observer") {
       return null;
+    }
+    // If escrow is terminated, no further actions are valid; show disabled Payment Released
+    if ((escrowDetails as any)?.escrow?.status === "terminated" || (escrowDetails as any)?.status === "terminated") {
+      return (
+        <Button
+          size="sm"
+          className="w-full bg-gray-400 cursor-not-allowed"
+        >
+          Payment Released
+        </Button>
+      );
     }
     const isAnyMilestoneDisputed = escrowOnChainDetails.some(m => m.disputedRaised && !m.released);
     console.log("xxxx-xx", isAnyMilestoneDisputed)
@@ -757,7 +772,7 @@ console.log("disputeWindowSeconds",disputeWindowSeconds)
       setNextMilestoneDueDate(date);
     }
   };
-  console.log("escrowDetails-gotem-details", escrowOnChainDetails, escrowDetails)
+  console.log("esrow onchain and offchain details", escrowOnChainDetails, escrowDetails)
 
 
   return (
@@ -814,7 +829,7 @@ console.log("disputeWindowSeconds",disputeWindowSeconds)
                         </div>
                         <div className="flex flex-col gap-2">
                           {renderActionButtons(escrowOnChainDetails[0])}
-                          {escrowOnChainDetails[0]?.released && (
+                          {escrowOnChainDetails[0]?.released && !(((escrowDetails as any)?.escrow?.status === "terminated") || ((escrowDetails as any)?.status === "terminated")) && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -882,7 +897,7 @@ console.log("disputeWindowSeconds",disputeWindowSeconds)
                           </div>
                           <div className="flex flex-col gap-2">
                             {renderActionButtons(milestone)}
-                            {milestone.released && !milestone.disputedRaised && (
+                            {milestone.released && !milestone.disputedRaised && !(((escrowDetails as any)?.escrow?.status === "terminated") || ((escrowDetails as any)?.status === "terminated")) && (
                               <Button
                                 size="sm"
                                 variant="outline"

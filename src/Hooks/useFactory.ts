@@ -389,7 +389,7 @@ export const useFactory = () => {
             if (!multisigFactoryContract) return;
 
             id = toast.loading(`Resolving dispute...`);
-
+console.log("yooo",escrowAddress, resolveApproved)
             const tx = await multisigFactoryContract.resolveDispute(escrowAddress, resolveApproved);
             const receipt = await tx.wait();
             

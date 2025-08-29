@@ -25,7 +25,7 @@ interface KYCContextType extends KYCState {
   resetKycStatus: () => void;
   updateKYCState: (updates: Partial<KYCState>) => void;
   refreshKYCRequirement: () => Promise<void>;
-  kycRequired: boolean;
+  kyc_status: boolean;
 }
 
 const KYCContext = createContext<KYCContextType | undefined>(undefined);
@@ -45,7 +45,7 @@ interface KYCProviderProps {
 export const KYCProvider = ({ children }: KYCProviderProps) => {
   const { user, isAuthenticated } = useUser();
   const { activeTab, setActiveTab } = useTab();
-  const [kycStatus, setKycStatus] = useState<boolean>(false);
+  const [kyc_status, setKycStatus] = useState<boolean>(false);
 
   const [state, setState] = useState<KYCState>({
     isKYCMandatory: false,
@@ -69,8 +69,8 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
 
       // KYC is mandatory if API returns true (kyc_required) and user's KYC status is false (not completed)
       
-      const isMandatory = kycStatus && !user.kyc_status;
-      console.log("isMandatory result:", isMandatory,kycStatus,!user.kyc_status)
+      const isMandatory = kyc_status && !user.kyc_status;
+      console.log("isMandatory result:", isMandatory,kyc_status,!user.kyc_status)
 
       setState(prev => ({
         ...prev,
@@ -91,7 +91,7 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
       }));
       return false;
     }
-  }, [user, kycStatus]);
+  }, [user, kyc_status]);
 
   // Refresh KYC requirement manually
   const refreshKYCRequirement = useCallback(async () => {
@@ -120,10 +120,10 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
 
   // Initialize KYC status when user is authenticated and API data is available
   useEffect(() => {
-    if (isAuthenticated && user && !state.isKYCStatusInitialized && kycStatus !== undefined) {
+    if (isAuthenticated && user && !state.isKYCStatusInitialized && kyc_status !== undefined) {
       checkKYCRequirement();
     }
-  }, [isAuthenticated, user, state.isKYCStatusInitialized, kycStatus, checkKYCRequirement]);
+  }, [isAuthenticated, user, state.isKYCStatusInitialized, kyc_status, checkKYCRequirement]);
 
 
   // Initialize KYC status when user changes
@@ -245,7 +245,7 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
     resetKycStatus,
     updateKYCState,
     refreshKYCRequirement,
-    kycRequired: kycStatus
+    kyc_status
   };
 
   return (

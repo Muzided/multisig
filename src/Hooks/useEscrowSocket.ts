@@ -1,7 +1,7 @@
 'use client'
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
+import { useSocketConnection } from '@/context/SocketContext';
 
 interface UseEscrowSocketProps {
   escrowContractAddress: string;
@@ -19,83 +19,66 @@ export const useEscrowSocket = ({
   token,
   onEventReceived,
 }: UseEscrowSocketProps): UseEscrowSocketReturn => {
-  const socketRef = useRef<Socket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+  const { isConnected, error: providerError, on, off, emit } = useSocketConnection();
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize socket connection
+  // Join escrow room on connect and when already connected
   useEffect(() => {
-    if (!escrowContractAddress || !token) {
-      console.log('Socket not initialized: missing escrowContractAddress or token');
-      return;
+    if (!escrowContractAddress || !token) return;
+
+    const handleConnect = () => {
+      emit('joinEscrowRoom', { escrowContractAddress, token });
+      console.log(`Joining escrow room ${escrowContractAddress}`);
+    };
+
+    if (isConnected) {
+      handleConnect();
     }
 
-    try {
-      // Initialize socket connection
-      socketRef.current = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'https://escrow.ipcre8.com', {
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-      });
+    on('connect', handleConnect);
 
-      const socket = socketRef.current;
+    return () => {
+      off('connect', handleConnect);
+    };
+  }, [escrowContractAddress, token, isConnected, on, off, emit]);
 
-      // Connection event handlers
-      socket.on('connect', () => {
-        setIsConnected(true);
-        setError(null);
-        console.log('Socket connected:', socket.id);
+  // Escrow-specific events
+  useEffect(() => {
+    const handleJoined = (data: any) => {
+      console.log('Successfully joined escrow room:', data);
+    };
 
-        // Join escrow room
-        socket.emit('joinEscrowRoom', { escrowContractAddress, token });
-        console.log(`Joining escrow room ${escrowContractAddress}`);
-      });
+    const handleReload = (data: any) => {
+      console.log('Reload event received:', data);
+      onEventReceived?.(data);
+    };
 
-      socket.on('joinedEscrowRoom', (data) => {
-        console.log('Successfully joined escrow room:', data);
-      });
+    const handleUnauthorized = (data: any) => {
+      const msg = 'Unauthorized: ' + (data?.error ?? 'Not authorized');
+      setError(msg);
+      toast.error('Authentication failed');
+    };
 
-      socket.on('connect_error', (err) => {
-        setError('Connection error: ' + err.message);
-        toast.error('Failed to connect to escrow server');
-      });
+    on('joinedEscrowRoom', handleJoined);
+    on('reload', handleReload);
+    on('unauthorized', handleUnauthorized);
 
-      socket.on('unauthorized', (data) => {
-        setError('Unauthorized: ' + data.error);
-        toast.error('Authentication failed');
-      });
+    return () => {
+      off('joinedEscrowRoom', handleJoined);
+      off('reload', handleReload);
+      off('unauthorized', handleUnauthorized);
+    };
+  }, [on, off, onEventReceived]);
 
-      // Listen for reload event that should trigger refresh
-      socket.on('reload', (data) => {
-        console.log('Reload event received:', data);
-        onEventReceived(data);
-      });
-
-      // Disconnection handler
-      socket.on('disconnect', () => {
-        setIsConnected(false);
-        console.log('Socket disconnected');
-      });
-
-      // Cleanup function
-      return () => {
-        if (socket) {
-          console.log('Cleaning up socket connection');
-          socket.off('connect');
-          socket.off('joinedEscrowRoom');
-          socket.off('connect_error');
-          socket.off('unauthorized');
-          socket.off('reload');
-          socket.off('disconnect');
-          socket.disconnect();
-        }
-      };
-    } catch (err) {
-      setError('Failed to initialize socket connection');
-      toast.error('Failed to initialize escrow connection');
-      console.error('Socket initialization error:', err);
+  // Surface provider connection errors to UI via toast and local state
+  useEffect(() => {
+    if (providerError) {
+      setError(providerError);
+      toast.error('Failed to connect to escrow server');
+    } else {
+      setError(null);
     }
-  }, [escrowContractAddress, token, onEventReceived]);
+  }, [providerError]);
 
   return {
     isConnected,

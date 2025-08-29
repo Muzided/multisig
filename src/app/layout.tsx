@@ -11,6 +11,7 @@ import { UserProvider } from '@/context/userContext';
 import { EscrowProvider } from "@/context/EscrowContext";
 import { TabProvider } from '@/context/TabContext';
 import { KYCProvider } from '@/components/Global/kyc-provider';
+import { SocketProvider } from '@/context/SocketContext';
 
 const queryClient = new QueryClient()
 
@@ -61,6 +62,7 @@ export default function RootLayout({
             <QueryClientProvider client={queryClient}>
               <AppKit>
                 <Web3Provider>
+                <SocketProvider>
                   <UserProvider>
                     <KYCProvider>
                       <EscrowProvider>
@@ -68,6 +70,7 @@ export default function RootLayout({
                       </EscrowProvider>
                     </KYCProvider>
                   </UserProvider>
+                  </SocketProvider>
                 </Web3Provider>
               </AppKit>
             </QueryClientProvider>

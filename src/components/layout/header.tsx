@@ -22,6 +22,7 @@ import { useWeb3 } from "@/context/Web3Context"
 import { KYCStatusIndicator } from "../Global/kyc-status-indicator"
 import { useKYC } from "../Global/kyc-provider"
 
+
 interface HeaderProps {
   toggleMobileNav: () => void
 }

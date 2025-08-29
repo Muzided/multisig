@@ -1,46 +1,22 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Check, Clock, ExternalLink, Filter, MoreHorizontal, X, ChevronLeft, ChevronRight,CheckCircle, XCircle, DollarSign, Hash, Calendar, User, Users, MessageSquare } from "lucide-react"
+import { useMemo, useState } from "react"
+import { Clock, ExternalLink, Filter, ChevronLeft, ChevronRight, CheckCircle, DollarSign, Hash, Calendar, User, MessageSquare, Vote } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useFactory } from "@/Hooks/useFactory"
 import { useAppKitAccount } from "@reown/appkit/react"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog"
-
-import { Switch } from "@/components/ui/switch"
-import { useEscrow } from "@/Hooks/useEscrow"
-import { useDispute } from "@/Hooks/useDispute"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog"
 import { Skeleton } from "../ui/skeleton"
-import { disputesDemoData } from "../../../public/Data/Ecsrows"
 import { getStatusStyles } from "../../../utils/helper"
 import { useRouter } from "next/navigation"
-import PageHeading from "../ui/pageheading"
 import { getDisputedResolutionHistory, getUserDisputes } from "@/services/Api/dispute/dispute"
-import {  Dispute, DisputeResolutionResponse, UserDisputeResponse } from "@/types/dispute"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
-// Mock data for escrow transactions
-
-
-
-
-// Helper function to format wallet address
-const formatAddress = (address: string) => {
-  return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`
-}
-
+import { Dispute, DisputeResolutionResponse, UserDisputeResponse } from "@/types/dispute"
+import { useQuery } from "@tanstack/react-query"
+import VoteOnDisputeModal from "./vote-on-dispute-modal"
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 
 
 
@@ -52,8 +28,7 @@ export function DisputeResolution() {
   const [selectedResolution, setSelectedResolution] = useState<DisputeResolutionResponse | null>(null);
   const [isResolutionModalOpen, setIsResolutionModalOpen] = useState(false);
   const { address } = useAppKitAccount();
-  const queryClient = useQueryClient();
-  const { data: disputesData, isLoading, error } = useQuery<UserDisputeResponse>({
+  const { data: disputesData, isLoading, error, refetch } = useQuery<UserDisputeResponse>({
     queryKey: ['userdisputes', address, currentPage, pageSize, statusFilter],
     queryFn: async () => {
       const response = await getUserDisputes(currentPage, pageSize, statusFilter);
@@ -62,13 +37,69 @@ export function DisputeResolution() {
     enabled: !!address,
   });
 
+  // Local state for voting modal
+  const [isVoteModalOpen, setIsVoteModalOpen] = useState(false)
+  const [voteModalMode, setVoteModalMode] = useState<"vote" | "view">("vote")
+  const [selectedDisputeForVote, setSelectedDisputeForVote] = useState<Dispute | null>(null)
+
+  const getUserRole = (dispute: Dispute): "creator" | "receiver" | null => {
+    if (!address) return null
+    const addr = address.toLowerCase()
+    if (dispute.escrowDetails.creatorWallet?.toLowerCase() === addr) return "creator"
+    if (dispute.escrowDetails.receiverWallet?.toLowerCase() === addr) return "receiver"
+    return null
+  }
+  
+  // Compute the current user's role for the selected dispute; keep as a top-level hook
+  const selectedUserRole = useMemo(() => (
+    selectedDisputeForVote ? getUserRole(selectedDisputeForVote) : null
+  ), [selectedDisputeForVote, address])
+
   const router = useRouter()
-  const navgateToDetailPage = (id: string,tab:string) => {
-   tab==='chat' ? router.push(`/escrow/${id}?tab=chat`) : router.push(`/escrow/${id}`)
+  const navgateToDetailPage = (id: string, tab: string) => {
+    tab === 'chat' ? router.push(`/escrow/${id}?tab=chat`) : router.push(`/escrow/${id}`)
   }
 
   // Filter disputes based on status
   const filteredDisputes = disputesData?.disputes;
+
+  // Helpers for voting flow
+ 
+
+  const parseDecisionStart = (isoString: string | null): number | null => {
+    if (!isoString) return null
+    const t = new Date(isoString).getTime()
+    return Number.isNaN(t) ? null : t
+  }
+
+  const hasUserVoted = (dispute: Dispute, role: "creator" | "receiver" | null): boolean => {
+    if (role === "creator") return dispute.creatorVote !== null
+    if (role === "receiver") return dispute.receiverVote !== null
+    return false
+  }
+
+  const isWithinDecisionWindow = (startMs: number | null, nowMs: number): boolean => {
+    if (startMs === null) return false
+    const fourHoursMs = 4 * 60 * 60 * 1000
+    return nowMs <= startMs + fourHoursMs
+  }
+
+  const onClickVote = (dispute: Dispute) => {
+    const role = getUserRole(dispute)
+    const start = parseDecisionStart(dispute.decisionInitiated)
+    const now = Date.now()
+    const withinWindow = isWithinDecisionWindow(start, now)
+    const voted = hasUserVoted(dispute, role)
+
+    setSelectedDisputeForVote(dispute)
+    // Determine mode
+    if (withinWindow && !voted) {
+      setVoteModalMode("vote")
+    } else {
+      setVoteModalMode("view")
+    }
+    setIsVoteModalOpen(true)
+  }
 
   // Add pagination controls
   const renderPagination = () => {
@@ -154,7 +185,7 @@ export function DisputeResolution() {
                       variant={pageNum === page ? "default" : "outline"}
                       size="sm"
                       onClick={() => setCurrentPage(pageNum as number)}
-                      className={pageNum === page 
+                      className={pageNum === page
                         ? "bg-[#BB7333] text-white hover:bg-[#965C29] dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
                         : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
                       }
@@ -183,7 +214,7 @@ export function DisputeResolution() {
       </div>
     );
   };
-console.log("disputesData",filteredDisputes)
+  console.log("disputesData", filteredDisputes)
   // Show skeleton loading while fetching data
   if (isLoading) {
     return (
@@ -223,14 +254,14 @@ console.log("disputesData",filteredDisputes)
   const handleViewResolutionDetails = async (disputeContractAddress: string) => {
     try {
       setLoadingStates(prev => ({ ...prev, [disputeContractAddress]: true }));
-      
+
       const response = await getDisputedResolutionHistory(disputeContractAddress);
       setSelectedResolution(response.data);
       setIsResolutionModalOpen(true);
-      
+
     } catch (error) {
       console.error("Error fetching resolution details:", error);
-     
+
     } finally {
       setLoadingStates(prev => ({ ...prev, [disputeContractAddress]: false }));
     }
@@ -261,19 +292,11 @@ console.log("disputesData",filteredDisputes)
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  const getResolutionStatusIcon = (resolution: DisputeResolutionResponse) => {
-    const { continue_work, resolved_in_favor_of_walletaddress, escrow_creator_walletaddress } = resolution.resolution;
-    
-    if (continue_work) {
-      return <CheckCircle className="w-5 h-5 text-green-500" />;
-    } else {
-      return <XCircle className="w-5 h-5 text-red-500" />;
-    }
-  };
+
 
   const getResolutionStatusText = (resolution: DisputeResolutionResponse) => {
     const { continue_work, resolved_in_favor_of_walletaddress, escrow_creator_walletaddress } = resolution.resolution;
-    
+
     if (continue_work) {
       return "Project Continued";
     } else {
@@ -283,7 +306,7 @@ console.log("disputesData",filteredDisputes)
 
   const getWinnerText = (resolution: DisputeResolutionResponse) => {
     const { resolved_in_favor_of_walletaddress, escrow_creator_walletaddress, escrow_receiver_walletaddress } = resolution.resolution;
-    
+
     if (resolved_in_favor_of_walletaddress.toLowerCase() === escrow_creator_walletaddress.toLowerCase()) {
       return "Creator";
     } else if (resolved_in_favor_of_walletaddress.toLowerCase() === escrow_receiver_walletaddress.toLowerCase()) {
@@ -340,6 +363,7 @@ console.log("disputesData",filteredDisputes)
               <TableHead className="text-zinc-500 dark:text-zinc-400">Disputer Address</TableHead>
               <TableHead className="text-zinc-500 dark:text-zinc-400">Status</TableHead>
               <TableHead className="text-zinc-500 dark:text-zinc-400">Chat</TableHead>
+              <TableHead className="text-zinc-500 dark:text-zinc-400">Continue Work</TableHead>
               <TableHead className="text-zinc-500 dark:text-zinc-400">View Details</TableHead>
             </TableRow>
           </TableHeader>
@@ -382,27 +406,26 @@ console.log("disputesData",filteredDisputes)
                       <Button
                         size="sm"
                         className=" my-2 bg-[#BB7333] text-white hover:bg-[#965C29] dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29] cursor-not-allowed"
-                        onClick={() => {}}
+                        onClick={() => { }}
                         disabled={!dispute.conversationId}
                       >
-                        
-                          <div
+
+                        <div
                           className="cursor-not-allowed flex items-center gap-2">
-                         <MessageSquare className="h-4 w-4" />
-                            <span>Chat</span>
-                          </div>
-                        
+                          <MessageSquare className="h-4 w-4" />
+                          <span>Chat</span>
+                        </div>
+
                       </Button>
                     ) : (
-                      <div className={`relative ${ dispute.conversationId  ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
+                      <div className={`relative ${dispute.conversationId ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
                         <Button
                           size="sm"
-                          className={`my-2  ${
-                            dispute.conversationId 
-                              ? "bg-[#BB7333] text-white hover:bg-[#965C29] dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]" 
+                          className={`my-2  ${dispute.conversationId
+                              ? "bg-[#BB7333] text-white hover:bg-[#965C29] dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
                               : "bg-[#BB7333] text-white hover:bg-[#965C29] dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29] cursor-not-allowed"
-                          }`}
-                          onClick={() => dispute.conversationId && navgateToDetailPage(dispute.escrowDetails.contractAddress,"chat")}
+                            }`}
+                          onClick={() => dispute.conversationId && navgateToDetailPage(dispute.escrowDetails.contractAddress, "chat")}
                           disabled={!dispute.conversationId}
                         >
                           <div className="flex items-center  gap-2">
@@ -412,7 +435,7 @@ console.log("disputesData",filteredDisputes)
                         </Button>
                         {dispute.unreadCount > 0 && (
                           <div className="absolute top-0 left-0">
-                            <span  
+                            <span
                               className="h-5 w-5 rounded-full p-0 text-white text-xs flex items-center justify-center min-w-0 border-2 bg-red-500 border-white dark:border-gray-300/60 shadow-2xl font-medium"
                             >
                               {dispute.unreadCount > 99 ? '99+' : dispute.unreadCount}
@@ -421,6 +444,71 @@ console.log("disputesData",filteredDisputes)
                         )}
                       </div>
                     )}
+                  </TableCell>
+                  <TableCell>
+                    {(() => {
+                      const role = getUserRole(dispute)
+                      const start = parseDecisionStart(dispute.decisionInitiated)
+                      const now = Date.now()
+                      const withinWindow = isWithinDecisionWindow(start, now)
+                      const voted = hasUserVoted(dispute, role)
+                      const decisionStarted = start !== null
+                      const afterDeadline = decisionStarted && !withinWindow
+
+                      // Determine disabled state and tooltip title
+                      let disabled = false
+                      let titleText = ""
+                      console.log("my g this is good", {
+                        "role": role,
+                        "start": start,
+                        "now": now,
+                        "withinWindow": withinWindow,
+                        "voted": voted,
+                        "decisionStarted": decisionStarted,
+                        "afterDeadline": afterDeadline
+                      })
+                      if (!role) {
+                        disabled = true
+                        titleText = "Only creator or receiver can record decision"
+                      } else if (!decisionStarted) {
+                        disabled = true
+                        titleText = "Right to record decision has not been initated by the resolver yet"
+                      } else if (afterDeadline && !voted) {
+                        disabled = true
+                        titleText = "Time to record the decision has been expired"
+                      }
+
+                      const button = (
+                        <Button
+                          size="sm"
+                          className={`my-2 ${disabled ? "cursor-not-allowed bg-[#BB7333] text-white hover:bg-[#965C29] dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]" : "bg-[#BB7333] text-white hover:bg-[#965C29] dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"}`}
+                          onClick={() => !disabled && onClickVote(dispute)}
+                          disabled={disabled}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Vote className="h-4 w-4" />
+                            <span>Vote</span>
+                          </div>
+                        </Button>
+                      )
+                      return (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              {/* Wrap in span to allow tooltip even when button is disabled */}
+                              <span className={disabled ? "inline-block" : undefined}>
+                                {button}
+                              </span>
+                            </TooltipTrigger>
+                            {disabled && titleText && (
+                              <TooltipContent>
+                                <p>{titleText}</p>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TooltipProvider>
+                      )
+                    })()}
                   </TableCell>
                   <TableCell>
                     {dispute.status === 'resolved' ? (
@@ -443,7 +531,7 @@ console.log("disputesData",filteredDisputes)
                       <Button
                         size="sm"
                         className="bg-[#BB7333] text-white hover:bg-[#965C29] my-2 w dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
-                        onClick={() => navgateToDetailPage(dispute.escrowDetails.contractAddress,"escrow")}
+                        onClick={() => navgateToDetailPage(dispute.escrowDetails.contractAddress, "escrow")}
                       >
                         View Escrow
                       </Button>
@@ -457,8 +545,8 @@ console.log("disputesData",filteredDisputes)
         {renderPagination()}
       </div>
 
-       {/* Resolution Details Modal */}
-       <Dialog open={isResolutionModalOpen} onOpenChange={setIsResolutionModalOpen}>
+      {/* Resolution Details Modal */}
+      <Dialog open={isResolutionModalOpen} onOpenChange={setIsResolutionModalOpen}>
         <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-sm sm:text-base">
@@ -466,7 +554,7 @@ console.log("disputesData",filteredDisputes)
               Resolution Details
             </DialogTitle>
           </DialogHeader>
-          
+
           {selectedResolution && (
             <div className="space-y-4 sm:space-y-6">
               {/* Resolution Summary */}
@@ -489,7 +577,7 @@ console.log("disputesData",filteredDisputes)
                       <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Resolved in favor of:</span>
                       <span className="text-xs font-semibold text-green-600">{getWinnerText(selectedResolution)}</span>
                     </div>
-                   { getWinnerText(selectedResolution) === "Creator" && <div className="flex items-center gap-2">
+                    {getWinnerText(selectedResolution) === "Creator" && <div className="flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-yellow-500 flex-shrink-0" />
                       <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Total returned amount:</span>
                       <span className="text-xs font-semibold">{selectedResolution.resolution.total_returned_amount} USDT</span>
@@ -608,6 +696,18 @@ console.log("disputesData",filteredDisputes)
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Vote Modal */}
+      <VoteOnDisputeModal
+        isOpen={isVoteModalOpen}
+        onOpenChange={setIsVoteModalOpen}
+        dispute={selectedDisputeForVote}
+        userRole={selectedUserRole}
+        mode={voteModalMode}
+        onSuccess={() => {
+          refetch()
+        }}
+      />
     </div>
   )
 }

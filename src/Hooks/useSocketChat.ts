@@ -22,17 +22,9 @@ export const useSocketChat = ({
 
   // Join conversation on connect and when already connected
   useEffect(() => {
-<<<<<<< HEAD
-    try {
-      // Initialize socket connection
-      socketRef.current = io('https://escrow.ipcre8.com', {
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-      });
-=======
+
     if (!conversationId) return;
->>>>>>> development
+
 
     const handleConnect = () => {
       emit('joinConversation', conversationId);

@@ -62,15 +62,17 @@ export default function RootLayout({
             <QueryClientProvider client={queryClient}>
               <AppKit>
                 <Web3Provider>
-                <SocketProvider>
                   <UserProvider>
-                    <KYCProvider>
-                      <EscrowProvider>
-                        {children}
-                      </EscrowProvider>
-                    </KYCProvider>
+                    <SocketProvider>
+
+                      <KYCProvider>
+                        <EscrowProvider>
+                          {children}
+                        </EscrowProvider>
+                      </KYCProvider>
+
+                    </SocketProvider>
                   </UserProvider>
-                  </SocketProvider>
                 </Web3Provider>
               </AppKit>
             </QueryClientProvider>

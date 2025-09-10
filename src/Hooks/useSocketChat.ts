@@ -22,7 +22,9 @@ export const useSocketChat = ({
 
   // Join conversation on connect and when already connected
   useEffect(() => {
+
     if (!conversationId) return;
+
 
     const handleConnect = () => {
       emit('joinConversation', conversationId);

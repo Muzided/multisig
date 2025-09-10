@@ -68,8 +68,10 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
     try {
       setState(prev => ({ ...prev, isCheckingKYC: true, error: null }));
 
-      // KYC is mandatory if API returns true and user's KYC status is false
+      // KYC is mandatory if API returns true (kyc_required) and user's KYC status is false (not completed)
+      
       const isMandatory = kyc_status && !user.kyc_status;
+      console.log("isMandatory result:", isMandatory,kyc_status,!user.kyc_status)
 
       setState(prev => ({
         ...prev,
@@ -103,10 +105,12 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
   const fetchKYCStatus = async () => {
     try {
       const response = await checkKYCStatus()
-      console.log("kyc-response", response)
+      console.log("kyc-response", response, "type:", typeof response)
       setKycStatus(response)
     } catch (error) {
       console.log("error while fetching kyc status", error)
+      // Set to false if API fails
+      setKycStatus(false)
     }
   }
 
@@ -115,9 +119,9 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
 
   }, [user])
 
-  // Initialize KYC status when user is authenticated
+  // Initialize KYC status when user is authenticated and API data is available
   useEffect(() => {
-    if (isAuthenticated && user && !state.isKYCStatusInitialized) {
+    if (isAuthenticated && user && !state.isKYCStatusInitialized && kyc_status !== undefined) {
       checkKYCRequirement();
     }
   }, [isAuthenticated, user, state.isKYCStatusInitialized, kyc_status, checkKYCRequirement]);
@@ -142,7 +146,6 @@ export const KYCProvider = ({ children }: KYCProviderProps) => {
         setState(prev => ({
           ...prev,
           isKYCModalOpen: true,
-          isKYCMandatory: true
         }));
       }
     } else {

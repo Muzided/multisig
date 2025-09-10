@@ -10,6 +10,7 @@ interface UserContextType {
     user: User | null;
     setUser: (user: User | null) => void;
     isAuthenticated: boolean;
+    getToken: () => string | null;
     isLoading: boolean;
     error: string | null;
 
@@ -81,6 +82,10 @@ export function UserProvider({ children }: UserProviderProps) {
         }
     };
 
+    //return token from local storage
+    const getToken=()=>{
+        return localStorage.getItem("token")
+    }
    
 
 
@@ -90,6 +95,7 @@ export function UserProvider({ children }: UserProviderProps) {
             setUser,
             isAuthenticated,
             isLoading,
+            getToken,
             error
         }}>
             {children}

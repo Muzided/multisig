@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState, ReactNode, useCallback } from 'react'
 import { io, Socket } from 'socket.io-client'
 import { useUser } from './userContext'
+import { toast } from 'react-toastify'
 
 interface SocketContextType {
 	socket: Socket | null
@@ -20,19 +21,26 @@ interface SocketProviderProps {
 }
 
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
-	const {getToken}	 = useUser()
+	const { getToken } = useUser()
 	const [isConnected, setIsConnected] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const socketRef = useRef<Socket | null>(null)
- 
+
 	useEffect(() => {
 		// Ensure we only initialize on the client
 		if (typeof window === 'undefined') return
 
 		try {
+			const token = getToken()
+			if (!token) {
+				toast('No authentication token found')
+				return
+			}
 			const url = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000'
 			socketRef.current = io(url, {
-				
+				auth: {
+					token: token // Add this - get from localStorage or auth context
+				},
 				reconnection: true,
 				reconnectionAttempts: 5,
 				reconnectionDelay: 1000,

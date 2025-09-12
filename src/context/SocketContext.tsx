@@ -39,7 +39,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 			const url = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000'
 			socketRef.current = io(url, {
 				auth: {
-					token: token // Add this - get from localStorage or auth context
+					token: token 
 				},
 				reconnection: true,
 				reconnectionAttempts: 5,

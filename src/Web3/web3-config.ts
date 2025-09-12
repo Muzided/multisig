@@ -9,4 +9,6 @@ export const infuraRpcUrl = "https://sepolia.infura.io/v3/38908a5032784374a5536d
 
 
 
-// new usdt contract address --- 0x3ec20e0d4d5e454df14f0075b18fa90059510ea4
+// new factory contract address --- 0x3ec20e0d4d5e454df14f0075b18fa90059510ea4
+
+// new[-1] factory contract address ---0xd0cd6cf3dec1fdec1c37645a400d2e99956789a1

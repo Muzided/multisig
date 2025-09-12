@@ -1538,7 +1538,32 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
     }
   }
 
-  /** Render the big “action buttons” block for each milestone */
+  // Gate interactions for milestone `index` based on the *previous* milestone state.
+  // Rules (your requirement):
+  // - If previous due date hasn't passed → LOCK
+  // - If previous had a payout request and is still in the dispute window → LOCK
+  // - If any earlier milestone has an unresolved dispute (disputedRaised && !released) → LOCK
+  const isMilestoneLocked = useCallback((index: number) => {
+    if (index === 0) return false;
+
+    // unresolved dispute in any earlier milestone locks upcoming ones
+    const anyUnresolvedDisputeBefore = escrowOnChainDetails
+      .slice(0, index)
+      .some(m => m.disputedRaised && !m.released);
+    if (anyUnresolvedDisputeBefore) return true;
+
+    const prev = escrowOnChainDetails[index - 1];
+
+    // previous due date must pass
+    if (!isDueDatePassed(prev.dueDate)) return true;
+
+    // if receiver requested previous, creator must serve the dispute window
+    if (prev.requested && !isDisputePeriodOver(prev.dueDate,disputeWindowSeconds)) return true;
+
+    return false;
+  }, [escrowOnChainDetails,disputeWindowSeconds, isDueDatePassed, isDisputePeriodOver]);
+
+  /** Render the  “action buttons” block for each milestone */
   const renderActionButtons = (milestone: ContractMilestone) => {
     if (userType === "observer") return null
 
@@ -1548,6 +1573,22 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
 
     if (terminated) {
       return <Button size="sm" className="w-full bg-gray-400 cursor-not-allowed">Payment Released</Button>
+    }
+
+    // 🔒 Lock *upcoming* milestones while the previous one is not yet eligible
+    const index = escrowOnChainDetails.findIndex(m => m.id === milestone.id);
+    const locked = isMilestoneLocked(index);
+    if (locked) {
+      return (
+        <div className="space-y-2">
+          <Button size="sm" className="w-full bg-gray-400 cursor-not-allowed" disabled>
+            Locked until previous milestone settles
+          </Button>
+          <p className="text-xs text-gray-500 text-center">
+            Wait for Milestone {index} due date to pass and resolve any dispute
+          </p>
+        </div>
+      );
     }
 
     if (!milestone.dueDate && userType === "creator")
@@ -1625,7 +1666,7 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
             onClick={(e) => {
               e.stopPropagation()
               if (isDueDatePassed(milestone.dueDate) &&
-                  isDisputePeriodOver(milestone.dueDate, disputeWindowSeconds)) {
+                isDisputePeriodOver(milestone.dueDate, disputeWindowSeconds)) {
                 handleClaimAmount(
                   escrowDetails.escrow.escrow_contract_address,
                   milestone.id,
@@ -1702,14 +1743,14 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
           className="w-full bg-[#BB7333] hover:bg-[#965C29] text-white"
           onClick={(e) => {
             e.stopPropagation()
-              handlePayout(
-                escrowDetails.escrow.escrow_contract_address,
-                milestone.id,
-                milestone.amount,
-                escrowDetails.escrow.receiver_walletaddress,
-                escrowDetails.escrow.payment_type
-              )
-            
+            handlePayout(
+              escrowDetails.escrow.escrow_contract_address,
+              milestone.id,
+              milestone.amount,
+              escrowDetails.escrow.receiver_walletaddress,
+              escrowDetails.escrow.payment_type
+            )
+
           }}
           disabled={!!loadingPayout[milestone.id]}
         >
@@ -1724,7 +1765,7 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
         <Button size="sm" className="w-full bg-gray-400 cursor-not-allowed">
           {milestone.rejected ? "Payment Rejected" :
             milestone.requested ? "Payment Requested" :
-            isDueDatePassed(milestone.dueDate) ? "In Dispute Period" : "Payment Released"}
+              isDueDatePassed(milestone.dueDate) ? "In Dispute Period" : "Payment Released"}
         </Button>
       </div>
     )

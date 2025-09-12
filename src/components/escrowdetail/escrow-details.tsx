@@ -122,7 +122,7 @@ export function EscrowDetails({ escrowId, defaultTab = "general" }: { escrowId: 
         }
         break;
         
-        case 'payment_reclaimed':
+      case 'payment_reclaimed':
           if (userRole === 'creator') {
             toast.success('You have successfully reclaimed the payment.');
             
@@ -133,6 +133,17 @@ export function EscrowDetails({ escrowId, defaultTab = "general" }: { escrowId: 
           }
           break;
 
+      case 'milestone_updated':
+        // if (userRole === 'creator') {
+        //   toast.success('You have successfully reclaimed the payment.');
+          
+        // } else 
+        if (userRole === 'receiver') {
+          toast.info('Next milestone has been activated ny creator.');
+        } else {
+          toast.info('New milestone activated.');
+        }
+        break;
       default:
         toast.info('An escrow event has occurred.');
         break;

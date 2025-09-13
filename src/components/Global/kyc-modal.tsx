@@ -165,7 +165,7 @@ export const KYCModal = ({
         return null;
     }
   };
-
+console.log("access token ",accessToken)
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogPortal>

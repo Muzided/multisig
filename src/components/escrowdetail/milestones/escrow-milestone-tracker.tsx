@@ -1550,15 +1550,15 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
     const anyUnresolvedDisputeBefore = escrowOnChainDetails
       .slice(0, index)
       .some(m => m.disputedRaised && !m.released);
-    if (anyUnresolvedDisputeBefore) return false;
+    if (anyUnresolvedDisputeBefore) return true;
 
     const prev = escrowOnChainDetails[index - 1];
 
     // previous due date must pass
-    if (!isDueDatePassed(prev.dueDate)) return false;
+    if (!isDueDatePassed(prev.dueDate)) return true;
 
     // if receiver requested previous, creator must serve the dispute window
-    if (prev.requested && !prev.released && !isDisputePeriodOver(prev.dueDate,disputeWindowSeconds)) return false;
+    if (prev.requested && !prev.released && !isDisputePeriodOver(prev.dueDate,disputeWindowSeconds)) return true;
 
     return false;
   }, [escrowOnChainDetails,disputeWindowSeconds, isDueDatePassed, isDisputePeriodOver]);

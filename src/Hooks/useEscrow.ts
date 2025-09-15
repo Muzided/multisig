@@ -310,7 +310,7 @@ export const useEscrow = () => {
                 };
             }
             //request payment from blockchain
-            const requestPayment = milestoneRequested ?await escorwContract.withdrawExpired(escrowIndex): await escorwContract.reclaimUnrequested(escrowIndex) 
+            const requestPayment = milestoneRequested ? await escorwContract.withdrawExpired(escrowIndex): await escorwContract.reclaimUnrequested(escrowIndex) 
             const tx = await requestPayment.wait();
             const res = await saveHistory("payment_reclaimed", tx.hash, amount, escrowAddress, escrowIndex, receiver_wallet_address, escrowType)
             if (res.status === 201) {

@@ -1,4 +1,4 @@
-import { CreateEscrowForm } from "@/components/Global/create-escrow-form"
+import  CreateEscrowForm  from "@/components/escrowcreation/create-escrow-form"
 import { useKYC } from "@/components/Global/kyc-provider"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"

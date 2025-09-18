@@ -140,7 +140,7 @@ export function TransactionsTab() {
                       variant={pageNum === page ? "default" : "outline"}
                       size="sm"
                       onClick={() => setCurrentPage(pageNum as number)}
-                      className={pageNum === page 
+                      className={pageNum === page
                         ? "bg-[#BB7333] text-white hover:bg-[#965C29] dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
                         : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white dark:hover:bg-zinc-700"
                       }
@@ -238,6 +238,8 @@ export function TransactionsTab() {
             <SelectItem value="escrow_creation">Escrow Creation</SelectItem>
             <SelectItem value="payment_requested">Payment Requested</SelectItem>
             <SelectItem value="dispute_initiated">Dispute Raised</SelectItem>
+            <SelectItem value="payment_reclaimed">Payment Reclaimed</SelectItem>
+            <SelectItem value="payment_received">Payment Received</SelectItem>
           </SelectContent>
         </Select>
       </div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -9,10 +9,9 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { EscrowMilestoneTracker } from "./milestones/escrow-milestone-tracker"
-import { EscrowDisputeChat } from "./escrow-dispute-chat"
+import  EscrowDisputeChat  from "@/components/chat/escrow-dispute-chat"
 import { EscrowGeneralInfo } from "./escrow-general-info"
 import { useQuery } from "@tanstack/react-query"
 
@@ -36,7 +35,7 @@ export function EscrowDetails({ escrowId, defaultTab = "general" }: { escrowId: 
   const [escrowOnChainDetails, setEscrowOnChainDetails] = useState<ContractMilestone[]>([]);
   const [showContractTerms, setShowContractTerms] = useState(false);
   const [contractContent, setContractContent] = useState("");
-  const [originalContractContent, setOriginalContractContent] = useState("");
+ // const [originalContractContent, setOriginalContractContent] = useState("");
 
   const { address } = useAppKitAccount();
 
@@ -224,7 +223,7 @@ export function EscrowDetails({ escrowId, defaultTab = "general" }: { escrowId: 
     try {
       const legalDocs = await getLegalDocuments(escrowAddress);
       const sanitizedContent = DOMPurify.sanitize(legalDocs?.data?.document || "");
-      setOriginalContractContent(sanitizedContent);
+     // setOriginalContractContent(sanitizedContent);
       setContractContent(sanitizedContent);
       setShowContractTerms(true);
     } catch (error) {

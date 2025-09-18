@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Filter, ChevronLeft, ChevronRight } from "lucide-react"
+import { Filter, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   Dialog,
@@ -46,11 +46,14 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [loadingEscrows, setLoadingEscrows] = useState<{ [key: string]: boolean }>({});
+  const [loadingFetchDoc, setLoadingFetchDoc] = useState<{ [key: string]: boolean }>({});
   const [showContractTerms, setShowContractTerms] = useState(false);
   const [contractContent, setContractContent] = useState("");
   const [originalContractContent, setOriginalContractContent] = useState("");
   const [receiverSignature, setReceiverSignature] = useState("");
   const [currentEscrowAddress, setCurrentEscrowAddress] = useState("");
+  const [isSavingSignature, setIsSavingSignature] = useState(false);
+  
 
   //next-router
   const router = useRouter()
@@ -95,6 +98,7 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
   }
   const handleSignContract = async (escrowAddress: string) => {
     try {
+      setLoadingFetchDoc(prev => ({ ...prev, [escrowAddress]: true }));
       setCurrentEscrowAddress(escrowAddress);
   
       const { data } = await getLegalDocuments(escrowAddress);
@@ -106,6 +110,8 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
     } catch (err) {
       console.error(err);
       toast.error("Failed to fetch contract document");
+    } finally {
+      setLoadingFetchDoc(prev => ({ ...prev, [escrowAddress]: false }));
     }
   };
 
@@ -142,6 +148,8 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
     }
 
     try {
+      if (isSavingSignature) return;
+      setIsSavingSignature(true);
       const isSigned = await signLegalDocument(currentEscrowAddress, contractContent);
 
       if (isSigned) {
@@ -163,6 +171,8 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
     } catch (error) {
       console.error("Error saving signature:", error);
       toast.error("Failed to save signature");
+    } finally {
+      setIsSavingSignature(false);
     }
   };
 
@@ -459,10 +469,18 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
                               // </p> 
                               <Button
                                 size="sm"
-                                className="bg-[#BB7333] text-white hover:bg-[#965C29] my-2 w dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
+                                disabled={!!loadingFetchDoc[escrow.escrow_contract_address]}
+                                className="bg-[#BB7333] text-white hover:bg-[#965C29] my-2 w dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29] disabled:opacity-70"
                                 onClick={() => handleSignContract(escrow.escrow_contract_address)}
                               >
-                                Sign Contract
+                                {loadingFetchDoc[escrow.escrow_contract_address] ? (
+                                  <span className="flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    Opening...
+                                  </span>
+                                ) : (
+                                  'Sign Contract'
+                                )}
                               </Button>
                             // </div>
                           ) : (
@@ -515,9 +533,16 @@ export function EscrowOverview({ limit }: EscrowOverviewProps) {
                 type="button"
                 onClick={handleSaveChanges}
                 className="flex items-center gap-2"
-                disabled={!receiverSignature}
+                disabled={!receiverSignature || isSavingSignature}
               >
-                Sign Contract
+                {isSavingSignature ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Signing...
+                  </span>
+                ) : (
+                  'Sign Contract'
+                )}
               </Button>
             </div>
           </div>

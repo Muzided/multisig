@@ -1,5 +1,5 @@
 
-export const MultiSig_Factory_Address ="0x3ec20e0d4d5e454df14f0075b18fa90059510ea4";
+export const MultiSig_Factory_Address ="0x72d8568a58a6ead32142a5532ca84e951a15a295";
 //0xA4b46929966c929fafd67986Dfb0507F9Ffc14f1 verifed contract address
 export const Usdt_Contract_Address ="0xc365Fc4c14259b861Dddbe771618ab9258da32f3"
 export const escrow_Contract_Address ="0x949e1BA0ff30a792D1C4e7276dDCAC923187BAB5";

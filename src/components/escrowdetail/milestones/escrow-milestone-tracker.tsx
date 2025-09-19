@@ -1555,7 +1555,7 @@ export function EscrowMilestoneTracker({ escrowDetails, escrowOnChainDetails, us
     const prev = escrowOnChainDetails[index - 1];
 
     // previous due date must pass
-    if (!isDueDatePassed(prev.dueDate)) return true;
+    if (!isDueDatePassed(prev.dueDate) &&   !prev.released) return true;
 
     // if receiver requested previous, creator must serve the dispute window
     if (prev.requested && !prev.released && !isDisputePeriodOver(prev.dueDate,disputeWindowSeconds)) return true;

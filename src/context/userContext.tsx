@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useWeb3 } from './Web3Context'
 import { RegistrationVerificationResponse, User } from '@/types/user'
-import { AuthenticatieUser, isUserRejectedSignatureError, RegisterUser } from '@/services/Api/auth/auth'  
+import { AuthenticatieUser, isUserRejectedSignatureError, RegisterUser } from '@/services/Api/auth/auth'
 
 
 
@@ -10,6 +10,7 @@ interface UserContextType {
     user: User | null;
     setUser: (user: User | null) => void;
     isAuthenticated: boolean;
+    token: string | null;
     getToken: () => string | null;
     isLoading: boolean;
     error: string | null;
@@ -24,13 +25,14 @@ interface UserProviderProps {
 
 export function UserProvider({ children }: UserProviderProps) {
     // Get wallet data from Web3Context
-    const { account, signer, isConnected , disconnectWallet} = useWeb3();
+    const { account, signer, isConnected, disconnectWallet } = useWeb3();
 
     // User state
     const [user, setUser] = useState<User | null>(null);
+    const [token, setToken] = useState<string | null>('')
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(false);
-    
+
     const [error, setError] = useState<string | null>(null);
 
     // Check if user is authenticated on wallet connection
@@ -56,7 +58,7 @@ export function UserProvider({ children }: UserProviderProps) {
         try {
             //register user if not registered
             const response = await RegisterUser(account)
-          
+
             if (response?.status === 200) {
                 //sign message and authenticate user
                 if (signer) {
@@ -65,6 +67,7 @@ export function UserProvider({ children }: UserProviderProps) {
                     if (authResponse?.status === 200) {
                         //set user and isAuthenticated to true
                         setUser(authResponse.data.user);
+                        setToken(authResponse.data.token)
                         localStorage.setItem("token", authResponse.data.token)
                         setIsAuthenticated(true);
                     }
@@ -76,23 +79,24 @@ export function UserProvider({ children }: UserProviderProps) {
         } catch (err) {
             if (isUserRejectedSignatureError(err)) {
                 disconnectWallet()
-              }
+            }
         } finally {
             setIsLoading(false);
         }
     };
 
     //return token from local storage
-    const getToken=()=>{
+    const getToken = () => {
         return localStorage.getItem("token")
     }
-   
+
 
 
     return (
         <UserContext.Provider value={{
             user,
             setUser,
+            token,
             isAuthenticated,
             isLoading,
             getToken,

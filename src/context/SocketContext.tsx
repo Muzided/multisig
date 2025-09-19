@@ -21,7 +21,7 @@ interface SocketProviderProps {
 }
 
 export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
-	const { getToken } = useUser()
+	const { token } = useUser()
 	const [isConnected, setIsConnected] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const socketRef = useRef<Socket | null>(null)
@@ -31,15 +31,11 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 		if (typeof window === 'undefined') return
 
 		try {
-			const token = getToken()
-			if (!token) {
-				toast('No authentication token found')
-				return
-			}
+			if (!token) return
 			const url = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000'
 			socketRef.current = io(url, {
 				auth: {
-					token: token 
+					token: token
 				},
 				reconnection: true,
 				reconnectionAttempts: 5,
@@ -55,7 +51,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 			})
 
 			socket.on('connect_error', (err) => {
-				console.log("connection-error",err)
+				console.log("connection-error", err)
 				setError('Connection error: ' + err.message)
 			})
 
@@ -75,7 +71,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 			setError('Failed to initialize socket connection')
 			console.error('SocketProvider initialization error:', err)
 		}
-	}, [])
+	}, [token])
 
 	const on = useCallback((event: string, callback: (...args: any[]) => void) => {
 		socketRef.current?.on(event, callback)

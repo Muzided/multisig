@@ -33,9 +33,9 @@ export const getRemaningTimeForActiveDispute = async () => {
 }
 
 
-export const getDisputedResolutionHistory = async (disputeContractAddress: string) => {
+export const getDisputedResolutionHistory = async (disputeContractAddress: string, milestoneIndex: number) => {
     try {
-        const response = await axiosService.get<DisputeResolutionResponse>(`api/transaction/getDisputeResolutionTransaction/${disputeContractAddress}`)
+        const response = await axiosService.get<DisputeResolutionResponse>(`api/transaction/getDisputeResolutionTransaction/${disputeContractAddress}/${milestoneIndex}`)
         return response
     } catch (error) {
         console.log("error while fetching dispute resolution history", error)

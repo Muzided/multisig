@@ -49,7 +49,7 @@ export function DisputeResolution() {
     if (dispute.escrowDetails.receiverWallet?.toLowerCase() === addr) return "receiver"
     return null
   }
-  
+
   // Compute the current user's role for the selected dispute; keep as a top-level hook
   const selectedUserRole = useMemo(() => (
     selectedDisputeForVote ? getUserRole(selectedDisputeForVote) : null
@@ -64,7 +64,7 @@ export function DisputeResolution() {
   const filteredDisputes = disputesData?.disputes;
 
   // Helpers for voting flow
- 
+
 
   const parseDecisionStart = (isoString: string | null): number | null => {
     if (!isoString) return null
@@ -214,7 +214,7 @@ export function DisputeResolution() {
       </div>
     );
   };
-  console.log("disputesData", filteredDisputes)
+
   // Show skeleton loading while fetching data
   if (isLoading) {
     return (
@@ -251,11 +251,11 @@ export function DisputeResolution() {
     );
   }
 
-  const handleViewResolutionDetails = async (disputeContractAddress: string) => {
+  const handleViewResolutionDetails = async (disputeContractAddress: string, milestoneIndex: number) => {
     try {
       setLoadingStates(prev => ({ ...prev, [disputeContractAddress]: true }));
 
-      const response = await getDisputedResolutionHistory(disputeContractAddress);
+      const response = await getDisputedResolutionHistory(disputeContractAddress, milestoneIndex);
       setSelectedResolution(response.data);
       setIsResolutionModalOpen(true);
 
@@ -422,8 +422,8 @@ export function DisputeResolution() {
                         <Button
                           size="sm"
                           className={`my-2  ${dispute.conversationId
-                              ? "bg-[#BB7333] text-white hover:bg-[#965C29] dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
-                              : "bg-[#BB7333] text-white hover:bg-[#965C29] dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29] cursor-not-allowed"
+                            ? "bg-[#BB7333] text-white hover:bg-[#965C29] dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29]"
+                            : "bg-[#BB7333] text-white hover:bg-[#965C29] dark:bg-[#BB7333] dark:text-white dark:hover:bg-[#965C29] cursor-not-allowed"
                             }`}
                           onClick={() => dispute.conversationId && navgateToDetailPage(dispute.escrowDetails.contractAddress, "chat")}
                           disabled={!dispute.conversationId}
@@ -518,7 +518,7 @@ export function DisputeResolution() {
                       <Button
                         size="sm"
                         className="bg-[#9C5F2A] text-white hover:bg-[#9C5F2A] my-2 w dark:bg-[#9C5F2A] dark:text-white dark:hover:bg-[#9C5F2A]"
-                        onClick={() => handleViewResolutionDetails(dispute.disputeContractAddress)}
+                        onClick={() => handleViewResolutionDetails(dispute.disputeContractAddress,dispute.milestone.index)}
                         disabled={loadingStates[dispute.disputeContractAddress]}
                       >
                         {loadingStates[dispute.disputeContractAddress] ? (

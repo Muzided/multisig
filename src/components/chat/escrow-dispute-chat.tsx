@@ -121,6 +121,7 @@ export default function EscrowDisputeChat({ escrowDetails }: { escrowDetails: ge
     setLoading(true);
   };
 
+  console.log("escrow-details",escrowDetails.resolver)
   if (!selectedUser) {
     return (
       <div className="space-y-4">
@@ -131,6 +132,7 @@ export default function EscrowDisputeChat({ escrowDetails }: { escrowDetails: ge
   }
 
   return (
+ 
     <ChatView
       sender={user}
       user={selectedUser}

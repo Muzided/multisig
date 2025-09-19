@@ -11,6 +11,7 @@ export default function MessageList({
   isLoadingMore,
   conversationId,
   messagePagination,
+  onNearBottom,
 }: {
   messages: ChatMessage[];
   senderId: string;
@@ -18,6 +19,7 @@ export default function MessageList({
   messagePagination: ChatPagination;
   isLoadingMore: boolean;
   conversationId: string;
+  onNearBottom?: () => void;
 }) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -52,6 +54,10 @@ export default function MessageList({
     const { scrollTop, scrollHeight, clientHeight } = container;
     const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
     setShouldScrollToBottom(isNearBottom);
+
+    if (isNearBottom) {
+      onNearBottom?.();
+    }
 
     if (scrollTop < 100) {
       try {

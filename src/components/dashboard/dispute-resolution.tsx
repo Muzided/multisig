@@ -473,6 +473,9 @@ export function DisputeResolution() {
                       } else if (!decisionStarted) {
                         disabled = true
                         titleText = "Right to record decision has not been initated by the resolver yet"
+                      } else if (voted) {
+                        disabled = true
+                        titleText = "You have already recorded your decision"
                       } else if (afterDeadline && !voted) {
                         disabled = true
                         titleText = "Time to record the decision has been expired"

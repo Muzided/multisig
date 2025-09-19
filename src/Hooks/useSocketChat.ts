@@ -14,9 +14,8 @@ export const useSocketChat = ({
 }: UseSocketChatProps): UseSocketChatReturn => {
   const { isConnected, error: providerError, on, off, emit } = useSocketConnection();
 
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  
   const [error, setError] = useState<string | null>(null);
-  const socketRef = useRef<Socket | null>(null);
 
   
 
@@ -91,10 +90,20 @@ export const useSocketChat = ({
     }
   }, [conversationId, senderId, isConnected, emit]);
 
+  // Mark messages as read for this conversation
+  const markAsRead = useCallback((convId: string, userId: string) => {
+    if (!isConnected) return;
+    try {
+      emit('markAsRead', { conversationId: convId, userId });
+    } catch (err) {
+      // Optional: surface error
+    }
+  }, [isConnected, emit]);
+
   return {
     sendMessage,
     isConnected,
-    messages,
     error,
+    markAsRead,
   };
 }; 

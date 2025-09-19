@@ -1,18 +1,19 @@
-"use client"
+"use client";
 
-import { useEffect, useState, useCallback } from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, ShieldCheck } from "lucide-react"
-import { ChatMessage, ChatPagination, ConversationDetailsResponse, Media } from "@/types/chat"
-import { User } from "@/types/user"
-import { Resolver } from "@/types/escrow"
-import { useSocketChat } from "@/Hooks/useSocketChat"
-import { MessageList } from "./message-list"
-import { ChatInput } from "./chat-input"
-import { formatAddress } from "../../../utils/helper"
+import React, { useCallback, useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "react-toastify";
+import { uploadMediatoChat } from "@/services/Api/chat/chat";
+import { useSocketChat } from "@/Hooks/useSocketChat";
+import ChatHeader from "./chat-header";
+import MessageList from "./message-list";
+import MessageInput from "./message-input";
 
-export function ChatView({
+import type { Resolver } from "@/types/escrow";
+import type { ChatMessage, ChatPagination, ConversationDetailsResponse, Media } from "@/types/chat";
+import type { User } from "@/types/user";
+
+export default function ChatView({
   sender,
   user,
   chatDetails,
@@ -20,82 +21,148 @@ export function ChatView({
   messagePagination,
   onBack,
   loading,
-  onLoadMore
+  onLoadMore,
 }: {
-  sender: User | null,
-  user: Resolver,
-  chatDetails: ConversationDetailsResponse | null,
-  chatMessages: ChatMessage[],
-  messagePagination: ChatPagination,
-  onBack: () => void,
-  loading: boolean,
-  onLoadMore: (conversationId: string, page: number) => Promise<boolean>
+  sender: User | null;
+  user: Resolver;
+  chatDetails: ConversationDetailsResponse | null;
+  chatMessages: ChatMessage[];
+  messagePagination: ChatPagination;
+  onBack: () => void;
+  loading: boolean;
+  onLoadMore: (conversationId: string, page: number) => Promise<boolean>;
 }) {
-  const [allMessages, setAllMessages] = useState<ChatMessage[]>([])
-  const senderId = sender?.id || ""
-  const conversationId = chatDetails?.conversationId || ""
+  const [message, setMessage] = useState("");
+  const [media, setMedia] = useState<Media | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [allMessages, setAllMessages] = useState<ChatMessage[]>([]);
 
-  const handleMessageReceived = useCallback((message: ChatMessage) => {
+  const senderId = sender?.id || "";
+  const conversationId = chatDetails?.conversationId || "";
+
+  const handleMessageReceived = useCallback((msg: ChatMessage) => {
     setAllMessages(prev => {
-      if (prev.some(msg => msg.message_id === message.message_id)) return prev
-      return [...prev, message]
-    })
-  }, [])
+      if (prev.some(m => m.message_id === msg.message_id)) return prev;
+      return [...prev, msg];
+    });
+  }, []);
 
-  const { sendMessage: socketSendMessage, isConnected } = useSocketChat({
+  const { sendMessage: socketSendMessage, isConnected, markAsRead } = useSocketChat({
     conversationId,
     senderId,
     onMessageReceived: handleMessageReceived,
   });
 
-  const handleScroll = async (pagination: number) => {
-    if (messagePagination.page >= messagePagination.totalPages) return
-    await onLoadMore(conversationId, pagination)
-  }
+  const loadMore = async (page: number) => {
+    if (messagePagination.page >= messagePagination.totalPages) {
+      setIsLoadingMore(false);
+      return;
+    }
+    setIsLoadingMore(true);
+    try {
+      await onLoadMore(conversationId, page);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
-    if (chatMessages.length > 0) setAllMessages(chatMessages)
-  }, [chatMessages])
+    if (chatMessages.length > 0) setAllMessages(chatMessages);
+  }, [chatMessages]);
 
-  if (loading) return <p className="p-4">Loading chat...</p>
-  if (!conversationId) return <p className="p-4">Failed to initialize chat.</p>
+  // Mark as read when chat opens/updates
+  useEffect(() => {
+    if (conversationId && senderId) {
+      markAsRead(conversationId, senderId);
+    }
+  }, [conversationId, senderId, markAsRead]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="flex-1 p-4 space-y-4">
+          {/* skeletons */}
+          <div className="flex items-start space-x-2">
+            <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+              <div className="h-12 bg-gray-200 rounded animate-pulse" />
+            </div>
+          </div>
+          <div className="flex items-start space-x-2">
+            <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+              <div className="h-12 bg-gray-200 rounded animate-pulse" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!conversationId) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-500">Failed to initialize chat. Please try again.</p>
+      </div>
+    );
+  }
+
+  const onFileChosen = async (file: File) => {
+    try {
+      const response = await uploadMediatoChat(file);
+      if (response.status === 200) {
+        setMedia(response.data.media);
+        toast.success("File uploaded successfully");
+      } else {
+        toast.error("Failed to upload file");
+      }
+    } catch (e) {
+      console.error("Error uploading file:", e);
+      toast.error("Failed to upload file");
+    }
+  };
+
+  const onSend = () => {
+    if ((!message.trim() && !media) || !conversationId) return;
+
+    if (media && message) {
+      socketSendMessage(message, media);
+    } else if (media && !message) {
+      socketSendMessage("", media);
+    } else if (message && !media) {
+      socketSendMessage(message, null);
+    }
+    setMessage("");
+    setMedia(null);
+  };
 
   return (
     <div className="flex flex-col h-[600px]">
-      {/* Chat Header */}
-      <div className="flex items-center gap-4 p-4 border-b">
-        <Button variant="ghost" size="icon" onClick={onBack}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center">
-          <ShieldCheck className="h-6 w-6 text-gray-500" />
-        </div>
-        <div>
-          <h3 className="font-medium">{formatAddress(user.wallet_address)}</h3>
-          <p className="text-sm text-gray-500">Resolver</p>
-        </div>
-        <div className="ml-auto">
-          <Badge variant={isConnected ? "default" : "destructive"}>
-            {isConnected ? "Connected" : "Disconnected"}
-          </Badge>
-        </div>
-      </div>
+      <ChatHeader onBack={onBack} user={user} isConnected={isConnected} />
 
-      {/* Messages */}
       <MessageList
         messages={allMessages}
         senderId={senderId}
-        onLoadMore={handleScroll}
-        isLoadingMore={false}
         conversationId={conversationId}
         messagePagination={messagePagination}
+        isLoadingMore={isLoadingMore}
+        onLoadMore={async (nextPage) => loadMore(nextPage)}
+        onNearBottom={() => {
+          if (conversationId && senderId) markAsRead(conversationId, senderId);
+        }}
       />
 
-      {/* Input */}
-      <ChatInput
-        isConnected={isConnected}
-        onSend={(msg, media: Media | null) => socketSendMessage(msg, media)}
+      <MessageInput
+        message={message}
+        setMessage={setMessage}
+        media={media}
+        setMedia={setMedia}
+        onFileChosen={onFileChosen}
+        onSend={onSend}
+        sendDisabled={!isConnected || (!message.trim() && !media)}
       />
     </div>
-  )
+  );
 }

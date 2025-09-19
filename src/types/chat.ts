@@ -37,8 +37,8 @@ export interface UseSocketChatProps {
 export interface UseSocketChatReturn {
   sendMessage: (message: string | null, media: Media | null) => void;
   isConnected: boolean;
-  messages: ChatMessage[];
   error: string | null;
+  markAsRead: (conversationId: string, userId: string) => void;
 }
 
 

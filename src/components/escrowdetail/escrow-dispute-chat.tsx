@@ -285,7 +285,6 @@ console.log("message received",message,allMessages)
   const {
     sendMessage: socketSendMessage,
     isConnected,
-    messages: socketMessages,
     error: socketError
   } = useSocketChat({
     conversationId: conversationId,

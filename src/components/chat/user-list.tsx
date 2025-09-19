@@ -1,12 +1,18 @@
-"use client"
+"use client";
 
-import { Card, CardContent } from "@/components/ui/card"
-import { ShieldCheck, MessageSquare } from "lucide-react"
-import { Resolver } from "@/types/escrow"
-import { formatAddress } from "../../../utils/helper"
+import React from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { ShieldCheck, MessageSquare } from "lucide-react";
+import type { Resolver } from "@/types/escrow";
+import { formatAddress } from "../../../utils/helper";
 
-
-export function UserList({ user, onSelectUser }: { user: Resolver, onSelectUser: (user: Resolver) => void }) {
+export default function UserList({
+  user,
+  onSelectUser,
+}: {
+  user: Resolver;
+  onSelectUser: (u: Resolver) => void;
+}) {
   return (
     <div className="space-y-2">
       <Card
@@ -29,5 +35,5 @@ export function UserList({ user, onSelectUser }: { user: Resolver, onSelectUser:
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

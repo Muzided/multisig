@@ -1,6 +1,8 @@
 import { EscrowCreationResponse } from "@/types/contract"
 import { axiosService } from "../apiConfig"
 
+
+
 import { ChatDetailsResponse, ChatResponse, ConversationDetailsResponse, ConversationResponse, startChatRequest, startConversationRequest, UploadMediaResponse } from "@/types/chat"
 import { ConversationMessagesResponse } from "../conversation/converstaion"
 
@@ -14,6 +16,8 @@ export const startConversation = async (requestData: startConversationRequest) =
         throw error;
     }
 }
+
+
 
 export const getConversation = async (conversationId: string) => {
     try {
@@ -33,6 +37,10 @@ export const getConversationDetails = async (disputeWalletAddress: string) => {
         console.log("error while fetching conversation details", error)
         throw error;
     }
+}
+
+const stuctureError = (error: any) => {
+    
 }
 
 export const getChatMessages = async (conversationId: string, page: number = 1, limit: number = 15) => {

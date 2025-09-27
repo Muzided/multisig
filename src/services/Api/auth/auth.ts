@@ -8,7 +8,6 @@ export const RegisterUser = async (wallet_address: string) => {
         const response = await axiosService.post<RegistrationVerificationResponse>('/api/auth/authenticate', {
             wallet_address
         })
-
         return response
     } catch (error) {
         console.log("error while logging in", error)

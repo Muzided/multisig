@@ -476,7 +476,7 @@ export function DisputeResolution() {
                       } else if (voted) {
                         disabled = true
                         titleText = "You have already recorded your decision"
-                      } else if (afterDeadline && !voted) {
+                      } else if (afterDeadline && !voted && dispute.status === 'resolved') {
                         disabled = true
                         titleText = "Time to record the decision has been expired"
                       }
@@ -518,7 +518,7 @@ export function DisputeResolution() {
                       <Button
                         size="sm"
                         className="bg-[#9C5F2A] text-white hover:bg-[#9C5F2A] my-2 w dark:bg-[#9C5F2A] dark:text-white dark:hover:bg-[#9C5F2A]"
-                        onClick={() => handleViewResolutionDetails(dispute.disputeContractAddress,dispute.milestone.index)}
+                        onClick={() => handleViewResolutionDetails(dispute.disputeContractAddress, dispute.milestone.index)}
                         disabled={loadingStates[dispute.disputeContractAddress]}
                       >
                         {loadingStates[dispute.disputeContractAddress] ? (
@@ -580,11 +580,21 @@ export function DisputeResolution() {
                       <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Resolved in favor of:</span>
                       <span className="text-xs font-semibold text-green-600">{getWinnerText(selectedResolution)}</span>
                     </div>
-                    {getWinnerText(selectedResolution) === "Creator" && <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2">
                       <DollarSign className="w-4 h-4 text-yellow-500 flex-shrink-0" />
-                      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Total returned amount:</span>
-                      <span className="text-xs font-semibold">{selectedResolution.resolution.total_returned_amount} USDT</span>
-                    </div>}
+                      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Amount returned to receiver:</span>
+                      <span className="text-xs font-semibold">{selectedResolution.resolution.receiver_returned_amount} USDT</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Amount returned to creator:</span>
+                      <span className="text-xs font-semibold">{selectedResolution.resolution.creator_returned_amount} USDT</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                      <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Total affected amount :</span>
+                      <span className="text-xs font-semibold">{selectedResolution.resolution.creator_returned_amount + selectedResolution.resolution.receiver_returned_amount} USDT</span>
+                    </div>
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-purple-500 flex-shrink-0" />
                       <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Resolution date:</span>

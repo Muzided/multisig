@@ -126,10 +126,11 @@ export default function MessageList({
                   {msg.media?.type === "image" ? (
                     <div className="mb-2">
                       <img
-                        src={`http://localhost:5000${msg.media.url}`}
+                      
+                        src={`https://escrow.ipcre8.com${msg.media.url}`}
                         alt={msg.media.originalName || "Image"}
                         className="max-w-full sm:max-w-xs md:max-w-sm lg:max-w-md rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-cover"
-                        onClick={() => window.open(`http://localhost:5000${msg.media?.url}`, "_blank")}
+                        onClick={() => window.open(`https://escrow.ipcre8.com${msg.media?.url}`, "_blank")}
                       />
                     </div>
                   ) : (
@@ -144,7 +145,7 @@ export default function MessageList({
                         </p>
                       </div>
                       <a
-                        href={`http://localhost:5000${msg.media.url}`}
+                        href={`https://escrow.ipcre8.com${msg.media.url}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-blue-500 hover:text-blue-600 text-sm"

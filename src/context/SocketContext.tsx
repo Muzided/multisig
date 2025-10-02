@@ -32,7 +32,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
 		try {
 			if (!token) return
-			const url = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000'
+			const url = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://escrow.ipcre8.com'
 			socketRef.current = io(url, {
 				auth: {
 					token: token
